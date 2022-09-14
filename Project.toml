@@ -3,6 +3,10 @@ uuid = "cb339c56-07fa-4cb2-923a-142469552264"
 authors = ["Austin Zadoks"]
 version = "0.1.0"
 
+[deps]
+EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
 [compat]
 julia = "1"
 
