@@ -28,12 +28,10 @@ function load_upf(filename::AbstractString)
             return parse_upf1(io)
         end
     elseif version == 2
-        open(filename, "r") do io
-            text = read(io, String)
-        end
-        # Remove end-of-file junk
+        text = read(filename, String)
+        # Remove end-of-file junk (input data, etc.)
         text = string(split(text, "</UPF>")[1], "</UPF>")
-        # Clean any errant "&" characters
+        # Clean any errant `&` characters
         text = replace(text, "&" => "")
         doc_root = root(parsexml(text))
         return parse_upf2(doc_root)

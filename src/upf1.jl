@@ -25,42 +25,44 @@ function parse_header!(io::IO, upf::Dict)
     header = Dict()
     read_until(io, "<PP_HEADER>")
 
-    header["upf_version"] = 1
+    header["format_version"] = 1
 
     s = split(readline(io))
-    # header["version"] = parse(Int, s[1])
+    header["version"] = parse(Int, s[1])        # Version Number
 
     s = split(readline(io))
-    header["element"] = strip(s[1])
+    header["element"] = strip(s[1])             # Element
 
     s = split(readline(io))
-    header["pseudo_type"] = s[1]
+    header["pseudo_type"] = s[1]                # Type of pseudopotential (NC|US|PAW)
 
     s = split(readline(io))
     header["core_correction"] = lowercase(s[1][1]) == 't' ? true : false
 
     s = split(readline(io))
-    # header["dft"] = s[begin:20]
+    # header["dft"] = s[begin:20]               # Exchange-correlation functional
 
     s = split(readline(io))
-    header["z_valence"] = parse(Float64, s[1])
+    header["z_valence"] = parse(Float64, s[1])  # Z valence
 
     s = split(readline(io))
-    # header["etotps"] = parse(Float64, s[1])
+    header["etotps"] = parse(Float64, s[1])     # Total energy
 
     s = split(readline(io))
-    # header["ecutwfc"] = parse(Float64, s[1])
-    # header["ecutrho"] = parse(Float64, s[2])
+    header["ecutwfc"] = parse(Float64, s[1])    # Suggested cutoffs
+    header["ecutrho"] = parse(Float64, s[2])
 
     s = split(readline(io))
-    header["l_max"] = parse(Int, s[1])
+    header["l_max"] = parse(Int, s[1])          # Maximum angular momentum
 
     s = split(readline(io))
-    header["mesh_size"] = parse(Int, s[1])
+    header["mesh_size"] = parse(Int, s[1])      # Number of points in radial mesh
 
     s = split(readline(io))
-    header["number_of_wfc"] = parse(Int, s[1])
-    header["number_of_proj"] = parse(Int, s[2])
+    header["number_of_wfc"] = parse(Int, s[1])  # Number of wavefunctions
+    header["number_of_proj"] = parse(Int, s[2]) # Number of projectors
+
+    #! We don't parse the "Wavefunctions" description block
 
     upf["header"] = header
 end
@@ -69,8 +71,8 @@ function parse_radial_grid!(io::IO, upf::Dict)
     read_until(io, "<PP_R>")
     upf["radial_grid"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
 
-    # read_until(io, "<PP_RAB>")
-    # upf["radial_grid_derivative"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
+    read_until(io, "<PP_RAB>")
+    upf["radial_grid_derivative"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
 end
 
 function parse_nlcc!(io::IO, upf::Dict)
@@ -98,6 +100,7 @@ function parse_beta_projectors!(io::IO, upf::Dict)
         beta["label"] = ""
         
         s = split(readline(io))
+        beta["index"] = parse(Int, s[1])
         beta["angular_momentum"] = parse(Int, s[2])
 
         s = readline(io)
@@ -117,7 +120,7 @@ function parse_dij!(io::IO, upf::Dict)
     read_until(io, "<PP_DIJ>")
     Dij = zeros(Float64, upf["header"]["number_of_proj"], upf["header"]["number_of_proj"])
     s = split(readline(io))
-    nd = parse(Int, s[1])
+    nd = parse(Int, s[1])  # Number of non-zero Dij components
     for k = 1:nd
         s = split(readline(io))
         i, j = parse.(Int, s[1:2])
@@ -135,6 +138,8 @@ function parse_augmentation!(io::IO, upf::Dict)
     end
     
     read_until(io, "<PP_QIJ>")
+    # If num_q_coef is non-zero, Qij inside R_inner (parsed below,
+    # one value for each augmentation) are computed using the q_coeffs
     num_q_coeff = parse(Int, split(readline(io))[1])
     if num_q_coeff <= 0
         upf["augmentation"] = []
@@ -143,7 +148,7 @@ function parse_augmentation!(io::IO, upf::Dict)
 
     augmentation = []
 
-    R_inner = Float64[]
+    R_inner = Float64[]  # Inner radial cutoff values for each augmentation
     read_until(io, "<PP_RINNER>")
     for i = 1:(2 * upf["header"]["l_max"] + 1)
         s = split(readline(io))
@@ -157,7 +162,13 @@ function parse_augmentation!(io::IO, upf::Dict)
             lj = upf["beta_projectors"][j]["angular_momentum"]
 
             s = split(readline(io))
+            file_i = parse(Int, s[1])
+            file_j = parse(Int, s[2])
+            file_lj = parse(Int, s[3])
+
             s = split(readline(io))
+            q_int = parse(Float64, s[1])
+
             qij = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
 
             read_until(io, "<PP_QFCOEF>")

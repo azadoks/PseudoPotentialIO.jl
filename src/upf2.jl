@@ -1,38 +1,46 @@
 using EzXML
 
-parse_bool(s::T) where T<:AbstractString = uppercase(strip(s)) == T("T") ? true : false
+parse_bool(s::T) where T<:AbstractString = uppercase(s) == T("T") ? true : false
 parse_bool(s::Char) = uppercase(s) == 'T' ? true : false
-get_attr(::Type{T}, node::EzXML.Node, key; default=zero(T)) where T<:Number = haskey(node, key) ? parse(T, node[key]) : default
+get_attr(::Type{T}, node::EzXML.Node, key; default=zero(T)) where T<:Number = haskey(node, key) ? parse(T, strip(node[key])) : default
 get_attr(::Type{T}, node::EzXML.Node, key; default=T("")) where T<:AbstractString = haskey(node, key) ? T(strip(node[key])) : default
-get_attr(::Type{Bool}, node::EzXML.Node, key; default=false) = haskey(node, key) ? parse_bool(node[key]) : default
+get_attr(::Type{Bool}, node::EzXML.Node, key; default=false) = haskey(node, key) ? parse_bool(strip(node[key])) : default
 
 function parse_header!(doc_root::EzXML.Node, upf::Dict)
     header = Dict()
     # version = get_attr(String, doc_root, "version")
     node = findfirst("PP_HEADER", doc_root)
-    header["upf_version"] = 2
-    # header["generated"] = get_attr(String, node, "generated")
-    # header["author"] = get_attr(String, node, "author")
-    # header["date"] = get_attr(String, node, "date")
-    # header["comment"] = get_attr(String, node, "comment")
+    header["format_version"] = 2
+    header["generated"] = get_attr(String, node, "generated")
+    header["author"] = get_attr(String, node, "author")
+    header["date"] = get_attr(String, node, "date")
+    header["comment"] = get_attr(String, node, "comment")
     header["element"] = get_attr(String, node, "element")
+    # pseudo_type can be:
+    # NC -- Norm-conserving, fully non-local only
+    # SL -- Norm-conserving, non-local and semi-local
+    # US -- Ultrasoft (is_ultrasoft === true)
+    # 1/r -- Coulomb (is_coulomb === true)
+    # PAW -- Projector-augmented wave (is_paw === true)
     header["pseudo_type"] = get_attr(String, node, "pseudo_type")
-    # header["relativistic"] = get_attr(String, node, "relativistic")
+    # relativistic can be: scalar | full | nonrelativistic
+    header["relativistic"] = get_attr(String, node, "relativistic")
     header["is_ultrasoft"] = get_attr(Bool, node, "is_ultrasoft")
-    # header["is_paw"] = get_attr(Bool, node, "is_paw")
-    # header["is_coulomb"] = get_attr(Bool, node, "is_coulomb")
+    header["is_paw"] = get_attr(Bool, node, "is_paw")
+    header["is_coulomb"] = get_attr(Bool, node, "is_coulomb")
     header["has_so"] = get_attr(Bool, node, "has_so")
-    # header["has_wfc"] = get_attr(Bool, node, "has_wfc")
-    # header["has_gipaw"] = get_attr(Bool, node, "has_gipaw")
+    header["has_wfc"] = get_attr(Bool, node, "has_wfc")
+    header["has_gipaw"] = get_attr(Bool, node, "has_gipaw")
+    header["paw_as_gipaw"] = get_attr(Bool, node, "paw_as_gipaw")
     header["core_correction"] = get_attr(Bool, node, "core_correction")
-    # header["functional"] = get_attr(String, node, "functional")
+    header["functional"] = get_attr(String, node, "functional")  # Max. 25 characters
     header["z_valence"] = get_attr(Float64, node, "z_valence")
-    # header["total_psenergy"] = get_attr(Float64, node, "total_psenergy")
-    # header["wfc_cutoff"] = get_attr(Float64, node, "wfc_cutoff")
-    # header["rho_cutoff"] = get_attr(Float64, node, "rho_cutoff")
-    header["l_max"] = get_attr(Int, node, "l_max")
+    header["total_psenergy"] = get_attr(Float64, node, "total_psenergy")
+    header["wfc_cutoff"] = get_attr(Float64, node, "wfc_cutoff")
+    header["rho_cutoff"] = get_attr(Float64, node, "rho_cutoff")
+    header["l_max"] = get_attr(Int, node, "l_max")  # 0:3
     header["l_max_rho"] = get_attr(Int, node, "l_max_rho")
-    header["l_local"] = get_attr(Int, node, "l_local")
+    header["l_local"] = get_attr(Int, node, "l_local")  # -1 if none, 0:(l_max - 1) otherwise
     header["mesh_size"] = get_attr(Int, node, "mesh_size")
     header["number_of_wfc"] = get_attr(Int, node, "number_of_wfc")
     header["number_of_proj"] = get_attr(Int, node, "number_of_proj")
@@ -44,8 +52,8 @@ function parse_radial_grid!(doc_root::EzXML.Node, upf::Dict)
     node = findfirst("PP_MESH/PP_R", doc_root)
     upf["radial_grid"] = parse.(Float64, split(strip(node.content)))
     
-    # node = findfirst("PP_MESH/PP_RAB", doc_root)
-    # upf["radial_grid_derivative"] = parse.(Float64, split(strip(node.content)))
+    node = findfirst("PP_MESH/PP_RAB", doc_root)
+    upf["radial_grid_derivative"] = parse.(Float64, split(strip(node.content)))
 end
 
 function parse_nlcc!(doc_root::EzXML.Node, upf::Dict)
@@ -71,7 +79,9 @@ function parse_beta_projectors!(doc_root::EzXML.Node, upf::Dict)
         beta["radial_function"] = parse.(Float64, split(strip(node.content)))
         beta["label"] = get_attr(String, node, "label")
         beta["angular_momentum"] = get_attr(Int, node, "angular_momentum")
-        # beta["cutoff_radius_index"] = get_attr(Int, node, "cutoff_radius_index")
+        beta["cutoff_radius_index"] = get_attr(Int, node, "cutoff_radius_index")
+        beta["cutoff_radius"] = get_attr(Float64, node, "cutoff_radius")
+        beta["index"] = get_attr(Int, node, "index")
         if upf["header"]["has_so"]
             node_so = findfirst("PP_SPIN_ORB/PP_RELBETA.$i", doc_root)
             beta["total_angular_momentum"] = get_attr(Float64, node_so, "jjj")
@@ -185,6 +195,8 @@ function parse_pswfc!(doc_root::EzXML.Node, upf::Dict)
         wfc["label"] = get_attr(String, node, "label")
         wfc["angular_momentum"] = get_attr(Int, node, "l")
         wfc["occupation"] = get_attr(Float64, node, "occupation")
+        wfc["pseudo_energy"] = get_attr(Float64, node, "pseudo_energy")
+        wfc["index"] = get_attr(Int, node, "index")
         wfc["radial_function"] = parse.(Float64, split(strip(node.content)))
         if upf["header"]["has_so"]
             node_so = findfirst("PP_SPIN_ORB/PP_RELWFC.$i", doc_root)
