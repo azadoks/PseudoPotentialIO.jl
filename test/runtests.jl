@@ -17,14 +17,6 @@ for (root, dirs, files) in walkdir(JSON_DIR)
     end
 end
 
-@testset "load_upf" begin
-    for (root, dirs, files) in walkdir(UPF_DIR)
-        for file in files
-            upf = load_upf(joinpath(root, file))
-        end
-    end
-end;
-
 @testset "header" begin
     for pair in pseudo_pairs
         for key in HEADER_KEYS
@@ -55,16 +47,18 @@ end
 
 @testset "beta_projectors" begin
     for pair in pseudo_pairs
-        @test length(pair.json["beta_projectors"]) == length(pair.upf["beta_projectors"])
-        for i = 1:length(pair.json["beta_projectors"])
-            if haskey(pair.json["beta_projectors"][i], "label")
-                @test pair.json["beta_projectors"][i]["label"] == pair.upf["beta_projectors"][i]["label"]
+        json_betas = pair.json["beta_projectors"]
+        upf_betas = pair.upf["beta_projectors"]
+        @test length(json_betas) == length(upf_betas)
+        for i = eachindex(json_betas)
+            if haskey(json_betas[i], "label")
+                @test json_betas[i]["label"] == upf_betas[i]["label"]
             end
-            @test pair.json["beta_projectors"][i]["angular_momentum"] == pair.upf["beta_projectors"][i]["angular_momentum"]
-            cutoff_idx = length(pair.json["beta_projectors"][i]["radial_function"])
+            @test json_betas[i]["angular_momentum"] == upf_betas[i]["angular_momentum"]
+            cutoff_idx = length(json_betas[i]["radial_function"])
             @test all(
-                pair.json["beta_projectors"][i]["radial_function"][begin:cutoff_idx] .==
-                pair.upf["beta_projectors"][i]["radial_function"][begin:cutoff_idx]
+                json_betas[i]["radial_function"][begin:cutoff_idx] .==
+                upf_betas[i]["radial_function"][begin:cutoff_idx]
             )
         end
     end
@@ -73,11 +67,13 @@ end
 @testset "augmentation" begin
     aug_pairs = [pair for pair in pseudo_pairs if haskey(pair.json, "augmentation")]
     for pair in aug_pairs
-        for i = 1:length(pair.json["augmentation"])
-            @test pair.json["augmentation"][i]["i"] + 1 == pair.upf["augmentation"][i]["i"]
-            @test pair.json["augmentation"][i]["j"] + 1 == pair.upf["augmentation"][i]["j"]
-            @test pair.json["augmentation"][i]["angular_momentum"] == pair.upf["augmentation"][i]["angular_momentum"]
-            @test all(pair.json["augmentation"][i]["radial_function"] .≈ pair.upf["augmentation"][i]["radial_function"])
+        json_aug = pair.json["augmentation"]
+        upf_aug = pair.upf["augmentation"]
+        for i = eachindex(json_aug)
+            @test json_aug[i]["i"] + 1 == upf_aug[i]["i"]
+            @test json_aug[i]["j"] + 1 == upf_aug[i]["j"]
+            @test json_aug[i]["angular_momentum"] == upf_aug[i]["angular_momentum"]
+            @test all(isapprox.(json_aug[i]["radial_function"], upf_aug[i]["radial_function"], atol=4e-10))  # rtol=5e-6))
         end
     end
 end
@@ -144,17 +140,19 @@ end
 
 @testset "atomic_wave_functions" begin
     for pair in pseudo_pairs
-        @test length(pair.json["atomic_wave_functions"]) == length(pair.upf["atomic_wave_functions"])
-        for i = 1:length(pair.json["atomic_wave_functions"])
-            if haskey(pair.json["atomic_wave_functions"][i], "label")
-                @test pair.json["atomic_wave_functions"][i]["label"] == pair.upf["atomic_wave_functions"][i]["label"]
+        json_wfc = pair.json["atomic_wave_functions"]
+        upf_wfc = pair.upf["atomic_wave_functions"]
+        @test length(json_wfc) == length(upf_wfc)
+        for i = eachindex(json_wfc)
+            if haskey(json_wfc[i], "label")
+                @test json_wfc[i]["label"] == upf_wfc[i]["label"]
             end
-            @test pair.json["atomic_wave_functions"][i]["occupation"] == pair.upf["atomic_wave_functions"][i]["occupation"]
-            @test pair.json["atomic_wave_functions"][i]["angular_momentum"] == pair.upf["atomic_wave_functions"][i]["angular_momentum"]
-            cutoff_idx = length(pair.json["atomic_wave_functions"][i]["radial_function"])
+            @test json_wfc[i]["occupation"] == upf_wfc[i]["occupation"]
+            @test json_wfc[i]["angular_momentum"] == upf_wfc[i]["angular_momentum"]
+            cutoff_idx = length(json_wfc[i]["radial_function"])
             @test all(
-                pair.json["atomic_wave_functions"][i]["radial_function"][begin:cutoff_idx] .==
-                pair.upf["atomic_wave_functions"][i]["radial_function"][begin:cutoff_idx]
+                json_wfc[i]["radial_function"][begin:cutoff_idx] .==
+                upf_wfc[i]["radial_function"][begin:cutoff_idx]
             )
         end
     end

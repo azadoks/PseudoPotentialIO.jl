@@ -160,7 +160,7 @@ function parse_paw!(doc_root::EzXML.Node, upf::Dict)
         node_paw = findfirst("PP_PAW", doc_root)
         paw_core_energy = get_attr(Float64, node_paw, "core_energy"; default=missing)
         if ismissing(paw_core_energy)
-            @warn "`PP_PAW` has no `core_energy` set"
+            # @warn "`PP_PAW` has no `core_energy` set"
         else
             upf["header"]["paw_core_energy"] = paw_core_energy ./ 2  # Ry -> Ha
         end
