@@ -1,3 +1,5 @@
-# UPF
+# UPF.jl
 
-[![Build Status](https://github.com/azadoks/UPF.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/azadoks/UPF.jl/actions/workflows/CI.yml?query=branch%3Amain)
+Support reading UPF (Unified Pseudopotential Format) versions 1 and 2.
+
+At the moment, it is almost a direct translation of Simon Pintarelli's Python library [`upf_to_json`](https://github.com/simonpintarelli/upf_to_json).
