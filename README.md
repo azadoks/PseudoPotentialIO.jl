@@ -59,7 +59,7 @@ pseudo_potential
 
 ## `libpspio` data structure (norm-conserving only)
 - [x] Norm-conserving (local+non-local)
-- [ ] Norm-conserging (semilocal)
+- [ ] Norm-conserving (semilocal)
 - [x] Multiple projectors per angular momentum
 - [x] Atomic wavefunctions
 - [x] Spin-orbit coupling
@@ -153,7 +153,7 @@ struct PseudoUPF
     date::String       # Generation date
     comment::String    # Description
     psd::String        # Atomic symbol
-    type::String       # Pseudo type (NC | SL | US / USPP | PAW | 1/4)
+    type::String       # Pseudo type (NC | SL | US / USPP | PAW | 1/r)
     rel::String        # Type of relativistic treatment (no | scalar | full)
     tvanp::Bool        # Is ultrasoft
     tcoulombp::Bool    # Is Coulomb

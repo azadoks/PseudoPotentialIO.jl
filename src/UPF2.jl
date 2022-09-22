@@ -1,10 +1,31 @@
+module UPF2
+
 using EzXML
 
-parse_bool(s::T) where T<:AbstractString = uppercase(s) == T("T") ? true : false
+export parse_upf2
+
+parse_bool(s::AbstractString) = occursin("T", uppercase(s)) ? true : false
 parse_bool(s::Char) = uppercase(s) == 'T' ? true : false
-get_attr(::Type{T}, node::EzXML.Node, key; default=zero(T)) where T<:Number = haskey(node, key) ? parse(T, strip(node[key])) : default
-get_attr(::Type{T}, node::EzXML.Node, key; default=T("")) where T<:AbstractString = haskey(node, key) ? T(strip(node[key])) : default
+
+get_attr(::Type{T}, node::EzXML.Node, key; default=zero(T)) where {T <: Number} = haskey(node, key) ? parse(T, strip(node[key])) : default
+get_attr(::Type{T}, node::EzXML.Node, key; default=T("")) where {T <: AbstractString} = haskey(node, key) ? T(strip(node[key])) : default
 get_attr(::Type{Bool}, node::EzXML.Node, key; default=false) = haskey(node, key) ? parse_bool(strip(node[key])) : default
+
+function get_content(::Type{T}, node::EzXML.Node, dims...) where {T <: Number}
+    text = split(strip(node.content))
+    @assert length(text) == prod(dims)
+    value = Array{T}(undef, dims...)
+    for i = 1:prod(dims)
+        value[i] = parse(T, text[i])
+    end
+    return value
+end
+
+function get_content(::Type{T}, node::EzXML.Node, key, dims...) where {T <: Number}
+    target_node = findfirst(node, key)
+    content = ismissing(target_node) ? nothing : get_content(T, target_node, dims...)
+    return content
+end
 
 function parse_header!(doc_root::EzXML.Node, upf::Dict)
     header = Dict()
@@ -151,8 +172,8 @@ function parse_paw!(doc_root::EzXML.Node, upf::Dict)
             node_wfc = findfirst("PP_FULL_WFC/PP_AEWFC.$i", doc_root)
             wfc["radial_function"] = parse.(Float64, split(strip(node_wfc.content)))
             wfc["angular_momentum"] = get_attr(Int, node_wfc, "l")
-            # wfc["label"] = get_attr(String, node_wfc, "label")
-            # wfc["index"] = get_attr(Int, node_wfc, "index")
+            wfc["label"] = get_attr(String, node_wfc, "label")
+            wfc["index"] = get_attr(Int, node_wfc, "index")
             push!(paw_data["ae_wfc"], wfc)
         end
 
@@ -212,7 +233,7 @@ function parse_rhoatom!(doc_root::EzXML.Node, upf::Dict)
     upf["total_charge_density"] = parse.(Float64, split(strip(node.content)))
 end
 
-function parse_so!(doc_root::EzXML.Node, upf::Dict)
+function parse_spin_orbit!(doc_root::EzXML.Node, upf::Dict)
     if upf["header"]["has_so"]
         for i = 1:upf["header"]["number_of_proj"]
             node = findfirst("PP_SPIN_ORB/PP_RELBETA.$i", doc_root)
@@ -233,16 +254,22 @@ function parse_upf2(doc_root::EzXML.Node)
     upf = Dict()
 
     parse_header!(doc_root, upf)
+    if upf["header"]["pseudo_type"] == "PAW"
+        @warn "PAW is not implemented."
+    elseif upf["header"]["pseudo_type"] == "US"
+        @warn "Ultrasoft is not implemented."
+    end
     parse_radial_grid!(doc_root, upf)
     parse_nlcc!(doc_root, upf)
     parse_local!(doc_root, upf)
     parse_beta_projectors!(doc_root, upf)
     parse_dij!(doc_root, upf)
-    parse_augmentation!(doc_root, upf)
-    parse_paw!(doc_root, upf)
+    # parse_augmentation!(doc_root, upf)
+    # parse_paw!(doc_root, upf)
     parse_pswfc!(doc_root, upf)
     parse_rhoatom!(doc_root, upf)
-    parse_so!(doc_root, upf)
+    parse_spin_orbit!(doc_root, upf)
 
     return upf
+end
 end
