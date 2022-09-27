@@ -11,12 +11,23 @@ include("UPF2.jl")
 export PSP8
 include("PSP8.jl")
 
-function get_upf_version(filename)
+"""
+    get_upf_version(filename::AbstractString)
+
+Parse the version of a UPF file from its contents.
+Supported versions are old UPF (v1) and UPF with schema (v2).
+
+!!! Note
+UPF v2 without schema is not supported.
+"""
+function get_upf_version(filename::AbstractString)::Int
     open(filename, "r") do io
         line = readline(io)
+        # Old UPF files start with the `<PP_INFO>` section
         if occursin("<PP_INFO>", line)
             return 1
-        elseif occursin("UPF version", line)
+        # New UPF files with schema are in XML and start with a version tag
+        elseif occursin("UPF version=\"2.0.1\"", line)
             return 2
         else
             throw(Error("Unknown UPF version"))
@@ -24,6 +35,11 @@ function get_upf_version(filename)
     end
 end
 
+"""
+    load_upf(filename::AbstractString)
+
+Load a UPF file, supports old (v1) and v2 with schema.
+"""
 function load_upf(filename::AbstractString)
     version = get_upf_version(filename)
     if version == 1
@@ -41,18 +57,28 @@ function load_upf(filename::AbstractString)
     end
 end
 
-function get_psp_version(filename)
-    version = 0
+"""
+    get_psp_version(filename::AbstractString)
+
+Parse the version of a PSP file from its contents.
+"""
+function get_psp_version(filename::AbstractString)::Int
     open(filename, "r") do io
-        for i = 1:2
+        # Discard the first two lines
+        for _ = 1:2
             readline(io)
         end
+        # The version number is the first entry on line 3
         s = split(readline(io))
-        version = parse(Int, s[1])
+        return parse(Int, s[1])
     end
-    return version
 end
 
+"""
+    load_psp(filename::AbstractString)
+
+Load a PSP file, supports only version 8.
+"""
 function load_psp(filename::AbstractString)
     version = get_psp_version(filename)
     open(filename, "r") do io

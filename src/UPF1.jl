@@ -2,7 +2,12 @@ module UPF1
 
 export parse_upf1
 
-function read_until(io, tag::AbstractString)
+"""
+    read_until(io, tag::AbstractString)
+
+Read until a line contains `tag`.
+"""
+function read_until(io::IO, tag::AbstractString)
     while true
         line = readline(io, keep=true)
         if isempty(line)
@@ -14,6 +19,11 @@ function read_until(io, tag::AbstractString)
     end
 end;
 
+"""
+    read_mesh_data(T::Type, io::IO, n::Integer)
+
+Read whitespace-separated data from `io` as type `T` until `n` elements are read.
+"""
 function read_mesh_data(T::Type, io::IO, n::Integer)
     mesh_data = T[]
     while length(mesh_data) != n
@@ -23,6 +33,11 @@ function read_mesh_data(T::Type, io::IO, n::Integer)
     return mesh_data
 end;
 
+"""
+    has_tag(io::IO, tag::AbstractString)
+
+Check if `tag` occurs in `io` after the current position in `io`.
+"""
 function has_tag(io::IO, tag::AbstractString)::Bool
     pos = position(io)
     has_tag = false
@@ -37,6 +52,31 @@ function has_tag(io::IO, tag::AbstractString)::Bool
     return has_tag
 end
 
+"""
+    parse_header!(io::IO, upf::Dict)
+
+Parse header (`PP_HEADER`) data, storing it in `upf["header"]::Dict` with the following contents:
+- `format_version::Int`: always 1
+- `version::Int`: version number of pseudopotential (not format!)
+- `element::String`: elemental symbol
+- `pseudo_type::String`: `NC` (norm-conserving), `US` (ultrasoft), or `PAW` (plane-augmented wave)
+- `is_ultrasoft::Bool`
+- `is_paw::Bool`
+- `is_coulomb::Bool`: fake Coulomb potential for all-electron calculations
+- `core_correction::Bool`: non-linear core-correction
+- `z_valence::Float64`: pseudo-ion charge
+- `total_psenergy::Float64`: total energy of the pseudo-ion
+- `ecutwfc::Float64`: recommended plane-wave energy cutoff
+- `ecutrho::Float64`: recommended charge-density energy cutoff
+- `l_max::Int`: maximum angular momentum channel of the Kleinman-Bylander projectors
+- `mesh_size::Int`: number of points in the radial mesh
+- `number_of_wfc::Int`: number of pseudo-atomic wavefunctions
+- `number_of_proj::Int`: number of Kleinman-Bylander projectors
+
+!!! Note
+The "Wavefunctions" section of the header is not parsed; instead the label, angular momentum,
+and occupations are parsed with the wavefunctions in the "<PP_PSWFC>" block.
+"""
 function parse_header!(io::IO, upf::Dict)
     header = Dict()
 
@@ -45,7 +85,7 @@ function parse_header!(io::IO, upf::Dict)
     header["format_version"] = 1
 
     s = split(readline(io))
-    header["version"] = parse(Int, s[1])        # Version Number
+    header["version"] = parse(Int, s[1])        # Version number
 
     s = split(readline(io))
     header["element"] = strip(s[1])             # Element
@@ -92,6 +132,12 @@ function parse_header!(io::IO, upf::Dict)
     upf["header"] = header
 end
 
+"""
+    parse_radial_grid!(io::IO, upf::Dict)
+
+Parse radial grid data (`<PP_R>`) and integration factors (`<PP_RAB>`) from the `<PP_MESH>` block,
+storing them in `upf["radial_grid"]` and `upf["radial_grid_derivative"]` respectively.
+"""
 function parse_radial_grid!(io::IO, upf::Dict)
     read_until(io, "<PP_R>")
     upf["radial_grid"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
@@ -100,21 +146,43 @@ function parse_radial_grid!(io::IO, upf::Dict)
     upf["radial_grid_derivative"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
 end
 
+"""
+    parse_nlcc!(io::IO, upf::Dict)
+
+Parse non-linear core correction data from the `<PP_NLCC>` bock if present, storing them in
+`upf["core_charge_density"]`.
+"""
 function parse_nlcc!(io::IO, upf::Dict)
-    if !upf["header"]["core_correction"]
-        rho = missing
-    else
+    if upf["header"]["core_correction"]
         read_until(io, "<PP_NLCC>")
-        rho = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
+        upf["core_charge_density"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
     end
-    upf["core_charge_density"] = rho
 end
 
+"""
+    parse_local!(io::IO, upf::Dict)
+
+Parse the local potential from the `<PP_LOCAL>` block, storing it in `upf["local_potential"]`.
+"""
 function parse_local!(io::IO, upf::Dict)
     read_until(io, "<PP_LOCAL>")
-    upf["local_potential"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"]) ./ 2  # Ry -> Ha
+    upf["local_potential"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
 end
 
+"""
+    parse_beta_projectors!(io::IO, upf::Dict)
+
+Parse the `<PP_BETA>` blocks in `<PP_NONLOCAL>`, storing them in a vector in
+`upf["beta_projectors"]`. There are `upf["header"]["number_of_proj"]` blocks,
+each with the following data:
+- `label::String`: optional descriptive label
+- `index::Int`: index of the projector, used for correlating with Dij
+- `angular_momentum::Int`
+- `cutoff_radius_index::Int`: number of elements read from file, all others are zero
+- `radial_function::Vector{Float64}`: the beta projector, with length `cutoff_radius_index`
+- `cutoff_radius::Float64`: always `0.`
+- `ultrasoft_cutoff_radius::Float64`: always `0.`
+"""
 function parse_beta_projectors!(io::IO, upf::Dict)
     read_until(io, "<PP_NONLOCAL>")
     beta_projectors = []
@@ -141,91 +209,112 @@ function parse_beta_projectors!(io::IO, upf::Dict)
     upf["beta_projectors"] = beta_projectors
 end
 
+"""
+    parse_dij!(io::IO, upf::Dict)
+
+Parse the `<PP_DIJ>` block, storing it in `upf["D_ion"]` as a symmetric matrix where `D[i,j]` is
+the coupling coefficient between βᵢ and βⱼ (see `parse_beta_projectors!` for how the indices of
+the beta projectors are stored).
+"""
 function parse_dij!(io::IO, upf::Dict)
     read_until(io, "<PP_DIJ>")
     Dij = zeros(Float64, upf["header"]["number_of_proj"], upf["header"]["number_of_proj"])
     s = split(readline(io))
     nd = parse(Int, s[1])  # Number of non-zero Dij components
-    for k = 1:nd
+    for _ = 1:nd
         s = split(readline(io))
         i, j = parse.(Int, s[1:2])
-        Dij[i,j] = parse(Float64, s[3]) / 2  # Ry -> Ha
+        Dij[i,j] = parse(Float64, s[3])
         Dij[j,i] = Dij[i,j]
     end
     
     upf["D_ion"] = Dij
 end
 
-function parse_augmentation!(io::IO, upf::Dict)
-    if !(uppercase(upf["header"]["pseudo_type"]) != "US" || uppercase(upf["header"]["pseudo_type"] == "PAW"))
-        upf["augmentation"] = missing
-        return
-    end
+# function parse_augmentation!(io::IO, upf::Dict)
+#     if !(
+#         uppercase(upf["header"]["pseudo_type"]) != "US" ||
+#         uppercase(upf["header"]["pseudo_type"] == "PAW")
+#     )
+#         upf["augmentation"] = missing
+#         return
+#     end
     
-    read_until(io, "<PP_QIJ>")
-    # If num_q_coef is non-zero, Qij inside R_inner (parsed below,
-    # one value for each augmentation) are computed using the q_coeffs
-    num_q_coeff = parse(Int, split(readline(io))[1])
-    if num_q_coeff == 0
-        upf["augmentation"] = missing
-        return
-    end
+#     read_until(io, "<PP_QIJ>")
+#     # If num_q_coef is non-zero, Qij inside R_inner (parsed below,
+#     # one value for each augmentation) are computed using the q_coeffs
+#     num_q_coeff = parse(Int, split(readline(io))[1])
+#     if num_q_coeff == 0
+#         upf["augmentation"] = missing
+#         return
+#     end
 
-    augmentation = []
+#     augmentation = []
 
-    R_inner = Float64[]  # Inner radial cutoff values for each augmentation
-    read_until(io, "<PP_RINNER>")
-    for i = 1:(2 * upf["header"]["l_max"] + 1)
-        s = split(readline(io))
-        push!(R_inner, parse(Float64, s[2]))
-    end
-    read_until(io, "</PP_RINNER>")
+#     R_inner = Float64[]  # Inner radial cutoff values for each augmentation
+#     read_until(io, "<PP_RINNER>")
+#     for i = 1:(2 * upf["header"]["l_max"] + 1)
+#         s = split(readline(io))
+#         push!(R_inner, parse(Float64, s[2]))
+#     end
+#     read_until(io, "</PP_RINNER>")
 
-    for i = 1:upf["header"]["number_of_proj"]
-        li = upf["beta_projectors"][i]["angular_momentum"]
-        for j = i:upf["header"]["number_of_proj"]
-            lj = upf["beta_projectors"][j]["angular_momentum"]
+#     for i = 1:upf["header"]["number_of_proj"]
+#         li = upf["beta_projectors"][i]["angular_momentum"]
+#         for j = i:upf["header"]["number_of_proj"]
+#             lj = upf["beta_projectors"][j]["angular_momentum"]
 
-            s = split(readline(io))
-            file_i = parse(Int, s[1])
-            file_j = parse(Int, s[2])
-            file_lj = parse(Int, s[3])
+#             s = split(readline(io))
+#             file_i = parse(Int, s[1])
+#             file_j = parse(Int, s[2])
+#             file_lj = parse(Int, s[3])
 
-            s = split(readline(io))
-            q_int = parse(Float64, s[1])
+#             s = split(readline(io))
+#             q_int = parse(Float64, s[1])
 
-            qij = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
+#             qij = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
 
-            read_until(io, "<PP_QFCOEF>")
-            q_coeffs = read_mesh_data(Float64, io, num_q_coeff * (2 * upf["header"]["l_max"] + 1))
-            q_coeffs = reshape(q_coeffs, num_q_coeff, 2 * upf["header"]["l_max"] + 1)
-            read_until(io, "</PP_QFCOEF>")
+#             read_until(io, "<PP_QFCOEF>")
+#             q_coeffs = read_mesh_data(Float64, io, num_q_coeff * (2 * upf["header"]["l_max"] + 1))
+#             q_coeffs = reshape(q_coeffs, num_q_coeff, 2 * upf["header"]["l_max"] + 1)
+#             read_until(io, "</PP_QFCOEF>")
 
-            for l = abs(li - lj):(li + lj)
-                if (li + lj + l) % 2 == 0
-                    qij_fixed = copy(qij)
+#             for l = abs(li - lj):(li + lj)
+#                 if (li + lj + l) % 2 == 0
+#                     qij_fixed = copy(qij)
 
-                    for ir = 1:upf["header"]["mesh_size"]
-                        x = upf["radial_grid"][ir]
-                        if x < R_inner[l+1]
-                            qij_fixed[ir] = sum(n -> q_coeffs[n,l+1] * x^(2 * (n-1)), 1:num_q_coeff)
-                            qij_fixed[ir] *= x^(l + 2)
-                        end
-                    end
+#                     for ir = 1:upf["header"]["mesh_size"]
+#                         x = upf["radial_grid"][ir]
+#                         if x < R_inner[l+1]
+#                             qij_fixed[ir] = sum(n -> q_coeffs[n,l+1] * x^(2 * (n-1)), 1:num_q_coeff)
+#                             qij_fixed[ir] *= x^(l + 2)
+#                         end
+#                     end
                     
-                    push!(augmentation, Dict(
-                        "radial_function" => qij_fixed,
-                        "i" => i,
-                        "j" => j,
-                        "angular_momentum" => l,
-                    ))
-                end
-            end
-        end
-    end
-    upf["augmentation"] = augmentation
-end
+#                     push!(augmentation, Dict(
+#                         "radial_function" => qij_fixed,
+#                         "i" => i,
+#                         "j" => j,
+#                         "angular_momentum" => l,
+#                     ))
+#                 end
+#             end
+#         end
+#     end
+#     upf["augmentation"] = augmentation
+# end
 
+"""
+    parse_pswfc!(io::IO, upf::Dict)
+
+Parse the pseudo-atomic wavefunctions in the `<PP_PSWFC>` block, storing them in a vector in
+`upf["atomic_wave_functions"]`. There are `upf["header"]["number_of_wfc"]` blocks,
+each with the following data:
+- `label::String`: optional descriptive label, e.g. "2S"
+- `angular_momentum::Int`
+- `occupation::Float`
+- `radial_function::Vector{Float64}`: the pseudo-atomic wavefunction on the full radial mesh
+"""
 function parse_pswfc!(io::IO, upf::Dict)
     atomic_wave_functions = []
     read_until(io, "<PP_PSWFC>")
@@ -241,11 +330,26 @@ function parse_pswfc!(io::IO, upf::Dict)
     upf["atomic_wave_functions"] = atomic_wave_functions
 end
 
+"""
+    parse_rhoatom!(io::IO, upf::Dict)
+
+Parse the total pseudo-atomic charge density from the `<PP_RHOATOM>` block, storing the data in
+`upf["total_charge_density"]`.
+"""
 function parse_rhoatom!(io::IO, upf::Dict)
     read_until(io, "<PP_RHOATOM>")
     upf["total_charge_density"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
 end
 
+"""
+    parse_addinfo!(io::IO, upf::Dict)
+
+If `upf["header"]["has_so"]`, parse spin-orbit coupling data, which are stored in the
+`<PP_ADDINFO>` block. For each pseudo-atomic wavefunction, the `label`, `angular_momentum`, and
+`occupation` are overwritten, and new keys `principal_quantum_number` and `total_angular_momentum`
+are stored. For each Kleinman-Bylander projector, `angular_momentum` is overwritten, and a new
+`total_angular_momentum` is stored.
+"""
 function parse_addinfo!(io::IO, upf::Dict)
     if upf["header"]["has_so"]
         read_until(io, "<PP_ADDINFO>")
@@ -277,14 +381,22 @@ function parse_addinfo!(io::IO, upf::Dict)
     end
 end
 
+"""
+    parse_upf1(io::IO)
+
+Parse an old UPF (v1) file.
+!!! Note
+PAW and ultrasoft potentials are not supported because parsing of `<PP_AUGMENTATION>` is not
+fully implemented.
+"""
 function parse_upf1(io::IO)
     upf = Dict()
 
     parse_header!(io, upf)
     if upf["header"]["is_paw"]
-        @warn "PAW is not implemented."
+        @warn "PAW in UPF v1 is not implemented."
     elseif upf["header"]["is_ultrasoft"]
-        @warn "Ultrasoft is not implemented."
+        @warn "Ultrasoft in UPF v1 is not implemented."
     end
     parse_radial_grid!(io, upf)
     parse_nlcc!(io, upf)
@@ -295,7 +407,6 @@ function parse_upf1(io::IO)
     parse_pswfc!(io, upf)
     parse_rhoatom!(io, upf)
     parse_addinfo!(io, upf)
-
     return upf
 end
 end

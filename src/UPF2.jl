@@ -70,26 +70,30 @@ function parse_header!(doc_root::EzXML.Node, upf::Dict)
 end
 
 function parse_radial_grid!(doc_root::EzXML.Node, upf::Dict)
+    # radial_grid[i] is either of the following:
+    # exp(x_min) * exp((i - 1) * dx) / z_mesh
+    # exp(x_min) * (exp((i - 1) * dx) - 1) / z_mesh
     node = findfirst("PP_MESH/PP_R", doc_root)
-    upf["radial_grid"] = parse.(Float64, split(strip(node.content)))
+    upf["radial_grid"] = parse.(Float64, split(strip(node.content)))  # Bohr
     
+    # radial_grid_derivative is the factor for discrete integration:
+    # ∫(f(r) dr)= Σ_i(f(i) * rab(i))
     node = findfirst("PP_MESH/PP_RAB", doc_root)
     upf["radial_grid_derivative"] = parse.(Float64, split(strip(node.content)))
 end
 
 function parse_nlcc!(doc_root::EzXML.Node, upf::Dict)
-    if !upf["header"]["core_correction"]
-        rho = []
-    else
+    if upf["header"]["core_correction"]
         node = findfirst("PP_NLCC", doc_root)
-        rho = parse.(Float64, split(strip(node.content)))
+        # Z_c = ∫(ρ_c(r) r^2 dr dΩ)
+        upf["core_charge_density"] = parse.(Float64, split(strip(node.content)))
     end
-    upf["core_charge_density"] = rho
 end
 
 function parse_local!(doc_root::EzXML.Node, upf::Dict)
     node = findfirst("PP_LOCAL", doc_root)
-    upf["local_potential"] = parse.(Float64, split(strip(node.content))) ./ 2  # Ry -> Ha
+    # Contains long range term -z_valence * e^2 / r
+    upf["local_potential"] = parse.(Float64, split(strip(node.content)))  # Ry
 end
 
 function parse_beta_projectors!(doc_root::EzXML.Node, upf::Dict)
@@ -97,14 +101,19 @@ function parse_beta_projectors!(doc_root::EzXML.Node, upf::Dict)
     for i = 1:upf["header"]["number_of_proj"]
         node = findfirst("PP_NONLOCAL/PP_BETA.$i", doc_root)
         beta = Dict()
-        beta["radial_function"] = parse.(Float64, split(strip(node.content)))
+        # Units are either Bohr^(-1/2) or Ry*Bohr^(-1/2)
+        # The quantity is actually rᵢβ(rᵢ)
         beta["label"] = get_attr(String, node, "label")
         beta["angular_momentum"] = get_attr(Int, node, "angular_momentum")
-        beta["cutoff_radius_index"] = get_attr(Int, node, "cutoff_radius_index")
+        ir_cut = get_attr(Int, node, "cutoff_radius_index")
+        beta["cutoff_radius_index"] = ir_cut
         beta["cutoff_radius"] = get_attr(Float64, node, "cutoff_radius")
         beta["index"] = get_attr(Int, node, "index")
+        beta["radial_function"] = parse.(Float64, split(strip(node.content)))[1:ir_cut]
         if upf["header"]["has_so"]
             node_so = findfirst("PP_SPIN_ORB/PP_RELBETA.$i", doc_root)
+            beta["index"] = get_attr(Int, node_so, "index")
+            beta["angular_momentum"] = get_attr(Int, node_so, "lll")
             beta["total_angular_momentum"] = get_attr(Float64, node_so, "jjj")
         end
         push!(beta_projectors, beta)
@@ -116,7 +125,7 @@ function parse_dij!(doc_root::EzXML.Node, upf::Dict)
     node = findfirst("PP_NONLOCAL/PP_DIJ", doc_root)
     Dij = parse.(Float64, split(strip(node.content)))
     Dij = reshape(Dij, upf["header"]["number_of_proj"], upf["header"]["number_of_proj"])
-    upf["D_ion"] = Dij
+    upf["D_ion"] = Dij  # either Ry or Ry^-1
 end
 
 function parse_augmentation!(doc_root::EzXML.Node, upf::Dict)
@@ -126,7 +135,7 @@ function parse_augmentation!(doc_root::EzXML.Node, upf::Dict)
         node = findfirst("PP_NONLOCAL/PP_AUGMENTATION", doc_root)
         q_with_l = get_attr(Bool, node, "q_with_l")
         if ismissing(q_with_l)
-            throw(ErrorException("Parsing `q_with_l = F` is not supported."))
+            throw(ErrorException("Parsing `q_with_l = T` is not supported."))
         end
         
         augmentation = []
@@ -193,7 +202,7 @@ function parse_paw!(doc_root::EzXML.Node, upf::Dict)
         if ismissing(paw_core_energy)
             # @warn "`PP_PAW` has no `core_energy` set"
         else
-            upf["header"]["paw_core_energy"] = paw_core_energy ./ 2  # Ry -> Ha
+            upf["header"]["paw_core_energy"] = paw_core_energy  # Ry
         end
 
         node_occ = findfirst("PP_PAW/PP_OCCUPATIONS", doc_root)
@@ -203,7 +212,7 @@ function parse_paw!(doc_root::EzXML.Node, upf::Dict)
         paw_data["ae_core_charge_density"] = parse.(Float64, split(strip(node_ae_nlcc.content)))
 
         node_ae_vloc = findfirst("PP_PAW/PP_AE_VLOC", doc_root)
-        paw_data["ae_local_potential"] = parse.(Float64, split(strip(node_ae_vloc.content))) ./ 2  # Ry -> Ha
+        paw_data["ae_local_potential"] = parse.(Float64, split(strip(node_ae_vloc.content)))  # Ry
     end
     upf["paw_data"] = paw_data
 end
@@ -216,12 +225,15 @@ function parse_pswfc!(doc_root::EzXML.Node, upf::Dict)
         wfc["label"] = get_attr(String, node, "label")
         wfc["angular_momentum"] = get_attr(Int, node, "l")
         wfc["occupation"] = get_attr(Float64, node, "occupation")
-        wfc["pseudo_energy"] = get_attr(Float64, node, "pseudo_energy")
+        wfc["pseudo_energy"] = get_attr(Float64, node, "pseudo_energy")  # Ry
         wfc["index"] = get_attr(Int, node, "index")
         wfc["radial_function"] = parse.(Float64, split(strip(node.content)))
         if upf["header"]["has_so"]
             node_so = findfirst("PP_SPIN_ORB/PP_RELWFC.$i", doc_root)
+            wfc["index"] = get_attr(Int, node_so, "index")
+            wfc["angular_momentum"] = get_attr(Int, node_so, "lchi")
             wfc["total_angular_momentum"] = get_attr(Float64, node_so, "jchi")
+            wfc["principal_quantum_number"] = get_attr(Int, node_so, "nn")
         end
         push!(atomic_wave_functions, wfc)
     end
@@ -230,7 +242,7 @@ end
 
 function parse_rhoatom!(doc_root::EzXML.Node, upf::Dict)
     node = findfirst("PP_RHOATOM", doc_root)
-    upf["total_charge_density"] = parse.(Float64, split(strip(node.content)))
+    upf["total_charge_density"] = parse.(Float64, split(strip(node.content)))  # No 4πr² factor
 end
 
 function parse_spin_orbit!(doc_root::EzXML.Node, upf::Dict)
@@ -250,14 +262,25 @@ function parse_spin_orbit!(doc_root::EzXML.Node, upf::Dict)
     end
 end
 
+"""
+    parse_upf(doc_root)
+
+All quantities are in Rydberg units:
+- e² = 2
+- m = 1 / 2
+- ħ = 1
+- Lengths in Bohr (0.529177 Å)
+- Energies in Ry (13.6058 eV)
+- Potentials multiplied by e to give units of energy
+"""
 function parse_upf2(doc_root::EzXML.Node)
     upf = Dict()
 
     parse_header!(doc_root, upf)
     if upf["header"]["pseudo_type"] == "PAW"
-        @warn "PAW is not implemented."
+        @warn "PAW in UPF v2 is not implemented."
     elseif upf["header"]["pseudo_type"] == "US"
-        @warn "Ultrasoft is not implemented."
+        @warn "Ultrasoft in UPF v2 is not implemented."
     end
     parse_radial_grid!(doc_root, upf)
     parse_nlcc!(doc_root, upf)

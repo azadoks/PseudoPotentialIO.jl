@@ -12,7 +12,10 @@ end)
 PSP8_DIR = "./psp8/"
 UPF_DIR = "./upf/"
 JSON_DIR = "./json/"
-HEADER_KEYS = ["number_of_proj", "core_correction", "element", "pseudo_type", "z_valence", "mesh_size", "number_of_wfc"]
+HEADER_KEYS = [
+    "number_of_proj", "core_correction", "element", "pseudo_type", "z_valence",
+    "mesh_size", "number_of_wfc"
+]
 VECTOR_KEYS = ["radial_grid", "core_charge_density", "local_potential", "total_charge_density"]
 
 pseudo_pairs = []
@@ -26,6 +29,81 @@ for (root, dirs, files) in walkdir(JSON_DIR)
 end
 
 @testset "UPF" begin
+    @testset "mesh" begin
+        for (_, upf) in pseudo_pairs
+            @test length(upf["radial_grid"]) == upf["header"]["mesh_size"]
+            @test haskey(upf, "radial_grid_derivative")
+            @test length(upf["radial_grid_derivative"]) == upf["header"]["mesh_size"]
+            # @test all(isapprox.(
+            #     diff(upf["radial_grid"]),
+            #     upf["radial_grid_derivative"][1:end-1],
+            # ))
+        end
+    end
+
+    @testset "nlcc" begin
+        for (_, upf) in pseudo_pairs
+            if upf["header"]["core_correction"]
+                @test length(upf["core_charge_density"]) == upf["header"]["mesh_size"]
+            else
+                @test !haskey(upf, "core_charge_density")
+            end
+        end
+    end
+
+    @testset "local" begin
+        for (_, upf) in pseudo_pairs
+            @test length(upf["local_potential"]) == upf["header"]["mesh_size"]
+        end
+    end
+
+    @testset "beta" begin
+        for (_, upf) in pseudo_pairs
+            @test length(upf["beta_projectors"]) == upf["header"]["number_of_proj"]
+            for proj in upf["beta_projectors"]
+                @test length(proj["radial_function"]) == proj["cutoff_radius_index"]
+                @test proj["index"] <= upf["header"]["number_of_proj"] 
+                @test proj["angular_momentum"] <= upf["header"]["l_max"]
+                if upf["header"]["has_so"]
+                    @test haskey(proj, "total_angular_momentum")
+                end
+            end
+        end
+    end
+
+    @testset "Dij" begin
+        for (_, upf) in pseudo_pairs
+            @test ndims(upf["D_ion"]) == 2
+            @test size(upf["D_ion"], 1) == size(upf["D_ion"], 2) == upf["header"]["number_of_proj"]
+        end
+    end
+
+    @testset "pswfc" begin
+        for (_, upf) in pseudo_pairs
+            @test length(upf["atomic_wave_functions"]) == upf["header"]["number_of_wfc"]
+            @test (
+                sum(wfc -> wfc["occupation"], upf["atomic_wave_functions"]) <=
+                upf["header"]["z_valence"]
+            )
+            for wfc in upf["atomic_wave_functions"]
+                @test length(wfc["radial_function"]) == upf["header"]["mesh_size"]
+                @test wfc["angular_momentum"] <= upf["header"]["l_max"]
+                if upf["header"]["has_so"]
+                    @test haskey(wfc, "principal_quantum_number")
+                    @test haskey(wfc, "total_angular_momentum")
+                end
+            end
+        end
+    end
+
+    @testset "rhoatom" begin
+        for (_, upf) in pseudo_pairs
+            @test length(upf["total_charge_density"]) == upf["header"]["mesh_size"]
+        end
+    end
+end
+
+@testset "UPF--JSON" begin
     @testset "header" begin
         for pair in pseudo_pairs
             for key in HEADER_KEYS
@@ -50,7 +128,7 @@ end
 
     @testset "local_potential" begin
         for pair in pseudo_pairs
-            @test all(pair.json["local_potential"] .== pair.upf["local_potential"])
+            @test all(pair.json["local_potential"] .== pair.upf["local_potential"] ./ 2)
         end
     end
 
@@ -82,7 +160,8 @@ end
     #             @test json_aug[i]["i"] + 1 == upf_aug[i]["i"]
     #             @test json_aug[i]["j"] + 1 == upf_aug[i]["j"]
     #             @test json_aug[i]["angular_momentum"] == upf_aug[i]["angular_momentum"]
-    #             @test all(isapprox.(json_aug[i]["radial_function"], upf_aug[i]["radial_function"], atol=4e-10))  # rtol=5e-6))
+    #             @test isapprox(json_aug[i]["radial_function"], upf_aug[i]["radial_function"])
+    #             # @test all(isapprox.(json_aug[i]["radial_function"], upf_aug[i]["radial_function"], atol=4e-10))  # rtol=5e-6))
     #         end
     #     end
     # end
@@ -142,7 +221,7 @@ end
     #     @testset "ae_local_potential" begin
     #         for pair in paw_pairs
     #             @test length(pair.json["paw_data"]["ae_local_potential"]) == length(pair.upf["paw_data"]["ae_local_potential"])
-    #             @test all(pair.json["paw_data"]["ae_local_potential"] .== pair.upf["paw_data"]["ae_local_potential"])
+    #             @test all(pair.json["paw_data"]["ae_local_potential"] .== pair.upf["paw_data"]["ae_local_potential"] ./ 2)
     #         end
     #     end
     # end
@@ -189,7 +268,7 @@ for (root, dirs, files) in walkdir(PSP8_DIR)
     end
 end
 
-@testset "PSP8" begin
+@testset "PSP8--UPF" begin
     @testset "header" begin
         for pair in pseudo_pairs
             psphead = pair.psp["header"]
@@ -207,58 +286,61 @@ end
 
     @testset "radial_grid" begin
         for pair in pseudo_pairs
-            mesh_size = pair.psp["header"]["mesh_size"]  # psp stores up to cutoff
-            @test all(pair.psp["radial_grid"] .≈ pair.upf["radial_grid"][begin:mesh_size])
+            mesh_size = pair.psp["header"]["mesh_size"]
+            @test isapprox(
+                pair.psp["radial_grid"],
+                pair.upf["radial_grid"][begin:mesh_size]
+            )
         end
     end
 
     @testset "local_potential" begin
         for pair in pseudo_pairs
-            mesh_size = pair.psp["header"]["mesh_size"]  # psp stores up to cutoff
-            @test all(isapprox.(
+            mesh_size = pair.psp["header"]["mesh_size"]
+            @test isapprox(
                 pair.psp["local_potential"],
-                pair.upf["local_potential"][begin:mesh_size],
-            ))
+                pair.upf["local_potential"][begin:mesh_size] ./ 2,
+            )
         end
     end
 
     @testset "nlcc" begin
         for pair in pseudo_pairs
             if pair.psp["header"]["core_correction"]
-                mesh_size = pair.psp["header"]["mesh_size"]  # psp stores up to cutoff
-                @test all(isapprox.(
+                mesh_size = pair.psp["header"]["mesh_size"]
+                @test isapprox(
                     pair.psp["nlcc"]["core_charge_density"],
                     pair.upf["core_charge_density"][begin:mesh_size],
-                ))
+                )
             end
         end
     end
 
-    @testset "beta_projectors" begin
-        @testset "$(pair.psp["header"]["filename"])" for pair in pseudo_pairs
-            mesh_size = pair.psp["header"]["mesh_size"]  # psp stores up to cutoff
-            if !pair.psp["header"]["has_so"]
-                psp_betas = pair.psp["beta_projectors"]
-                upf_betas = pair.upf["beta_projectors"]
-                for upf_beta in upf_betas
-                    passed = []
-                    for psp_betas_l in psp_betas
-                        if upf_beta["angular_momentum"] == psp_betas_l["angular_momentum"]
-                            for psp_rad_fun in psp_betas_l["radial_functions"]
-                                push!(
-                                    passed,
-                                    all(isapprox.(
-                                        psp_rad_fun,
-                                        upf_beta["radial_function"][begin:mesh_size],
-                                        # atol=1e-4
-                                    ))
-                                )
-                            end
-                        end
-                    end
-                    @test sum(passed) == 1
-                end
-            end
+    @testset "nonlocal_potential" begin
+        Vnl(β, D) = sum(i -> β[i] * D[i,i] * β[i]', 1:length(β))
+        non_so_pairs = filter(pair -> !pair.psp["header"]["has_so"], pseudo_pairs)
+        # @testset "Vnl $(pair.psp["header"]["filename"])" for pair in non_so_pairs
+        for pair in non_so_pairs
+            ir_cut = pair.upf["beta_projectors"][1]["cutoff_radius_index"]
+        
+            psp_D = pair.psp["D_ion"]
+            psp_β = vcat([β["radial_functions"] for β in pair.psp["beta_projectors"]]...)
+            psp_β = [β[1:ir_cut] for β in psp_β]
+            psp_Vnl = Vnl(psp_β, psp_D)  # Ha
+        
+            upf_D = pair.upf["D_ion"]
+            upf_β = [β["radial_function"][1:ir_cut] for β in pair.upf["beta_projectors"]]
+            upf_Vnl = Vnl(upf_β, upf_D)  # Ry
+
+            @test isapprox(
+                psp_D,
+                (upf_D ./ 2),
+                rtol=1e-7
+            )
+            @test isapprox(
+                psp_Vnl,
+                (upf_Vnl ./ 2),
+            )
         end
     end
 end
