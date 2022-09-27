@@ -63,6 +63,9 @@ Parse header (`PP_HEADER`) data, storing it in `upf["header"]::Dict` with the fo
 - `is_ultrasoft::Bool`
 - `is_paw::Bool`
 - `is_coulomb::Bool`: fake Coulomb potential for all-electron calculations
+- `has_so::Bool`: has spin-orbit coupling
+- `has_wfc::Bool`: always false
+- `has_gipaw::Bool`: has GIPAW reconstruction data
 - `core_correction::Bool`: non-linear core-correction
 - `z_valence::Float64`: pseudo-ion charge
 - `total_psenergy::Float64`: total energy of the pseudo-ion
@@ -73,9 +76,11 @@ Parse header (`PP_HEADER`) data, storing it in `upf["header"]::Dict` with the fo
 - `number_of_wfc::Int`: number of pseudo-atomic wavefunctions
 - `number_of_proj::Int`: number of Kleinman-Bylander projectors
 
+- `q_with_l::Bool`: Qij is dependent on angular momentum
+
 !!! Note
 The "Wavefunctions" section of the header is not parsed; instead the label, angular momentum,
-and occupations are parsed with the wavefunctions in the "<PP_PSWFC>" block.
+and occupations are parsed with the wavefunctions in the "PP_PSWFC" block.
 """
 function parse_header!(io::IO, upf::Dict)
     header = Dict()
@@ -137,6 +142,13 @@ end
 
 Parse radial grid data (`<PP_R>`) and integration factors (`<PP_RAB>`) from the `<PP_MESH>` block,
 storing them in `upf["radial_grid"]` and `upf["radial_grid_derivative"]` respectively.
+
+The radial grid is one of the following:
+``e^{x_\\text{min}} e^{(i - 1)dx} / Z_\\text{mesh}``
+``e^{x_\\text{min}} (e^{(i - 1)dx} - 1) / Z_\\text{mesh}``
+
+The radial grid derivative is the factor for discrete integration:
+``\\int f(r) dr = \\sum_{i=1}^{N} f(i) r_{ab}(i)``  
 """
 function parse_radial_grid!(io::IO, upf::Dict)
     read_until(io, "<PP_R>")
@@ -151,6 +163,8 @@ end
 
 Parse non-linear core correction data from the `<PP_NLCC>` bock if present, storing them in
 `upf["core_charge_density"]`.
+
+``Z_c = \\int \\rho_c(r) r^2 dr d\\Omega``
 """
 function parse_nlcc!(io::IO, upf::Dict)
     if upf["header"]["core_correction"]
@@ -181,7 +195,10 @@ each with the following data:
 - `cutoff_radius_index::Int`: number of elements read from file, all others are zero
 - `radial_function::Vector{Float64}`: the beta projector, with length `cutoff_radius_index`
 - `cutoff_radius::Float64`: always `0.`
-- `ultrasoft_cutoff_radius::Float64`: always `0.`
+
+!!! Note
+The units of the projectors are either ``\\text{Bohr}^{-1/2}`` or
+``\\text{Ry}~\\text{Bohr}^{-1/2}``.
 """
 function parse_beta_projectors!(io::IO, upf::Dict)
     read_until(io, "<PP_NONLOCAL>")
@@ -201,7 +218,6 @@ function parse_beta_projectors!(io::IO, upf::Dict)
 
         beta["radial_function"] = read_mesh_data(Float64, io, beta["cutoff_radius_index"])
         beta["cutoff_radius"] = 0.
-        beta["ultrasoft_cutoff_radius"] = 0.
         
         push!(beta_projectors, beta)
     end
@@ -215,6 +231,10 @@ end
 Parse the `<PP_DIJ>` block, storing it in `upf["D_ion"]` as a symmetric matrix where `D[i,j]` is
 the coupling coefficient between βᵢ and βⱼ (see `parse_beta_projectors!` for how the indices of
 the beta projectors are stored).
+
+!!! Note
+The units of ``D_{ij}`` are either ``\\text{Ry}`` or ``\\text{Ry}^-1``, corresponding to
+the units of the projectors.
 """
 function parse_dij!(io::IO, upf::Dict)
     read_until(io, "<PP_DIJ>")
@@ -385,6 +405,15 @@ end
     parse_upf1(io::IO)
 
 Parse an old UPF (v1) file.
+
+All quantities are in Rydberg units:
+- e² = 2
+- m = 1 / 2
+- ħ = 1
+- Lengths in Bohr (0.529177 Å)
+- Energies in Ry (13.6058 eV)
+- Potentials multiplied by e to give units of energy
+
 !!! Note
 PAW and ultrasoft potentials are not supported because parsing of `<PP_AUGMENTATION>` is not
 fully implemented.
