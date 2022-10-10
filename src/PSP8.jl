@@ -154,23 +154,9 @@ function parse_betas_dij_local!(io, psp)
         end
     end
 
-    # beta_projectors = [
-    #     Dict(
-    #         "radial_functions" => beta["radial_functions"],
-    #         "angular_momentum" => beta["angular_momentum"],
-    #     ) for beta in beta_blocks
-    # ]
     beta_projectors = [
         block["radial_functions"] for block in beta_blocks
     ]
-
-    # Dij = Float64[]
-    # for beta_block in beta_blocks
-    #     for dii in beta_block["ekb"]
-    #         push!(Dij, dii)
-    #     end
-    # end
-    # Dij = collect(Diagonal(Dij))
 
     ekb = [
         block["ekb"] for block in beta_blocks
@@ -190,31 +176,17 @@ function parse_spin_orbit!(io, psp)
             beta_block = parse_beta_projector(io, psp)
             push!(beta_blocks, beta_block)
         end
-    
-        # beta_projectors = [
-        #     Dict(
-        #         "radial_functions" => beta["radial_functions"],
-        #         "angular_momentum" => beta["angular_momentum"],
-        #     ) for beta in beta_blocks
-        # ]
+
         beta_projectors = [
             block["radial_functions"] for block in beta_blocks
         ]
-    
-        # Dij = Float64[]
-        # for beta_block in beta_blocks
-        #     for dii in beta_block["ekb"]
-        #         push!(Dij, dii)
-        #     end
-        # end
-        # Dij = collect(Diagonal(Dij))
+
         ekb = [
             block["ekb"] for block in beta_blocks
         ]
 
         psp["spin_orbit"] = Dict(
             "beta_projectors" => beta_projectors,
-            # "D_ion" => Dij
             "ekb" => ekb
         )
     else
