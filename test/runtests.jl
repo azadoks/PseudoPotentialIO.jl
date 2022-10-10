@@ -32,12 +32,26 @@ end
     @testset "mesh" begin
         for (_, upf) in pseudo_pairs
             @test length(upf["radial_grid"]) == upf["header"]["mesh_size"]
-            @test haskey(upf, "radial_grid_derivative")
             @test length(upf["radial_grid_derivative"]) == upf["header"]["mesh_size"]
-            # @test all(isapprox.(
-            #     diff(upf["radial_grid"]),
-            #     upf["radial_grid_derivative"][1:end-1],
-            # ))
+            r_params = upf["radial_grid_parameters"]
+            if r_params["mesh_type"] in ["log_1", "log_2"]
+                nr = r_params["mesh"]
+                xmin = r_params["xmin"]
+                dx = r_params["dx"]
+                z = r_params["zmesh"]
+                if r_params["mesh_type"] == "log_1"
+                    r = map(i -> exp(xmin) * exp((i - 1) * dx) / z, 1:nr)
+                    @test all(upf["radial_grid"] .≈ r)
+                else r_params["mesh_type"] == "log_2"
+                    r = map(i -> exp(xmin) * (exp((i - 1) * dx) - 1) / z, 1:nr)
+                    @test all(upf["radial_grid"] .≈ r)
+                end
+            elseif r_params["mesh_type"] == "linear"
+                @test all(isapprox.(
+                    round.(diff(upf["radial_grid"]), digits=4),
+                    upf["radial_grid_derivative"][1:end-1],
+                ))
+            end
         end
     end
 

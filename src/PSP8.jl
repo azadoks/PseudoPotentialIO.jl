@@ -4,9 +4,35 @@ using LinearAlgebra
 
 export parse_psp8
 
-parse_fortran(::Type{T}, x::AbstractString) where {T <: Real} = parse(T, replace(lowercase(x), "d" => "e"))
+function parse_fortran(::Type{T}, x::AbstractString) where {T <: Real}
+    return parse(T, replace(lowercase(x), "d" => "e"))
+end
 
-function parse_header!(io, psp)
+"""
+    parse_header!(io::IO, psp::Dict)
+
+Parse header data, storing it in `psp["header"]::Dict` with the following contents:
+- `title::String`: description
+- `z_atom::Float64`: atomic charge
+- `z_valence::Float64`: pseudo-ion charge
+- `generation_day::Int`
+- `generation_month::Int`
+- `generation_year::Int`
+- `format_version::Int`: PSP format version
+- `xc::Int`: ABINIT code for exchange-correlation
+- `l_max::Int`: maximum angular momentum channel of the Kleinman-Bylander projectors
+- `l_local::Int`: angular momentum channel of the local potential (>l_max if none)
+- `mesh_size::Int`: number of points on the radial mesh
+- `r2well::Int`: unused
+- `rchrg::Float`
+- `fchrg::Float`: has non-linear core correction if > 0
+- `qchrg::Float`
+- `number_of_proj::Vector{Int}`: number of projectors per angular momentum channel
+- `extension_switch::Int`: signals presence of spin-orbit coupling if 2 or 3
+- `has_so::Bool`: has spin-orbit coupling
+- `number_of_proj_so::Vector{Int}`: number of projectors per angular momentum channel (if has_so)
+"""
+function parse_header!(io::IO, psp::Dict)
     header = Dict()
     
     # line 1: title
@@ -14,9 +40,9 @@ function parse_header!(io, psp)
     
     # line 2: atomic number, pseudo-ion charge, date
     s = split(readline(io))
-    header["z_atom"] = parse_fortran(Float64, s[1])            # zatom
-    header["z_valence"] = parse_fortran(Float64, s[2])          # zion
-    header["generation_day"] = parse(Int, s[3][1:2])    # pspd (unused)
+    header["z_atom"] = parse_fortran(Float64, s[1])    # zatom
+    header["z_valence"] = parse_fortran(Float64, s[2]) # zion
+    header["generation_day"] = parse(Int, s[3][1:2])   # pspd (unused)
     header["generation_month"] = parse(Int, s[3][3:4])
     header["generation_year"] = parse(Int, s[3][5:6])
     
@@ -32,9 +58,9 @@ function parse_header!(io, psp)
 
     # line 4
     s = split(readline(io))
-    header["rchrg"] = parse_fortran(Float64, s[1])       # rchrg
-    header["fchrg"] = parse_fortran(Float64, s[2])       # fchrg
-    header["qchrg"] = parse_fortran(Float64, s[3])       # qchrg (unused)
+    header["rchrg"] = parse_fortran(Float64, s[1])    # rchrg
+    header["fchrg"] = parse_fortran(Float64, s[2])    # fchrg
+    header["qchrg"] = parse_fortran(Float64, s[3])    # qchrg (unused)
     header["core_correction"] = header["fchrg"] > 0.0
 
     # line 5: number of scalar-relativistic non-local
@@ -55,8 +81,6 @@ function parse_header!(io, psp)
         # non-local projectors for each angular momentum (l = 1:l_max)
         s = split(readline(io))
         header["number_of_proj_so"] = [parse(Int, s[i]) for i = 1:header["l_max"]]
-    else
-        header["number_of_proj_so"] = []
     end
 
     psp["header"] = header
@@ -150,13 +174,6 @@ function parse_betas_dij_local!(io, psp)
     psp["local_potential"] = v_local_block["local_potential"]
     psp["beta_projectors"] = beta_projectors
     psp["D_ion"] = Dij
-
-    # return Dict(
-    #     "radial_grid" => v_local_block["radial_grid"],
-    #     "local_potential" => v_local_block["local_potential"],
-    #     "beta_projectors" => beta_projectors,
-    #     "D_ion" => Dij
-    # )
 end
 
 function parse_spin_orbit!(io, psp)
@@ -222,15 +239,6 @@ function parse_nlcc!(io, psp)
     end
     
     psp["nlcc"] = nlcc
-
-    # return Dict(
-    #     "radial_grid" => radial_grid,
-    #     "rho" => rho,
-    #     "drho" => drho,
-    #     "d2rho" => d2rho,
-    #     "d3rho" => d3rho,
-    #     "d4rho" => d4rho
-    # )
 end
 
 function parse_psp8(io)

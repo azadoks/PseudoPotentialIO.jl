@@ -75,7 +75,6 @@ Parse header (`PP_HEADER`) data, storing it in `upf["header"]::Dict` with the fo
 - `mesh_size::Int`: number of points in the radial mesh
 - `number_of_wfc::Int`: number of pseudo-atomic wavefunctions
 - `number_of_proj::Int`: number of Kleinman-Bylander projectors
-
 - `q_with_l::Bool`: Qij is dependent on angular momentum
 
 !!! Note

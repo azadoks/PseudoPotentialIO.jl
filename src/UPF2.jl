@@ -7,9 +7,17 @@ export parse_upf2
 parse_bool(s::AbstractString) = occursin("T", uppercase(s)) ? true : false
 parse_bool(s::Char) = uppercase(s) == 'T' ? true : false
 
-get_attr(::Type{T}, node::EzXML.Node, key; default=zero(T)) where {T <: Number} = haskey(node, key) ? parse(T, strip(node[key])) : default
-get_attr(::Type{T}, node::EzXML.Node, key; default=T("")) where {T <: AbstractString} = haskey(node, key) ? T(strip(node[key])) : default
-get_attr(::Type{Bool}, node::EzXML.Node, key; default=false) = haskey(node, key) ? parse_bool(strip(node[key])) : default
+function get_attr(::Type{T}, node::EzXML.Node, key; default=zero(T)) where {T <: Number}
+    return haskey(node, key) ? parse(T, strip(node[key])) : default
+end
+
+function get_attr(::Type{T}, node::EzXML.Node, key; default=T("")) where {T <: AbstractString}
+    return haskey(node, key) ? T(strip(node[key])) : default
+end
+
+function get_attr(::Type{Bool}, node::EzXML.Node, key; default=false)
+    return haskey(node, key) ? parse_bool(strip(node[key])) : default
+end
 
 function get_content(::Type{T}, node::EzXML.Node, dims...) where {T <: Number}
     text = split(strip(node.content))
@@ -27,6 +35,39 @@ function get_content(::Type{T}, node::EzXML.Node, key, dims...) where {T <: Numb
     return content
 end
 
+linmesh(i::Int, a::T, b::T) where {T <: Real} = a * i + b
+logmesh1(i::Int, a::T, b::T) where {T <: Real} = b * exp(a * (i - 1))
+logmesh1(i::Int, xmin::T, dx::T, z::T) where {T <: Real} = exp(xmin) * exp((i - 1) * dx) / z
+logmesh2(i::Int, a::T, b::T) where {T <: Real} = b * (exp((i - 1) * a) - 1)
+logmesh2(i::Int, xmin::T, dx::T, z::T) where {T <: Real} = exp(xmin) * (exp((i - 1) * dx) - 1) / z
+
+function guess_mesh_type(r::Vector{T}, rab::Vector{T}) where {T <: Real}
+    nr = length(r)
+    # Try linear
+    a = r[2] - r[1]
+    b = r[1] - a
+    rguess = linmesh.(1:nr, a, b)
+    if all(rguess .≈ r) && all(round.(rab, digits=4) .≈ a)
+        return ("linear", a, b)
+    end
+    # Try log1
+    a = log(r[2] / r[1])  # dx
+    b = r[2] / exp(a)  # exp(xmin) / zmesh
+    rguess = logmesh1.(1:nr, a, b)
+    if all(rguess .≈ r) && all(rab .≈ a .* r)
+        return ("log_1", a, b)
+    end
+    # Try log2
+    b = (r[2]^2 - r[3]*r[1]) / (r[1] + r[3] - 2*r[2])
+    a = log((r[2] + b) / (r[1] + b))
+    rguess = logmesh2.(1:nr, a, b)
+    if all(rguess .≈ r) && all(rab .≈ a .* r .+ a*b)
+        return ("log_2", a, b)
+    end
+    return ("unknown", NaN, NaN)
+end
+
+
 """
     parse_header!(doc_root::EzXML.Node, upf::Dict)
 
@@ -34,7 +75,7 @@ Parse header (`PP_HEADER`) data, storing it in `upf["header"]::Dict` with the fo
 - `format_version::Int`: always 2
 - `generated::String`: code that generated the pseudo
 - `author::String`
-- `date::String`: generation date (ddmmyy)
+- `date::String`: generation date (arbitrary format)
 - `comment::String`
 - `element::String`: elemental symbol
 - `pseudo_type::String`: `NC` (norm-conserving), `US` (ultrasoft), `PAW` (plane-augmented wave)
@@ -100,10 +141,19 @@ end
 
 Parse radial grid data (`<PP_R>`) and integration factors (`<PP_RAB>`) from the `<PP_MESH>` block,
 storing them in `upf["radial_grid"]` and `upf["radial_grid_derivative"]` respectively.
-
-The radial grid is one of the following:
+Also, parse the attributes of `<PP_MESH>` and store them in `upf["radial_grid_parameters"]`:
+- `dx::Float64'
+- `mesh::Int`: number of mesh points
+- `xmin::Float64`
+- `rmax::Float64`
+- `zmesh::Float64`
+If these mesh parameters are present, the radial grid is one of the following:
+"log_1"
 ``e^{x_\\text{min}} e^{(i - 1)dx} / Z_\\text{mesh}``
+"log_2"
 ``e^{x_\\text{min}} (e^{(i - 1)dx} - 1) / Z_\\text{mesh}``
+Otherwised, it is likely a linear mesh.
+The type of mesh is stored in `upf["radial_grid_parameters"]["mesh_type"]`.
 
 The radial grid derivative is the factor for discrete integration:
 ``\\int f(r) dr = \\sum_{i=1}^{N} f(i) r_{ab}(i)``  
@@ -114,6 +164,28 @@ function parse_radial_grid!(doc_root::EzXML.Node, upf::Dict)
     
     node = findfirst("PP_MESH/PP_RAB", doc_root)
     upf["radial_grid_derivative"] = parse.(Float64, split(strip(node.content)))
+    
+    node = findfirst("PP_MESH", doc_root)
+    dx = get_attr(Float64, node, "dx")
+    mesh = get_attr(Int, node, "mesh")
+    xmin = get_attr(Float64, node, "xmin")
+    rmax = get_attr(Float64, node, "rmax")
+    zmesh = get_attr(Float64, node, "zmesh")
+
+    (mesh_type, mesh_a, mesh_b) = guess_mesh_type(upf["radial_grid"], upf["radial_grid_derivative"])
+    if mesh_type == "unknown"
+        raise(ExceptionError("Unknown mesh type"))
+    end
+    upf["radial_grid_parameters"] = Dict(
+        "dx" => dx,
+        "mesh" => mesh,
+        "xmin" => xmin,
+        "rmax" => rmax,
+        "zmesh" => zmesh,
+        "a" => mesh_a,
+        "b" => mesh_b,
+        "mesh_type" => mesh_type
+    )
 end
 
 """
