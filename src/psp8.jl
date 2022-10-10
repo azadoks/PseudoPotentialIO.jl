@@ -1,5 +1,3 @@
-module PSP8
-
 using LinearAlgebra
 
 export parse_psp8
@@ -9,7 +7,7 @@ function parse_fortran(::Type{T}, x::AbstractString) where {T <: Real}
 end
 
 """
-    parse_header!(io::IO, psp::Dict)
+    parse_header_psp8!(io::IO, psp::Dict)
 
 Parse header data, storing it in `psp["header"]::Dict` with the following contents:
 - `title::String`: description
@@ -32,7 +30,7 @@ Parse header data, storing it in `psp["header"]::Dict` with the following conten
 - `has_so::Bool`: has spin-orbit coupling
 - `number_of_proj_so::Vector{Int}`: number of projectors per angular momentum channel (if has_so)
 """
-function parse_header!(io::IO, psp::Dict)
+function parse_header_psp8!(io::IO, psp::Dict)
     header = Dict()
     
     # line 1: title
@@ -86,7 +84,7 @@ function parse_header!(io::IO, psp::Dict)
     psp["header"] = header
 end
 
-function parse_beta_projector(io, psp)
+function parse_beta_projector_psp8(io, psp)
     header_line = split(readline(io))
     l = parse(Int, header_line[1])
     n_proj_l = psp["header"]["number_of_proj"][l + 1]
@@ -110,7 +108,7 @@ function parse_beta_projector(io, psp)
     )
 end
 
-function parse_local(io, psp)
+function parse_local_psp8(io, psp)
     header_line = split(readline(io))
     l = parse(Int, header_line[1])
 
@@ -128,7 +126,7 @@ function parse_local(io, psp)
     )
 end
 
-function parse_betas_dij_local!(io, psp)
+function parse_betas_dij_local_psp8!(io, psp)
     beta_blocks = []
     v_local_block = Dict()
     if psp["header"]["l_max"] < psp["header"]["l_local"]
@@ -147,9 +145,9 @@ function parse_betas_dij_local!(io, psp)
         # Parse the block's `l`
         block_l = parse(Int, block_header_line[1])
         if block_l == psp["header"]["l_local"]
-            v_local_block = parse_local(io, psp)
+            v_local_block = parse_local_psp8(io, psp)
         else
-            beta_block = parse_beta_projector(io, psp)
+            beta_block = parse_beta_projector_psp8(io, psp)
             push!(beta_blocks, beta_block)
         end
     end
@@ -169,11 +167,11 @@ function parse_betas_dij_local!(io, psp)
     psp["ekb"] = ekb
 end
 
-function parse_spin_orbit!(io, psp)
+function parse_spin_orbit_psp8!(io, psp)
     if psp["header"]["has_so"]
         beta_blocks = []
         for i = 1:psp["header"]["l_max"]  # l = 1:l_max
-            beta_block = parse_beta_projector(io, psp)
+            beta_block = parse_beta_projector_psp8(io, psp)
             push!(beta_blocks, beta_block)
         end
 
@@ -194,7 +192,7 @@ function parse_spin_orbit!(io, psp)
     end
 end
 
-function parse_nlcc!(io, psp)
+function parse_nlcc_psp8!(io, psp)
     if psp["header"]["core_correction"]
         mesh_size = psp["header"]["mesh_size"]
         radial_grid = Vector{Float64}(undef, mesh_size)
@@ -230,11 +228,10 @@ end
 function parse_psp8(io)
     psp = Dict()
 
-    parse_header!(io, psp)
-    parse_betas_dij_local!(io, psp)
-    parse_spin_orbit!(io, psp)
-    parse_nlcc!(io, psp)
+    parse_header_psp8!(io, psp)
+    parse_betas_dij_local_psp8!(io, psp)
+    parse_spin_orbit_psp8!(io, psp)
+    parse_nlcc_psp8!(io, psp)
 
     return psp
-end
 end

@@ -1,5 +1,3 @@
-module UPF1
-
 export parse_upf1
 
 """
@@ -81,7 +79,7 @@ Parse header (`PP_HEADER`) data, storing it in `upf["header"]::Dict` with the fo
 The "Wavefunctions" section of the header is not parsed; instead the label, angular momentum,
 and occupations are parsed with the wavefunctions in the "PP_PSWFC" block.
 """
-function parse_header!(io::IO, upf::Dict)
+function parse_header_upf1!(io::IO, upf::Dict)
     header = Dict()
 
     read_until(io, "<PP_HEADER>")
@@ -149,12 +147,27 @@ The radial grid is one of the following:
 The radial grid derivative is the factor for discrete integration:
 ``\\int f(r) dr = \\sum_{i=1}^{N} f(i) r_{ab}(i)``  
 """
-function parse_radial_grid!(io::IO, upf::Dict)
+function parse_radial_grid_upf1!(io::IO, upf::Dict)
     read_until(io, "<PP_R>")
     upf["radial_grid"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
 
     read_until(io, "<PP_RAB>")
     upf["radial_grid_derivative"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
+
+    (mesh_type, mesh_a, mesh_b) = guess_mesh_type(upf["radial_grid"], upf["radial_grid_derivative"])
+    if mesh_type == "unknown"
+        raise(ExceptionError("Unknown mesh type"))
+    end
+    upf["radial_grid_parameters"] = Dict(
+        "dx" => 0.,
+        "mesh" => length(upf["radial_grid"]),
+        "xmin" => 0.,
+        "rmax" => maximum(upf["radial_grid"]),
+        "zmesh" => 0.,
+        "a" => mesh_a,
+        "b" => mesh_b,
+        "mesh_type" => mesh_type
+    )
 end
 
 """
@@ -165,7 +178,7 @@ Parse non-linear core correction data from the `<PP_NLCC>` bock if present, stor
 
 ``Z_c = \\int \\rho_c(r) r^2 dr d\\Omega``
 """
-function parse_nlcc!(io::IO, upf::Dict)
+function parse_nlcc_upf1!(io::IO, upf::Dict)
     if upf["header"]["core_correction"]
         read_until(io, "<PP_NLCC>")
         upf["core_charge_density"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
@@ -177,7 +190,7 @@ end
 
 Parse the local potential from the `<PP_LOCAL>` block, storing it in `upf["local_potential"]`.
 """
-function parse_local!(io::IO, upf::Dict)
+function parse_local_upf1!(io::IO, upf::Dict)
     read_until(io, "<PP_LOCAL>")
     upf["local_potential"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
 end
@@ -199,7 +212,7 @@ each with the following data:
 The units of the projectors are either ``\\text{Bohr}^{-1/2}`` or
 ``\\text{Ry}~\\text{Bohr}^{-1/2}``.
 """
-function parse_beta_projectors!(io::IO, upf::Dict)
+function parse_beta_projectors_upf1!(io::IO, upf::Dict)
     read_until(io, "<PP_NONLOCAL>")
     beta_projectors = []
     for i = 1:upf["header"]["number_of_proj"]
@@ -235,7 +248,7 @@ the beta projectors are stored).
 The units of ``D_{ij}`` are either ``\\text{Ry}`` or ``\\text{Ry}^-1``, corresponding to
 the units of the projectors.
 """
-function parse_dij!(io::IO, upf::Dict)
+function parse_dij_upf1!(io::IO, upf::Dict)
     read_until(io, "<PP_DIJ>")
     Dij = zeros(Float64, upf["header"]["number_of_proj"], upf["header"]["number_of_proj"])
     s = split(readline(io))
@@ -334,7 +347,7 @@ each with the following data:
 - `occupation::Float`
 - `radial_function::Vector{Float64}`: the pseudo-atomic wavefunction on the full radial mesh
 """
-function parse_pswfc!(io::IO, upf::Dict)
+function parse_pswfc_upf1!(io::IO, upf::Dict)
     atomic_wave_functions = []
     read_until(io, "<PP_PSWFC>")
     for i = 1:upf["header"]["number_of_wfc"]
@@ -355,7 +368,7 @@ end
 Parse the total pseudo-atomic charge density from the `<PP_RHOATOM>` block, storing the data in
 `upf["total_charge_density"]`.
 """
-function parse_rhoatom!(io::IO, upf::Dict)
+function parse_rhoatom_upf1!(io::IO, upf::Dict)
     read_until(io, "<PP_RHOATOM>")
     upf["total_charge_density"] = read_mesh_data(Float64, io, upf["header"]["mesh_size"])
 end
@@ -369,7 +382,7 @@ If `upf["header"]["has_so"]`, parse spin-orbit coupling data, which are stored i
 are stored. For each Kleinman-Bylander projector, `angular_momentum` is overwritten, and a new
 `total_angular_momentum` is stored.
 """
-function parse_addinfo!(io::IO, upf::Dict)
+function parse_addinfo_upf1!(io::IO, upf::Dict)
     if upf["header"]["has_so"]
         read_until(io, "<PP_ADDINFO>")
         for i = 1:upf["header"]["number_of_wfc"]
@@ -420,21 +433,20 @@ fully implemented.
 function parse_upf1(io::IO)
     upf = Dict()
 
-    parse_header!(io, upf)
+    parse_header_upf1!(io, upf)
     if upf["header"]["is_paw"]
         @warn "PAW in UPF v1 is not implemented."
     elseif upf["header"]["is_ultrasoft"]
         @warn "Ultrasoft in UPF v1 is not implemented."
     end
-    parse_radial_grid!(io, upf)
-    parse_nlcc!(io, upf)
-    parse_local!(io, upf)
-    parse_beta_projectors!(io, upf)
-    parse_dij!(io, upf)
+    parse_radial_grid_upf1!(io, upf)
+    parse_nlcc_upf1!(io, upf)
+    parse_local_upf1!(io, upf)
+    parse_beta_projectors_upf1!(io, upf)
+    parse_dij_upf1!(io, upf)
     # parse_augmentation!(io, upf)
-    parse_pswfc!(io, upf)
-    parse_rhoatom!(io, upf)
-    parse_addinfo!(io, upf)
+    parse_pswfc_upf1!(io, upf)
+    parse_rhoatom_upf1!(io, upf)
+    parse_addinfo_upf1!(io, upf)
     return upf
-end
 end

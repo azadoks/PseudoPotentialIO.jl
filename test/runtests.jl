@@ -1,13 +1,13 @@
-using UPF
+using PseudoPotentialIO
 using Test
 using JSON
 using PeriodicTable
 
-Test.eval(quote
-	function record(ts::DefaultTestSet, t::Union{Fail, Error})
-		push!(ts.results, t)
-	end
-end)
+# Test.eval(quote
+# 	function record(ts::DefaultTestSet, t::Union{Fail, Error})
+# 		push!(ts.results, t)
+# 	end
+# end)
 
 PSP8_DIR = "./psp8/"
 UPF_DIR = "./upf/"
@@ -34,18 +34,12 @@ end
             @test length(upf["radial_grid"]) == upf["header"]["mesh_size"]
             @test length(upf["radial_grid_derivative"]) == upf["header"]["mesh_size"]
             r_params = upf["radial_grid_parameters"]
-            if r_params["mesh_type"] in ["log_1", "log_2"]
-                nr = r_params["mesh"]
-                xmin = r_params["xmin"]
-                dx = r_params["dx"]
-                z = r_params["zmesh"]
-                if r_params["mesh_type"] == "log_1"
-                    r = map(i -> exp(xmin) * exp((i - 1) * dx) / z, 1:nr)
-                    @test all(upf["radial_grid"] .≈ r)
-                else r_params["mesh_type"] == "log_2"
-                    r = map(i -> exp(xmin) * (exp((i - 1) * dx) - 1) / z, 1:nr)
-                    @test all(upf["radial_grid"] .≈ r)
-                end
+            if r_params["mesh_type"] == "log_1"
+                r = map(i -> PseudoPotentialIO.logmesh1(i, r_params["a"], r_params["b"]), 1:r_params["mesh"])
+                @test all(upf["radial_grid"] .≈ r)
+            elseif r_params["mesh_type"] == "log_2"
+                r = map(i -> PseudoPotentialIO.logmesh2(i, r_params["a"], r_params["b"]), 1:r_params["mesh"])
+                @test all(upf["radial_grid"] .≈ r)
             elseif r_params["mesh_type"] == "linear"
                 @test all(isapprox.(
                     round.(diff(upf["radial_grid"]), digits=4),

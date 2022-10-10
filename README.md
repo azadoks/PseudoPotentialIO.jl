@@ -1,8 +1,6 @@
-# UPF.jl
+# PseudoPotentialIO.jl
 
-Support reading UPF (Unified Pseudopotential Format) versions 1 and 2.
-
-At the moment, it is almost a direct translation of Simon Pintarelli's Python library [`upf_to_json`](https://github.com/simonpintarelli/upf_to_json).
+Support reading various pseudopotential file formats.
 
 ## `upf_to_json` data structure
 ```

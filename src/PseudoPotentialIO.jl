@@ -1,15 +1,17 @@
-module UPF
+module PseudoPotentialIO
 
 using EzXML
 
-export UPF
-include("UPF1.jl")
+include("common.jl")
 
-export UPF2
-include("UPF2.jl")
+export parse_upf1
+include("upf1.jl")
 
-export PSP8
-include("PSP8.jl")
+export parse_upf2
+include("upf2.jl")
+
+export parse_psp8
+include("psp8.jl")
 
 """
     get_upf_version(filename::AbstractString)
@@ -44,7 +46,7 @@ function load_upf(filename::AbstractString)
     version = get_upf_version(filename)
     if version == 1
         open(filename, "r") do io
-            return UPF1.parse_upf1(io)
+            return parse_upf1(io)
         end
     elseif version == 2
         text = read(filename, String)
@@ -53,7 +55,7 @@ function load_upf(filename::AbstractString)
         # Clean any errant `&` characters
         text = replace(text, "&" => "")
         doc_root = root(parsexml(text))
-        return UPF2.parse_upf2(doc_root)
+        return parse_upf2(doc_root)
     end
 end
 
@@ -83,7 +85,7 @@ function load_psp(filename::AbstractString)
     version = get_psp_version(filename)
     open(filename, "r") do io
         if version == 8
-            psp = PSP8.parse_psp8(io)
+            psp = parse_psp8(io)
             psp["header"]["filename"] = filename
             return psp
         else

@@ -1,5 +1,3 @@
-module UPF2
-
 using EzXML
 
 export parse_upf2
@@ -35,41 +33,8 @@ function get_content(::Type{T}, node::EzXML.Node, key, dims...) where {T <: Numb
     return content
 end
 
-linmesh(i::Int, a::T, b::T) where {T <: Real} = a * i + b
-logmesh1(i::Int, a::T, b::T) where {T <: Real} = b * exp(a * (i - 1))
-logmesh1(i::Int, xmin::T, dx::T, z::T) where {T <: Real} = exp(xmin) * exp((i - 1) * dx) / z
-logmesh2(i::Int, a::T, b::T) where {T <: Real} = b * (exp((i - 1) * a) - 1)
-logmesh2(i::Int, xmin::T, dx::T, z::T) where {T <: Real} = exp(xmin) * (exp((i - 1) * dx) - 1) / z
-
-function guess_mesh_type(r::Vector{T}, rab::Vector{T}) where {T <: Real}
-    nr = length(r)
-    # Try linear
-    a = r[2] - r[1]
-    b = r[1] - a
-    rguess = linmesh.(1:nr, a, b)
-    if all(rguess .≈ r) && all(round.(rab, digits=4) .≈ a)
-        return ("linear", a, b)
-    end
-    # Try log1
-    a = log(r[2] / r[1])  # dx
-    b = r[2] / exp(a)  # exp(xmin) / zmesh
-    rguess = logmesh1.(1:nr, a, b)
-    if all(rguess .≈ r) && all(rab .≈ a .* r)
-        return ("log_1", a, b)
-    end
-    # Try log2
-    b = (r[2]^2 - r[3]*r[1]) / (r[1] + r[3] - 2*r[2])
-    a = log((r[2] + b) / (r[1] + b))
-    rguess = logmesh2.(1:nr, a, b)
-    if all(rguess .≈ r) && all(rab .≈ a .* r .+ a*b)
-        return ("log_2", a, b)
-    end
-    return ("unknown", NaN, NaN)
-end
-
-
 """
-    parse_header!(doc_root::EzXML.Node, upf::Dict)
+    parse_header_upf2!(doc_root::EzXML.Node, upf::Dict)
 
 Parse header (`PP_HEADER`) data, storing it in `upf["header"]::Dict` with the following contents:
 - `format_version::Int`: always 2
@@ -101,7 +66,7 @@ Parse header (`PP_HEADER`) data, storing it in `upf["header"]::Dict` with the fo
 - `number_of_wfc::Int`: number of pseudo-atomic wavefunctions
 - `number_of_proj::Int`: number of Kleinman-Bylander projectors
 """
-function parse_header!(doc_root::EzXML.Node, upf::Dict)
+function parse_header_upf2!(doc_root::EzXML.Node, upf::Dict)
     header = Dict()
     # version = get_attr(String, doc_root, "version")
     node = findfirst("PP_HEADER", doc_root)
@@ -137,7 +102,7 @@ function parse_header!(doc_root::EzXML.Node, upf::Dict)
 end
 
 """
-    parse_radial_grid!(io::IO, upf::Dict)
+    parse_radial_grid_upf2!(io::IO, upf::Dict)
 
 Parse radial grid data (`<PP_R>`) and integration factors (`<PP_RAB>`) from the `<PP_MESH>` block,
 storing them in `upf["radial_grid"]` and `upf["radial_grid_derivative"]` respectively.
@@ -158,7 +123,7 @@ The type of mesh is stored in `upf["radial_grid_parameters"]["mesh_type"]`.
 The radial grid derivative is the factor for discrete integration:
 ``\\int f(r) dr = \\sum_{i=1}^{N} f(i) r_{ab}(i)``  
 """
-function parse_radial_grid!(doc_root::EzXML.Node, upf::Dict)
+function parse_radial_grid_upf2!(doc_root::EzXML.Node, upf::Dict)
     node = findfirst("PP_MESH/PP_R", doc_root)
     upf["radial_grid"] = parse.(Float64, split(strip(node.content)))  # Bohr
     
@@ -189,14 +154,14 @@ function parse_radial_grid!(doc_root::EzXML.Node, upf::Dict)
 end
 
 """
-    parse_nlcc!(io::IO, upf::Dict)
+    parse_nlcc_upf2!(io::IO, upf::Dict)
 
 Parse non-linear core correction data from the `<PP_NLCC>` bock if present, storing them in
 `upf["core_charge_density"]`.
 
 ``Z_c = \\int \\rho_c(r) r^2 dr d\\Omega``
 """
-function parse_nlcc!(doc_root::EzXML.Node, upf::Dict)
+function parse_nlcc_upf2!(doc_root::EzXML.Node, upf::Dict)
     if upf["header"]["core_correction"]
         node = findfirst("PP_NLCC", doc_root)
         # Z_c = ∫(ρ_c(r) r^2 dr dΩ)
@@ -205,19 +170,19 @@ function parse_nlcc!(doc_root::EzXML.Node, upf::Dict)
 end
 
 """
-    parse_local!(io::IO, upf::Dict)
+    parse_local_upf2!(io::IO, upf::Dict)
 
 Parse the local potential from the `<PP_LOCAL>` block, storing it in `upf["local_potential"]`.
 The local potential contains a long-range term ``-Z_\\text{valence} e^2 / r``.
 """
-function parse_local!(doc_root::EzXML.Node, upf::Dict)
+function parse_local_upf2!(doc_root::EzXML.Node, upf::Dict)
     node = findfirst("PP_LOCAL", doc_root)
     # Contains long range term -z_valence * e^2 / r
     upf["local_potential"] = parse.(Float64, split(strip(node.content)))  # Ry
 end
 
 """
-    parse_beta_projectors!(io::IO, upf::Dict)
+    parse_beta_projectors_upf2!(io::IO, upf::Dict)
 
 Parse the `<PP_BETA>` blocks in `<PP_NONLOCAL>`, storing them in a vector in
 `upf["beta_projectors"]`. There are `upf["header"]["number_of_proj"]` blocks,
@@ -240,7 +205,7 @@ If `upf["header"]["has_so"]`, spin-orbit data are parsed for each beta from
 The units of the projectors are either ``\\text{Bohr}^{-1/2}`` or
 ``\\text{Ry}~\\text{Bohr}^{-1/2}``.
 """
-function parse_beta_projectors!(doc_root::EzXML.Node, upf::Dict)
+function parse_beta_projectors_upf2!(doc_root::EzXML.Node, upf::Dict)
     beta_projectors = []
     for i = 1:upf["header"]["number_of_proj"]
         node = findfirst("PP_NONLOCAL/PP_BETA.$i", doc_root)
@@ -266,24 +231,24 @@ function parse_beta_projectors!(doc_root::EzXML.Node, upf::Dict)
 end
 
 """
-    parse_dij!(io::IO, upf::Dict)
+    parse_dij_upf2!(io::IO, upf::Dict)
 
 Parse the `<PP_DIJ>` block, storing it in `upf["D_ion"]` as a symmetric matrix where `D[i,j]` is
-the coupling coefficient between βᵢ and βⱼ (see `parse_beta_projectors!` for how the indices of
+the coupling coefficient between βᵢ and βⱼ (see `parse_beta_projectors_upf2!` for how the indices of
 the beta projectors are stored).
 
 !!! Note
 The units of ``D_{ij}`` are either ``\\text{Ry}`` or ``\\text{Ry}^-1``, corresponding to the
 units of the projectors.
 """
-function parse_dij!(doc_root::EzXML.Node, upf::Dict)
+function parse_dij_upf2!(doc_root::EzXML.Node, upf::Dict)
     node = findfirst("PP_NONLOCAL/PP_DIJ", doc_root)
     Dij = parse.(Float64, split(strip(node.content)))
     Dij = reshape(Dij, upf["header"]["number_of_proj"], upf["header"]["number_of_proj"])
     upf["D_ion"] = Dij  # either Ry or Ry^-1
 end
 
-# function parse_augmentation!(doc_root::EzXML.Node, upf::Dict)
+# function parse_augmentation_upf2!(doc_root::EzXML.Node, upf::Dict)
 #     if !upf["header"]["is_ultrasoft"]
 #         augmentation = []
 #     else
@@ -315,7 +280,7 @@ end
 #     upf["augmentation"] = augmentation
 # end
 
-# function parse_paw!(doc_root::EzXML.Node, upf::Dict)
+# function parse_paw_upf2!(doc_root::EzXML.Node, upf::Dict)
 #     if !(lowercase(upf["header"]["pseudo_type"]) == "paw")
 #         paw_data = Dict()
 #     else
@@ -373,7 +338,7 @@ end
 # end
 
 """
-    parse_pswfc!(io::IO, upf::Dict)
+    parse_pswfc_upf2!(io::IO, upf::Dict)
 
 Parse the pseudo-atomic wavefunctions in the `<PP_PSWFC>` block, storing them in a vector in
 `upf["atomic_wave_functions"]`. There are `upf["header"]["number_of_wfc"]` blocks,
@@ -392,7 +357,7 @@ If `upf["header"]["has_so"]`, spin-orbit data are parsed for each pseudo-atomic 
 - `total_angular_momentum::Int`
 - `principal_quantum_number::Int`
 """
-function parse_pswfc!(doc_root::EzXML.Node, upf::Dict)
+function parse_pswfc_upf2!(doc_root::EzXML.Node, upf::Dict)
     atomic_wave_functions = []
     for i = 1:upf["header"]["number_of_wfc"]
         node = findfirst("PP_PSWFC/PP_CHI.$i", doc_root)
@@ -416,7 +381,7 @@ function parse_pswfc!(doc_root::EzXML.Node, upf::Dict)
 end
 
 """
-    parse_rhoatom!(io::IO, upf::Dict)
+    parse_rhoatom_upf2!(io::IO, upf::Dict)
 
 Parse the total pseudo-atomic charge density from the `<PP_RHOATOM>` block, storing the data in
 `upf["total_charge_density"]`.
@@ -424,12 +389,12 @@ Parse the total pseudo-atomic charge density from the `<PP_RHOATOM>` block, stor
 !!! Note
 There is _no_ ``4π`` prefactor!
 """
-function parse_rhoatom!(doc_root::EzXML.Node, upf::Dict)
+function parse_rhoatom_upf2!(doc_root::EzXML.Node, upf::Dict)
     node = findfirst("PP_RHOATOM", doc_root)
     upf["total_charge_density"] = parse.(Float64, split(strip(node.content)))  # No 4πr² factor
 end
 
-# function parse_spin_orbit!(doc_root::EzXML.Node, upf::Dict)
+# function parse_spin_orbit_upf2!(doc_root::EzXML.Node, upf::Dict)
 #     if upf["header"]["has_so"]
 #         for i = 1:upf["header"]["number_of_proj"]
 #             node = findfirst("PP_SPIN_ORB/PP_RELBETA.$i", doc_root)
@@ -447,7 +412,7 @@ end
 # end
 
 """
-    parse_upf(doc_root::EzXML.Node)
+    parse_upf2(doc_root::EzXML.Node)
 
 Parse a UPF v2 (with schema) file.
 
@@ -466,23 +431,22 @@ are not fully implemented.
 function parse_upf2(doc_root::EzXML.Node)
     upf = Dict()
 
-    parse_header!(doc_root, upf)
+    parse_header_upf2!(doc_root, upf)
     if upf["header"]["pseudo_type"] == "PAW"
         @warn "PAW in UPF v2 is not implemented."
     elseif upf["header"]["pseudo_type"] == "US"
         @warn "Ultrasoft in UPF v2 is not implemented."
     end
-    parse_radial_grid!(doc_root, upf)
-    parse_nlcc!(doc_root, upf)
-    parse_local!(doc_root, upf)
-    parse_beta_projectors!(doc_root, upf)
-    parse_dij!(doc_root, upf)
-    # parse_augmentation!(doc_root, upf)
-    # parse_paw!(doc_root, upf)
-    parse_pswfc!(doc_root, upf)
-    parse_rhoatom!(doc_root, upf)
-    # parse_spin_orbit!(doc_root, upf)
+    parse_radial_grid_upf2!(doc_root, upf)
+    parse_nlcc_upf2!(doc_root, upf)
+    parse_local_upf2!(doc_root, upf)
+    parse_beta_projectors_upf2!(doc_root, upf)
+    parse_dij_upf2!(doc_root, upf)
+    # parse_augmentation_upf2!(doc_root, upf)
+    # parse_paw_upf2!(doc_root, upf)
+    parse_pswfc_upf2!(doc_root, upf)
+    parse_rhoatom_upf2!(doc_root, upf)
+    # parse_spin_orbit_upf2!(doc_root, upf)
 
     return upf
-end
 end
