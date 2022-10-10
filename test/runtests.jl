@@ -331,30 +331,27 @@ end
     end
 
     @testset "nonlocal_potential" begin
-        Vnl(β, D) = sum(i -> β[i] * D[i,i] * β[i]', 1:length(β))
         non_so_pairs = filter(pair -> !pair.psp["header"]["has_so"], pseudo_pairs)
         # @testset "Vnl $(pair.psp["header"]["filename"])" for pair in non_so_pairs
         for pair in non_so_pairs
-            ir_cut = pair.upf["beta_projectors"][1]["cutoff_radius_index"]
-        
-            psp_D = pair.psp["D_ion"]
-            psp_β = vcat([β["radial_functions"] for β in pair.psp["beta_projectors"]]...)
-            psp_β = [β[1:ir_cut] for β in psp_β]
-            psp_Vnl = Vnl(psp_β, psp_D)  # Ha
-        
-            upf_D = pair.upf["D_ion"]
-            upf_β = [β["radial_function"][1:ir_cut] for β in pair.upf["beta_projectors"]]
-            upf_Vnl = Vnl(upf_β, upf_D)  # Ry
+            mesh_size = pair.psp["header"]["mesh_size"]
+            idx_upf = 1
+            for l = 0:pair.psp["header"]["l_max"]
+                for i = 1:length(pair.psp["beta_projectors"][l+1])
+                    psp_β = pair.psp["beta_projectors"][l+1][i]
+                    upf_β = pair.upf["beta_projectors"][idx_upf]["radial_function"]
+                    ir_max = min(length(psp_β), length(upf_β))
+                    
+                    psp_ekb = pair.psp["ekb"][l+1][i]
+                    upf_Dij = pair.upf["D_ion"][idx_upf,idx_upf]
 
-            @test isapprox(
-                psp_D,
-                (upf_D ./ 2),
-                rtol=1e-7
-            )
-            @test isapprox(
-                psp_Vnl,
-                (upf_Vnl ./ 2),
-            )
+                    psp_βekbβ = psp_β[1:ir_max] * psp_ekb * psp_β[1:ir_max]'
+                    upf_βekbβ = upf_β[1:ir_max] * upf_Dij * upf_β[1:ir_max]'
+
+                    @test psp_βekbβ ≈ upf_βekbβ ./ 2 atol=1e-6 rtol=1e-6
+                    idx_upf += 1
+                end
+            end
         end
     end
 end
