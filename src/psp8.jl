@@ -152,9 +152,15 @@ function parse_betas_dij_local_psp8!(io, psp)
         end
     end
 
-    beta_projectors = [
-        block["radial_functions"] for block in beta_blocks
-    ]
+    beta_projectors = Vector[]
+    for l = 0:psp["header"]["l_max"]
+        trunc_betas = Vector[]
+        for beta in beta_blocks[l+1]["radial_functions"]
+            ir_cut = sum(abs.(beta) .> 1e-10)
+            push!(trunc_betas, beta[begin:ir_cut])
+        end
+        push!(beta_projectors, trunc_betas)
+    end
 
     ekb = Matrix[]
     for l = 0:psp["header"]["l_max"]
