@@ -336,7 +336,7 @@ end
                     upf_β = pair.upf["beta_projectors"][idx_upf]["radial_function"]
                     ir_max = min(length(psp_β), length(upf_β))
                     
-                    psp_ekb = pair.psp["ekb"][l+1][i]
+                    psp_ekb = pair.psp["ekb"][l+1][i,i]
                     upf_Dij = pair.upf["D_ion"][idx_upf,idx_upf]
 
                     psp_βekbβ = psp_β[1:ir_max] * psp_ekb * psp_β[1:ir_max]'

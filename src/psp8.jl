@@ -156,9 +156,15 @@ function parse_betas_dij_local_psp8!(io, psp)
         block["radial_functions"] for block in beta_blocks
     ]
 
-    ekb = [
-        block["ekb"] for block in beta_blocks
-    ]
+    ekb = Matrix[]
+    for l = 0:psp["header"]["l_max"]
+        nproj_l = psp["header"]["number_of_proj"][l+1]
+        ekb_l = zeros(Float64, nproj_l, nproj_l)
+        for i = 1:nproj_l
+            ekb_l[i,i] = beta_blocks[l+1]["ekb"][i]
+        end
+        push!(ekb, ekb_l)
+    end
 
     psp["radial_grid"] = v_local_block["radial_grid"]
     psp["local_potential"] = v_local_block["local_potential"]
