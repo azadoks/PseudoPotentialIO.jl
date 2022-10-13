@@ -1,7 +1,7 @@
 name = "PseudoPotentialIO"
 uuid = "cb339c56-07fa-4cb2-923a-142469552264"
 authors = ["Austin Zadoks"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
