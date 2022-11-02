@@ -1,237 +1,262 @@
-using LinearAlgebra
-
-export parse_psp8
-
 function parse_fortran(::Type{T}, x::AbstractString) where {T<:Real}
-	return parse(T, replace(lowercase(x), "d" => "e"))
+    return parse(T, replace(lowercase(x), "d" => "e"))
 end
 
 """
-	parse_header_psp8!(io::IO, psp::Dict)
+$TYPEDEF
 
-Parse header data, storing it in `psp["header"]::Dict` with the following contents:
-- `title::String`: description
-- `z_atom::Float64`: atomic charge
-- `z_valence::Float64`: pseudo-ion charge
-- `generation_day::Int`
-- `generation_month::Int`
-- `generation_year::Int`
-- `format_version::Int`: PSP format version
-- `xc::Int`: ABINIT code for exchange-correlation
-- `l_max::Int`: maximum angular momentum channel of the Kleinman-Bylander projectors
-- `l_local::Int`: angular momentum channel of the local potential (>l_max if none)
-- `mesh_size::Int`: number of points on the radial mesh
-- `r2well::Int`: unused
-- `rchrg::Float`
-- `fchrg::Float`: has non-linear core correction if > 0
-- `qchrg::Float`
-- `number_of_proj::Vector{Int}`: number of projectors per angular momentum channel
-- `extension_switch::Int`: signals presence of spin-orbit coupling if 2 or 3
-- `has_so::Bool`: has spin-orbit coupling
-- `number_of_proj_so::Vector{Int}`: number of projectors per angular momentum channel (if has_so)
+$(TYPEDFIELDS)
 """
-function parse_header_psp8!(io::IO, psp::Dict)
-	header = Dict()
-
-	# line 1: title
-	header["title"] = readline(io)              # title (unused)
-
-	# line 2: atomic number, pseudo-ion charge, date
-	s = split(readline(io))
-	header["z_atom"] = parse_fortran(Float64, s[1])    # zatom
-	header["z_valence"] = parse_fortran(Float64, s[2]) # zion
-	header["generation_day"] = parse(Int, s[3][1:2])   # pspd (unused)
-	header["generation_month"] = parse(Int, s[3][3:4])
-	header["generation_year"] = parse(Int, s[3][5:6])
-
-	# line 3
-	s = split(readline(io))
-	header["format_version"] = parse(Int, s[1]) # pspcod == 8
-	header["xc"] = parse(Int, s[2])             # pspxc
-	header["l_max"] = parse(Int, s[3])          # lmax
-	header["l_local"] = parse(Int, s[4])        # lloc
-	header["mesh_size"] = parse(Int, s[5])      # mmax
-	header["r2well"] = parse(Int, s[6])         # r2well (unused)
-	@assert header["format_version"] == 8
-
-	# line 4
-	s = split(readline(io))
-	header["rchrg"] = parse_fortran(Float64, s[1])    # rchrg
-	header["fchrg"] = parse_fortran(Float64, s[2])    # fchrg
-	header["qchrg"] = parse_fortran(Float64, s[3])    # qchrg (unused)
-	header["core_correction"] = header["fchrg"] > 0.0
-
-	# line 5: number of scalar-relativistic non-local
-	# projectors for each angular momentum (l = 0:l_max)
-	s = split(readline(io))
-	header["number_of_proj"] = [parse(Int, s[i]) for i in 1:(header["l_max"] + 1)]
-	if header["l_local"] <= header["l_max"]
-		@assert header["number_of_proj"][header["l_local"] + 1] == 0
-	end
-
-	# line 6: data extension information
-	s = split(readline(io))
-	header["extension_switch"] = parse(Int, s[1])
-	header["has_so"] = header["extension_switch"] in [2, 3]
-
-	if header["has_so"]
-		# line 7: number of projectors for each spin-orbit
-		# non-local projectors for each angular momentum (l = 1:l_max)
-		s = split(readline(io))
-		header["number_of_proj_so"] = [parse(Int, s[i]) for i in 1:header["l_max"]]
-	end
-
-	return psp["header"] = header
+struct Psp8Header
+    "Description"
+    title::String
+    "Atomic charge"
+    zatom::Float64
+    "Pseudo-atomic charge"
+    zion::Float64
+    "Generation date `ddmmyy`"
+    pspd::Int
+    "PSP format version"
+    pspcod::Int
+    "ABINIT code for exchange-correlation if positive, LibXC code if negative"
+    pspxc::Int
+    "Maximum angular momentum channel of the Kleinman-Bylander projectors"
+    lmax::Int
+    "Angular momentum channel of the local potential (`>lmax` if none)"
+    lloc::Int
+    "Number of points on the radial mesh"
+    mmax::Int
+    "Unused"
+    r2well::Float64
+    "Radius beyond which the model core charge (if present) is zero or negligible"
+    rchrg::Float64
+    "Pseudopotential has a model core charge if > 0"
+    fchrg::Float64
+    "Unused"
+    qchrg::Float64
+    "Number of projectors for each angular momentum channel"
+    nproj::Vector{Int}
+    "Signals presence of spin-orbit coupling if 2 or 3"
+    extension_switch::Int
+    "Number of spin-orbit projectors for each angular momentum (if present)"
+    nprojso::Union{Nothing,Vector{Int}}
 end
 
-function parse_beta_projector_psp8(io, psp)
-	header_line = split(readline(io))
-	l = parse(Int, header_line[1])
-	n_proj_l = psp["header"]["number_of_proj"][l + 1]
-	ekb = [parse_fortran(Float64, header_line[i + 1]) for i in 1:n_proj_l]
+"""
+$TYPEDEF
 
-	radial_grid = Vector{Float64}(undef, psp["header"]["mesh_size"])
-	betas = [Vector{Float64}(undef, psp["header"]["mesh_size"]) for i in 1:(n_proj_l)]
-	for i in 1:psp["header"]["mesh_size"]
-		s = split(readline(io))
-		radial_grid[i] = parse_fortran(Float64, s[2])
-		for j in 1:n_proj_l
-			betas[j][i] = parse_fortran(Float64, s[2 + j])
-		end
-	end
-
-	return Dict("angular_momentum" => l,
-				"radial_grid" => radial_grid,
-				"radial_functions" => betas,
-				"ekb" => ekb)
+$(TYPEDFIELDS)
+"""
+struct Psp8PsP <: PseudoPotentialIO.AbstractPsP
+    "Various pseudopotential metadata"
+    header::Psp8Header
+    "Radial grid"
+    rgrid::Vector{Float64}
+    "Local part of the pseudopotential"
+    v_local::Vector{Float64}
+    "Radial part of the Kleinman-Bylander projectors for each angular momentum"
+    projectors::Vector{Vector{Vector{Float64}}}
+    "Kleinman-Bylander energies for each angular momentum"
+    ekb::Vector{Vector{Float64}}
+    "Radial part of the spin-orbit Kleinman-Bylander projectors for each angular momentum"
+    projectors_so::Union{Nothing,Vector{Vector{Vector{Float64}}}}
+    "Spin-orbit Kleinman-Bylander energies for each angular momentum"
+    ekb_so::Union{Nothing,Vector{Vector{Float64}}}
+    "Model core charge"
+    rhoc::Union{Nothing,Vector{Float64}}
+    "First derivative of the model core charge"
+    d_rhoc_dr::Union{Nothing,Vector{Float64}}
+    "Second derivative of the model core charge"
+    d2_rhoc_dr::Union{Nothing,Vector{Float64}}
+    "Third derivative of the model core charge"
+    d3_rhoc_dr::Union{Nothing,Vector{Float64}}
+    "Fourth derivative of the model core charge"
+    d4_rhoc_dr::Union{Nothing,Vector{Float64}}
 end
 
-function parse_local_psp8(io, psp)
-	header_line = split(readline(io))
-	l = parse(Int, header_line[1])
+function psp8_parse_header(io::IO)
+    # line 1
+    title = readline(io)
+    # line 2
+    s = split(readline(io))
+    zatom = parse_fortran(Float64, s[1])
+    zion = parse_fortran(Float64, s[2])
+    pspd = parse(Int, s[3])
+    # line 3
+    s = split(readline(io))
+    pspcod = parse(Int, s[1])
+    pspxc = parse(Int, s[2])
+    lmax = parse(Int, s[3])
+    lloc = parse(Int, s[4])
+    mmax = parse(Int, s[5])
+    r2well = parse(Int, s[6])
+    @assert pspcod == 8
+    # line 4
+    s = split(readline(io))
+    rchrg = parse_fortran(Float64, s[1])
+    fchrg = parse_fortran(Float64, s[2])
+    qchrg = parse_fortran(Float64, s[3])
+    # line 5
+    s = split(readline(io))
+    nproj = [parse(Int, s[i]) for i in 1:(lmax + 1)]
+    if lloc <= lmax
+        @assert nproj[lloc + 1] == 0
+    end
+    # line 6
+    s = split(readline(io))
+    extension_switch = parse(Int, s[1])
+    # line 7
+    if extension_switch in [2, 3]
+        s = split(readline(io))
+        nprojso = [0, [parse(Int, s[i]) for i in 1:lmax]...]
+    else
+        nprojso = nothing
+    end
 
-	radial_grid = Vector{Float64}(undef, psp["header"]["mesh_size"])
-	v_local = Vector{Float64}(undef, psp["header"]["mesh_size"])
-	for i in 1:psp["header"]["mesh_size"]
-		s = split(readline(io))
-		radial_grid[i] = parse_fortran(Float64, s[2])
-		v_local[i] = parse_fortran(Float64, s[3])
-	end
-	return Dict("angular_momentum" => l,
-				"radial_grid" => radial_grid,
-				"local_potential" => v_local)
+    return Psp8Header(title, zatom, zion, pspd, pspcod, pspxc, lmax, lloc, mmax, r2well,
+                      rchrg, fchrg, qchrg, nproj, extension_switch, nprojso)
 end
 
-function parse_betas_dij_local_psp8!(io, psp)
-	beta_blocks = []
-	v_local_block = Dict()
-	if psp["header"]["l_max"] < psp["header"]["l_local"]
-		n_blocks = psp["header"]["l_max"] + 2
-	else
-		n_blocks = psp["header"]["l_max"] + 1
-	end
-	for _ in 1:n_blocks
-		# Record the position at the start of the block so we can
-		# read in the first line and go back
-		block_head = position(io)
-		# Read the block header
-		block_header_line = split(readline(io))
-		# Go back to the start of the block
-		seek(io, block_head)
-		# Parse the block's `l`
-		block_l = parse(Int, block_header_line[1])
-		if block_l == psp["header"]["l_local"]
-			v_local_block = parse_local_psp8(io, psp)
-		else
-			beta_block = parse_beta_projector_psp8(io, psp)
-			push!(beta_blocks, beta_block)
-		end
-	end
+function psp8_parse_projector_block(io, nproj, mmax)
+    header_line = split(readline(io))
+    l = parse(Int, header_line[1])
+    nproj_l = nproj[l + 1]
+    ekb = [parse_fortran(Float64, header_line[i + 1]) for i in 1:nproj_l]
 
-	beta_projectors = Vector[]
-	for l in 0:psp["header"]["l_max"]
-		trunc_betas = Vector[]
-		for beta in beta_blocks[l + 1]["radial_functions"]
-			ir_cut = sum(abs.(beta) .> 1e-10)
-			push!(trunc_betas, beta[begin:ir_cut])
-		end
-		push!(beta_projectors, trunc_betas)
-	end
+    rgrid = Vector{Float64}(undef, mmax)
+    projectors = [Vector{Float64}(undef, mmax) for _ in 1:(nproj_l)]
+    for i in 1:mmax
+        s = split(readline(io))
+        rgrid[i] = parse_fortran(Float64, s[2])
+        for j in 1:nproj_l
+            projectors[j][i] = parse_fortran(Float64, s[2 + j])
+        end
+    end
 
-	ekb = Matrix[]
-	for l in 0:psp["header"]["l_max"]
-		nproj_l = psp["header"]["number_of_proj"][l + 1]
-		ekb_l = zeros(Float64, nproj_l, nproj_l)
-		for i in 1:nproj_l
-			ekb_l[i, i] = beta_blocks[l + 1]["ekb"][i]
-		end
-		push!(ekb, ekb_l)
-	end
-
-	psp["radial_grid"] = v_local_block["radial_grid"]
-	psp["local_potential"] = v_local_block["local_potential"]
-	psp["beta_projectors"] = beta_projectors
-	# psp["D_ion"] = Dij
-	return psp["ekb"] = ekb
+    return (; l, rgrid, projectors, ekb)
 end
 
-function parse_spin_orbit_psp8!(io, psp)
-	if psp["header"]["has_so"]
-		beta_blocks = []
-		for i in 1:psp["header"]["l_max"]  # l = 1:l_max
-			beta_block = parse_beta_projector_psp8(io, psp)
-			push!(beta_blocks, beta_block)
-		end
+function psp8_parse_v_local(io, mmax)
+    header_line = split(readline(io))
+    l = parse(Int, header_line[1])
 
-		beta_projectors = [block["radial_functions"] for block in beta_blocks]
+    rgrid = Vector{Float64}(undef, mmax)
+    v_local = Vector{Float64}(undef, mmax)
+    for i in 1:mmax
+        s = split(readline(io))
+        rgrid[i] = parse_fortran(Float64, s[2])
+        v_local[i] = parse_fortran(Float64, s[3])
+    end
 
-		ekb = [block["ekb"] for block in beta_blocks]
-
-		psp["spin_orbit"] = Dict("beta_projectors" => beta_projectors,
-								 "ekb" => ekb)
-	else
-		psp["spin_orbit"] = Dict()
-	end
+    return (; l, rgrid, v_local)
 end
 
-function parse_nlcc_psp8!(io, psp)
-	if psp["header"]["core_correction"]
-		mesh_size = psp["header"]["mesh_size"]
-		radial_grid = Vector{Float64}(undef, mesh_size)
-		rho = Vector{Float64}(undef, mesh_size)
-		drho = Vector{Float64}(undef, mesh_size)
-		d2rho = Vector{Float64}(undef, mesh_size)
-		d3rho = Vector{Float64}(undef, mesh_size)
-		d4rho = Vector{Float64}(undef, mesh_size)
-		for i in 1:mesh_size
-			s = split(readline(io))
-			radial_grid[i] = parse_fortran(Float64, s[2])
-			rho[i] = parse_fortran(Float64, s[3]) / (4π)
-			drho[i] = parse_fortran(Float64, s[4])
-			d2rho[i] = parse_fortran(Float64, s[5])
-			d3rho[i] = parse_fortran(Float64, s[6])
-			d4rho[i] = parse_fortran(Float64, s[7])
-		end
+function psp8_parse_main_blocks(io, mmax, nproj, lmax, lloc)
+    projector_blocks = []
+    v_local_block = ()
 
-		nlcc = Dict("core_charge_density" => rho,
-					"first_derivative" => drho,
-					"second_derivative" => d2rho,
-					"third_derivative" => d4rho,
-					"fourth_derivative" => d4rho)
-	else
-		nlcc = Dict()
-	end
+    if lmax < lloc
+        n_blocks = lmax + 1
+    else
+        n_blocks = lmax
+    end
 
-	return psp["nlcc"] = nlcc
+    for _ in 0:n_blocks
+        # Record the position at the start of the block so we can
+        # read in the first line and go back
+        pos = position(io)
+        # Read the block header
+        header_line = split(readline(io))
+        # Go back to the start of the block
+        seek(io, pos)
+        # Parse the block's angular momentum
+        block_l = parse(Int, header_line[1])
+        if block_l == lloc
+            v_local_block = psp8_parse_v_local(io, mmax)
+        else
+            block = psp8_parse_projector_block(io, nproj, mmax)
+            push!(projector_blocks, block)
+        end
+    end
+
+    projectors = [block.projectors for block in projector_blocks]
+    ekb = [block.ekb for block in projector_blocks]
+
+    return (; v_local_block.rgrid, v_local_block.v_local, projectors, ekb)
 end
 
-function parse_psp8(io)
-	psp = Dict()
+function psp8_parse_spin_orbit_blocks(io, mmax, nprojso, lmax)
+    projector_blocks = []
+    for _ in 1:lmax
+        block = psp8_parse_projector_block(io, nprojso, mmax)
+        push!(projector_blocks, block)
+    end
 
-	parse_header_psp8!(io, psp)
-	parse_betas_dij_local_psp8!(io, psp)
-	parse_spin_orbit_psp8!(io, psp)
-	parse_nlcc_psp8!(io, psp)
+    projectors = [block.projectors for block in projector_blocks]
+    ekb = [block.ekb for block in projector_blocks]
 
-	return psp
+    return (; projectors, ekb)
+end
+
+function psp8_parse_nlcc(io, mmax)
+    radial_grid = Vector{Float64}(undef, mmax)
+    rhoc = Vector{Float64}(undef, mmax)
+    d_rhoc_dr = Vector{Float64}(undef, mmax)
+    d2_rhoc_dr2 = Vector{Float64}(undef, mmax)
+    d3_rhoc_dr3 = Vector{Float64}(undef, mmax)
+    d4_rhoc_dr4 = Vector{Float64}(undef, mmax)
+    for i in 1:mmax
+        s = split(readline(io))
+        radial_grid[i] = parse_fortran(Float64, s[2])
+        # These include the 4π factor
+        rhoc[i] = parse_fortran(Float64, s[3])
+        d_rhoc_dr[i] = parse_fortran(Float64, s[4])
+        d2_rhoc_dr2[i] = parse_fortran(Float64, s[5])
+        d3_rhoc_dr3[i] = parse_fortran(Float64, s[6])
+        d4_rhoc_dr4[i] = parse_fortran(Float64, s[7])
+    end
+    return (; rhoc, d_rhoc_dr, d2_rhoc_dr2, d3_rhoc_dr3, d4_rhoc_dr4)
+end
+
+function Psp8PsP(io::IO)
+    header = psp8_parse_header(io)
+    main_blocks = psp8_parse_main_blocks(io, header.mmax, header.nproj, header.lmax,
+                                         header.lloc)
+    if header.extension_switch in (2, 3)
+        spin_orbit = psp8_parse_spin_orbit_blocks(io, header.mmax, header.nprojso,
+                                                  header.lmax)
+    else
+        spin_orbit = (projectors=nothing, ekb=nothing)
+    end
+    if header.fchrg > 0
+        nlcc = psp8_parse_nlcc(io, header.mmax)
+    else
+        nlcc = (rhoc=nothing, d_rhoc_dr=nothing, d2_rhoc_dr2=nothing, d3_rhoc_dr3=nothing,
+		        d4_rhoc_dr4=nothing)
+    end
+    return Psp8PsP(header, main_blocks.rgrid, main_blocks.v_local, main_blocks.projectors,
+                   main_blocks.ekb, spin_orbit.projectors, spin_orbit.ekb,
+                   nlcc.rhoc, nlcc.d_rhoc_dr, nlcc.d2_rhoc_dr2, nlcc.d3_rhoc_dr3,
+                   nlcc.d4_rhoc_dr4)
+end
+
+function Psp8PsP(path::AbstractString)
+    open(path, "r") do io
+        return Psp8PsP(io)
+    end
+end
+
+function Base.show(io::IO, psp::Psp8PsP)
+    has_so = psp.header.extension_switch in (2, 3)
+    relativistic = has_so ? "full" : "scalar"
+    has_nlcc = psp.header.fchrg > 0
+    element = PeriodicTable.elements[round(Int, psp.header.zatom)].symbol
+    println(io, "PSP v8")
+    @printf "%032s: %s\n" "type" "NC"
+    @printf "%032s: %s\n" "element" element
+    @printf "%032s: %f\n" "valence charge" psp.header.zion
+    @printf "%032s: %s\n" "relativistic treatment" relativistic
+    @printf "%032s: %s\n" "non-linear core correction" has_nlcc
+    @printf "%032s: %d\n" "maximum angular momentum" psp.header.lmax
+    @printf "%032s: %s" "number of projectors" sum(psp.header.nproj)
 end

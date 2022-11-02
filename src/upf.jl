@@ -1,0 +1,304 @@
+using EzXML
+using Printf
+
+function get_upf_version(io::IO)::Int
+    pos = position(io)
+    seek(io, 0)
+    line = readline(io)
+    seek(io, pos)
+    if occursin("<PP_INFO>", line)
+        # Old UPF files start with the `<PP_INFO>` section
+        return 1
+    elseif occursin("UPF version=\"2.0.1\"", line)
+        # New UPF files with schema are in XML and start with a version tag
+        return 2
+    else
+        error("Unknown UPF version")
+    end
+end
+
+function get_upf_version(path::AbstractString)::Int
+	open(path, "r") do io
+		return get_upf_version(io)
+	end
+end
+
+struct UpfHeader
+    "Generation code"
+    generated::Union{Nothing,String}
+    author::Union{Nothing,String}
+    "Generation date"
+    date::Union{Nothing,String}
+    comment::Union{Nothing,String}
+    "A valid chemical symbol: `{H, He, Li, ..., Og}`"
+    element::String
+    "A valid type of pseudopotential: `{NC, SL, 1/r, US, PAW}`"
+    pseudo_type::String
+    "A valid relativistic treatment: `{scalar, full, relativistic}`"
+    relativistic::Union{Nothing,String}
+    is_ultrasoft::Bool
+    is_paw::Bool
+    "True of the pseudopotential is just a bare Coulomb potential (all-electron)"
+    is_coulomb::Bool
+    "True if fully-relativistic with spin-orbit terms"
+    has_so::Bool
+    "True if all-electron wavefunctions present"
+    has_wfc::Bool
+    "True if data for GIPAW reconstruction is present"
+    has_gipaw::Bool
+    "True if data for GIPAW reconstruction is present"
+    paw_as_gipaw::Union{Nothing,Bool}
+    "True if non-linear core correction is included"
+    core_correction::Bool
+    "QuantumEspresso exchange-correlation identifier"
+    functional::String
+    "Pseudo-atomic charge"
+    z_valence::Float64
+    "Total pseudo-valence energy of the pseudopotential"
+    total_psenergy::Union{Nothing,Float64}
+    "Suggested plane wave cutoff for expansion of Kohn-Sham orbitals"
+    wcf_cutoff::Union{Nothing,Float64}
+    "Suggested plane wave cutoff for expansion of charge density"
+    rho_cutoff::Union{Nothing,Float64}
+    "Maximum angular momentum channel in the pseudopotential"
+    l_max::Int
+    "Maximum angular momentum channel in the atomic charge density (PAW only)"
+    l_max_rho::Union{Nothing,Int}
+    "Angular momentum chosen to be the local potential (-1 if none)"
+    l_local::Union{Nothing,Int}
+    "Number of points in the radial grid"
+    mesh_size::Int
+    "Number of pseudo-atomic wavefunctions"
+    number_of_wfc::Int
+    "Number of Kleinman-Bylander nonlocal projectors"
+    number_of_proj::Int
+end
+
+struct UpfMesh
+    "Radial mesh"
+    r::Vector{Float64}
+    "Integration factors for integrating quantities on the radial mesh"
+    rab::Vector{Float64}
+    "Number of points in the radial mesh"
+    mesh::Int
+    "Maximum value of the radial mesh"
+    rmax::Union{Nothing,Float64}
+    # Mesh generation parameters
+    dx::Union{Nothing,Float64}
+    xmin::Union{Nothing,Float64}
+    zmesh::Union{Nothing,Float64}
+end
+
+struct UpfQij
+    qij::Vector{Float64}
+    first_index::Union{Nothing,Int}
+    second_index::Union{Nothing,Int}
+    composite_index::Union{Nothing,Int}
+    is_null::Union{Nothing,Bool}
+end
+
+struct UpfQijl
+    qijl::Vector{Float64}
+    angular_momentum::Int
+    first_index::Union{Nothing,Int}
+    second_index::Union{Nothing,Int}
+    composite_index::Union{Nothing,Int}
+    is_null::Union{Nothing,Bool}
+end
+
+struct UpfAugmentation
+    """Norms of the augmentation functions (NB: `q = 0` does _not_ guarantee that the
+    corresponding augmentation function is zero)"""
+    q::Union{Nothing,Vector{Float64}}
+    """Electronic multipoles of the corresponding augmentation channel. If the absolute
+    value of a multipole is less than `augmentation_epsilon`, the corresponding augmentation
+    function should be considered zero"""
+    multipoles::Union{Nothing,Vector{Float64}}
+    """Coefficients used to perform a Taylor expansion of the augmentation functions at
+    small radii (NB: compulsory if `nqf > 0`, ignored otherwise)"""
+    qfcoeff::Union{Nothing,Vector{Float64},Vector{Vector{Float64}}}
+    rinner::Union{Nothing,Vector{Float64}}
+    "If `q_with_l` is false, the augmentation functions for `i,j in 1:number_of_proj`"
+    qijs::Union{Nothing,Vector{UpfQij}}
+    """If `q_with_l` is true, the angular-momentum dependent augmentation functions for
+    `i,j in 1:number_of_proj` and `l in 0:l_max_rho`"""
+    qijls::Union{Nothing,Vector{UpfQijl}}
+    "True if augmentation charge functions are decomposed into angular momentum components"
+    q_with_l::Bool
+    """Number of expansion coefficients for analytical expansion of the augmentation
+    charge at small radius."""
+    nqf::Int
+    "Number of angular momenta terms in the augmentation charge, unused if `nqf = 0`"
+    nqlc::Union{Nothing,Float64}
+    """(UNUSED) (PAW) Shape of the augmentation function: `{PSQ, GAUSS, BESSEL}`, could
+    be used for analyical overlap of PAW augmentation charge"""
+    shape::Union{Nothing,String}
+    "(PAW) Radial grid index beyond which augmentation charge is zero"
+    iraug::Union{Nothing,Int}
+    "(PAW) Radial distance beyond which augmentation charge is zero"
+    raug::Union{Nothing,Float64}
+    "(PAW): Maximum angular momentum appearing in augmentation charge"
+    l_max_aug::Union{Nothing,Float64}
+    """(PAW): Augmentation functions whose norms are less than `augmentation_epsilon` are
+    considered zero"""
+    augmentation_epsilon::Union{Nothing,Float64}
+    "(DEPRECATED?)"
+    cutoff_r::Union{Nothing,Float64}
+    "(DEPRECATED?)"
+    cutoff_r_index::Union{Nothing,Float64}
+end
+
+struct UpfBeta
+    "Kleinman-Bylander nonlocal projector multiplied by the radial mesh, on the radial mesh"
+    beta::Vector{Float64}
+    index::Union{Nothing,Int}
+    angular_momentum::Int
+    cutoff_radius_index::Union{Nothing,Int}
+    cutoff_radius::Union{Nothing,Float64}
+    norm_conserving_radius::Union{Nothing,Float64}
+    ultrasoft_cutoff_radius::Union{Nothing,Float64}
+    label::Union{Nothing,String}
+end
+
+struct UpfNonlocal
+    """Kleinman-Bylander nonlocal projectors multiplied by the radial mesh,
+    on the radial mesh"""
+    betas::Vector{UpfBeta}
+    "Kleinman-Bylander energies"
+    dij::Matrix{Float64}
+    "Agumentation data for ultrasoft and PAW pseudopotentials"
+    augmentation::Union{Nothing,UpfAugmentation}
+end
+
+struct UpfChi
+    "Pseudo-atomic valence wavefunction on the radial mesh"
+    chi::Vector{Float64}
+    "Angular momentum"
+    l::Int
+    occupation::Float64
+    index::Union{Nothing,Int}
+    label::Union{Nothing,String}
+    "Principle quantum number"
+    n::Union{Nothing,Int}
+    pseudo_energy::Union{Nothing,Float64}
+    cutoff_radius::Union{Nothing,Float64}
+    ultrasoft_cutoff_radius::Union{Nothing,Float64}
+end
+
+struct UpfRelWfc
+    jchi::Float64
+    index::Union{Nothing,Int}
+    els::Union{Nothing,String}
+    nn::Union{Nothing,Int}
+    lchi::Union{Nothing,Int}
+    oc::Union{Nothing,Float64}
+end
+
+struct UpfRelBeta
+    index::Union{Nothing,Int}
+    jjj::Float64
+    lll::Union{Nothing,Int}
+end
+
+struct UpfSpinOrb
+    relwfcs::Vector{UpfRelWfc}
+    relbetas::Vector{UpfRelBeta}
+end
+
+struct UpfWfc
+    wfc::Vector{Float64}
+    index::Int
+    l::Int
+    label::Union{Nothing,String}
+end
+
+struct UpfFullWfc
+    aewfcs::Vector{UpfWfc}
+    pswfcs::Vector{UpfWfc}
+end
+
+struct UpfPaw
+    occupations::Vector{Float64}
+    ae_nlcc::Vector{Float64}
+    ae_vloc::Vector{Float64}
+    aewfcs::Vector{UpfWfc}
+    pswfcs::Vector{UpfWfc}
+end
+
+struct UpfGipawCoreOrbital
+    index::Int
+    label::Union{Nothing,String}
+    "Principal quantum number"
+    n::Int
+    "Angular momentum"
+    l::Int
+    core_orbital::Vector{Float64}
+end
+
+struct UpfGipaw
+    gipaw_data_format::Int
+    core_orbitals::Vector{UpfGipawCoreOrbital}
+end
+
+struct UpfPsP <: PseudoPotentialIO.AbstractPsP
+    "UPF format version"
+    version::String
+    "Optional general information about the pseudopotential, often generation input"
+    info::Union{Nothing,String}
+    "Various pseudopotential metadata"
+    header::UpfHeader
+    "Radial mesh, mesh integration factors, and other mesh information"
+    mesh::UpfMesh
+    "Pseudized core charge on the radial grid, (ignored if `core_correction` is false)"
+    nlcc::Union{Nothing,Vector{Float64}}  # Σ_{i} 4π r_{i}^2 nlcc_{i}
+    "Local part of the pseudopotential on the radial grid (ignored if `is_coulomb`)"
+    local_::Union{Nothing,Vector{Float64}}
+    "Nonlocal part of the pseudopotential"
+    nonlocal::UpfNonlocal
+    "Pseudo-atomic valence wavefunctions"
+    pswfc::Union{Nothing,Vector{UpfChi}}
+    "All-electron wavefunctions"
+    full_wfc::Union{Nothing,UpfFullWfc}
+    "Pseudo-atomic valence charge density on the radial grid"
+    rhoatom::Vector{Float64}
+    "Spin-orbit coupling data, (ignored if `has_so` is false)"
+    spinorb::Union{Nothing,UpfSpinOrb}
+    "PAW data, (ignored if `is_paw` is false)"
+    paw::Union{Nothing,UpfPaw}
+    "GIPAW data"
+    gipaw::Union{Nothing,UpfGipaw}
+end
+
+function UpfPsP(path::AbstractString)
+    open(path, "r") do io
+        return UpfPsP(io)
+    end
+end
+
+function UpfPsP(io::IO)
+    version = get_upf_version(io)
+    if version == 1
+        return upf1_parse_psp(io)
+    end
+    if version == 2
+		text = read(io, String)
+		# Remove end-of-file junk (input data, etc.)
+		text = string(split(text, "</UPF>")[1], "</UPF>")
+		# Clean any errant `&` characters
+		text = replace(text, "&" => "")
+        return upf2_parse_psp(parsexml(text))
+    end
+end
+
+function Base.show(io::IO, psp::UpfPsP)
+    println(io, "UPF v$(psp.version)")
+    @printf "%032s: %s\n" "type" psp.header.pseudo_type
+    @printf "%032s: %s\n" "element" psp.header.element
+    @printf "%032s: %f\n" "valence charge" psp.header.z_valence
+    @printf "%032s: %s\n" "functional" psp.header.functional
+    @printf "%032s: %s\n" "relativistic treatment" psp.header.relativistic
+    @printf "%032s: %s\n" "non-linear core correction" psp.header.core_correction
+    @printf "%032s: %d\n" "maximum angular momentum" psp.header.l_max
+    @printf "%032s: %s\n" "number of projectors" psp.header.number_of_proj
+    @printf "%032s: %s" "number of pseudo-wavefunctions" psp.header.number_of_wfc
+end

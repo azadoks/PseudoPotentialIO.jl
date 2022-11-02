@@ -1,459 +1,374 @@
-using EzXML
-
-export parse_upf2
-
 parse_bool(s::AbstractString) = occursin("T", uppercase(s)) ? true : false
 parse_bool(s::Char) = uppercase(s) == 'T' ? true : false
 
-function get_attr(::Type{T}, node::EzXML.Node, key; default=zero(T)) where {T<:Number}
-	return haskey(node, key) ? parse(T, strip(node[key])) : default
+function get_attr(::Type{T}, node::EzXML.Node, key; default=nothing) where {T<:Number}
+    if haskey(node, key)
+        value = strip(node[key])
+        value = replace(uppercase(value), "D" => "E")
+        attr =  parse(T, value)
+    else
+        attr = default
+    end
+    return attr
 end
 
-function get_attr(::Type{T}, node::EzXML.Node, key; default=T("")) where {T<:AbstractString}
-	return haskey(node, key) ? T(strip(node[key])) : default
+function get_attr(::Type{T}, node::EzXML.Node, key;
+                  default=nothing) where {T<:AbstractString}
+    return haskey(node, key) ? T(strip(node[key])) : default
 end
 
-function get_attr(::Type{Bool}, node::EzXML.Node, key; default=false)
-	return haskey(node, key) ? parse_bool(strip(node[key])) : default
+function get_attr(::Type{Bool}, node::EzXML.Node, key; default=nothing)
+    return haskey(node, key) ? parse_bool(strip(node[key])) : default
+end
+    
+function upf2_parse_header(node::EzXML.Node)
+    generated = get_attr(String, node, "generated")
+    author = get_attr(String, node, "author")
+    date = get_attr(String, node, "date")
+    comment = get_attr(String, node, "comment")
+    element = get_attr(String, node, "element")
+    pseudo_type = get_attr(String, node, "pseudo_type")
+    relativistic = get_attr(String, node, "relativistic")
+    is_ultrasoft = get_attr(Bool, node, "is_ultrasoft")
+    is_paw = get_attr(Bool, node, "is_paw")
+    is_coulomb = get_attr(Bool, node, "is_coulomb")
+    has_so = get_attr(Bool, node, "has_so")
+    has_wfc = get_attr(Bool, node, "has_wfc")
+    has_gipaw = get_attr(Bool, node, "has_gipaw")
+    paw_as_gipaw = get_attr(Bool, node, "paw_as_gipaw")
+    core_correction = get_attr(Bool, node, "core_correction")
+    functional = join(split(get_attr(String, node, "functional")), ' ')
+    z_valence = get_attr(Float64, node, "z_valence")
+    total_psenergy = get_attr(Float64, node, "total_psenergy")
+    wfc_cutoff = get_attr(Float64, node, "wfc_cutoff")
+    rho_cutoff = get_attr(Float64, node, "rho_cutoff")
+    l_max = get_attr(Int, node, "l_max")
+    l_max_rho = get_attr(Int, node, "l_max_rho")
+    l_local = get_attr(Int, node, "l_local")
+    mesh_size = get_attr(Int, node, "mesh_size")
+    number_of_wfc = get_attr(Int, node, "number_of_wfc")
+    number_of_proj = get_attr(Int, node, "number_of_proj")
+    return UpfHeader(generated, author, date, comment, element, pseudo_type,
+                     relativistic, is_ultrasoft, is_paw, is_coulomb, has_so, has_wfc,
+                     has_gipaw, paw_as_gipaw, core_correction, functional, z_valence,
+                     total_psenergy, wfc_cutoff, rho_cutoff, l_max, l_max_rho, l_local,
+                     mesh_size, number_of_wfc, number_of_proj)
+end
+upf2_parse_header(doc::EzXML.Document) = upf2_parse_header(findfirst("PP_HEADER", root(doc)))
+
+function upf2_parse_mesh(node::EzXML.Node)
+    # Metadata
+    dx = get_attr(Float64, node, "dx")
+    mesh = get_attr(Int, node, "mesh")
+    xmin = get_attr(Float64, node, "xmin")
+    rmax = get_attr(Float64, node, "rmax")
+    zmesh = get_attr(Float64, node, "zmesh")
+    # PP_R
+    r_node = findfirst("PP_R", node)
+    if isnothing(mesh)
+        mesh = get_attr(Int, r_node, "size")
+    end
+    r = parse.(Float64, split(strip(nodecontent(r_node))))  # Bohr
+    # PP_RAB
+    rab_node = findfirst("PP_RAB", node)
+    rab = parse.(Float64, split(strip(nodecontent(rab_node))))
+    return UpfMesh(r, rab, mesh, rmax, dx, xmin, zmesh)
+end
+upf2_parse_mesh(doc::EzXML.Document) = upf2_parse_mesh(findfirst("PP_MESH", root(doc)))
+
+function upf2_parse_qij(node::EzXML.Node)
+    # Metadata
+    first_index = get_attr(Int, node, "first_index")
+    second_index = get_attr(Int, node, "second_index")
+    composite_index = get_attr(Int, node, "composite_index")
+    is_null = get_attr(Bool, node, "is_null")
+    # PP_QIJ.$i.$j
+    qij = parse.(Float64, split(strip(nodecontent(node))))
+    return UpfQij(qij, first_index, second_index, composite_index, is_null)
 end
 
-function get_content(::Type{T}, node::EzXML.Node, dims...) where {T<:Number}
-	text = split(strip(node.content))
-	@assert length(text) == prod(dims)
-	value = Array{T}(undef, dims...)
-	for i in eachindex(value)
-		value[i] = parse(T, text[i])
-	end
-	return value
+function upf2_parse_qijl(node::EzXML.Node)
+    # Metadata
+    angular_momentum = get_attr(Int, node, "angular_momentum")
+    first_index = get_attr(Int, node, "first_index")
+    second_index = get_attr(Int, node, "second_index")
+    composite_index = get_attr(Int, node, "composite_index")
+    is_null = get_attr(Bool, node, "is_null")
+    # PP_QIJL.$i.$j
+    qijl = parse.(Float64, split(strip(nodecontent(node))))
+    return UpfQijl(qijl, angular_momentum, first_index, second_index, composite_index,
+                   is_null)
 end
 
-function get_content(::Type{T}, node::EzXML.Node, key, dims...) where {T<:Number}
-	target_node = findfirst(node, key)
-	content = ismissing(target_node) ? nothing : get_content(T, target_node, dims...)
-	return content
+function upf2_parse_augmentation(node::EzXML.Node)
+    q_with_l = get_attr(Bool, node, "q_with_l")
+    nqf = get_attr(Int, node, "nqf")
+    nqlc = get_attr(Float64, node, "nqlc")
+    shape = get_attr(String, node, "shape")
+    iraug = get_attr(Int, node, "iraug")
+    raug = get_attr(Float64, node, "raug")
+    l_max_aug = get_attr(Float64, node, "l_max_aug")
+    augmentation_epsilon = get_attr(Float64, node, "augmentation_epsilon")
+    cutoff_r = get_attr(Float64, node, "cutoff_r")
+    cutoff_r_index = get_attr(Float64, node, "cutoff_r_index")
+
+    q_node = findfirst("PP_Q", node)
+    q = parse.(Float64, split(strip(nodecontent(q_node))))
+
+    multipoles_node = findfirst("PP_MULTIPOLES", node)
+    if isnothing(multipoles_node)
+        multipoles = nothing
+    else
+        multipoles = parse.(Float64, split(strip(nodecontent(multipoles_node))))
+    end
+
+    qfcoeff_node = findfirst("PP_QFCOEFF", node)
+    if isnothing(qfcoeff_node)
+        qfcoeff = nothing
+    else
+        qfcoeff = parse.(Float64, split(strip(nodecontent(qfcoeff_node))))
+    end
+
+    rinner_node = findfirst("PP_RINNER", node)
+    if isnothing(rinner_node)
+        rinner = nothing
+    else
+        rinner = parse.(Float64, split(strip(nodecontent(rinner_node))))
+    end
+
+    # qij_nodes = filter(node -> occursin("PP_QIJ.", nodename(node)), eachnode(node))
+    qij_nodes = [n for n in eachnode(node) if occursin("PP_QIJ.", nodename(n))]
+    if isempty(qij_nodes)
+        qijs = nothing
+    else
+        qijs = upf2_parse_qij.(qij_nodes)
+    end
+
+    # qijl_nodes = filter(node -> occursin("PP_QIJL.", nodename(node)), eachnode(node))
+    qijl_nodes = [n for n in eachnode(node) if occursin("PP_QIJL.", nodename(n))]
+    if isempty(qijl_nodes)
+        qijls = nothing
+    else
+        qijls = upf2_parse_qijl.(qijl_nodes)
+    end
+
+    @assert !isnothing(qijs) | !isnothing(qijls)
+
+    return UpfAugmentation(q, multipoles, qfcoeff, rinner, qijs, qijls, q_with_l, nqf, nqlc,
+                           shape, iraug, raug, l_max_aug, augmentation_epsilon, cutoff_r,
+                           cutoff_r_index)
+end
+function upf2_parse_augmentation(doc::EzXML.Document)
+    return upf2_parse_augmentation(findfirst("PP_NONLOCAL/PP_AUGMENTATION", root(doc)))
 end
 
-"""
-	parse_header_upf2!(doc_root::EzXML.Node, upf::Dict)
-
-Parse header (`PP_HEADER`) data, storing it in `upf["header"]::Dict` with the following
-contents:
-- `format_version::Int`: always 2
-- `generated::String`: code that generated the pseudo
-- `author::String`
-- `date::String`: generation date (arbitrary format)
-- `comment::String`
-- `element::String`: elemental symbol
-- `pseudo_type::String`: `NC` (norm-conserving), `US` (ultrasoft), `PAW`
-(plane-augmented wave) `SL` (semi-local), `1/r` (Coulomb)
-- `relativistic::String`: `scalar`, `full`, or `nonrelativistic`
-- `is_ultrasoft::Bool`
-- `is_paw::Bool`
-- `is_coulomb::Bool`: fake Coulomb potential for all-electron calculations
-- `has_so::Bool`: has spin-orbit coupling
-- `has_wfc::Bool`: has pseudo-atomic wavefunctions
-- `has_gipaw::Bool`: has GIPAW reconstruction data
-- `paw_as_gipaw::Bool`: ???
-- `core_correction::Bool`: non-linear core-correction
-- `functional::String`
-- `z_valence::Float64`: pseudo-ion charge
-- `total_psenergy::Float64`: total energy of the pseudo-ion
-- `ecutwfc::Float64`: recommended plane-wave energy cutoff
-- `ecutrho::Float64`: recommended charge-density energy cutoff
-- `l_max::Int`: maximum angular momentum channel of the Kleinman-Bylander projectors
-- `l_max_rho::Int`
-- `l_local::Int`: angular momentum channel of the local potential (-1 if none)
-- `mesh_size::Int`: number of points in the radial mesh
-- `number_of_wfc::Int`: number of pseudo-atomic wavefunctions
-- `number_of_proj::Int`: number of Kleinman-Bylander projectors
-"""
-function parse_header_upf2!(doc_root::EzXML.Node, upf::Dict)
-	header = Dict()
-	# version = get_attr(String, doc_root, "version")
-	node = findfirst("PP_HEADER", doc_root)
-	header["format_version"] = 2
-	header["generated"] = get_attr(String, node, "generated")
-	header["author"] = get_attr(String, node, "author")
-	header["date"] = get_attr(String, node, "date")
-	header["comment"] = get_attr(String, node, "comment")
-	header["element"] = get_attr(String, node, "element")
-	header["pseudo_type"] = get_attr(String, node, "pseudo_type")
-	header["relativistic"] = get_attr(String, node, "relativistic")
-	header["is_ultrasoft"] = get_attr(Bool, node, "is_ultrasoft")
-	header["is_paw"] = get_attr(Bool, node, "is_paw")
-	header["is_coulomb"] = get_attr(Bool, node, "is_coulomb")
-	header["has_so"] = get_attr(Bool, node, "has_so")
-	header["has_wfc"] = get_attr(Bool, node, "has_wfc")
-	header["has_gipaw"] = get_attr(Bool, node, "has_gipaw")
-	header["paw_as_gipaw"] = get_attr(Bool, node, "paw_as_gipaw")
-	header["core_correction"] = get_attr(Bool, node, "core_correction")
-	header["functional"] = get_attr(String, node, "functional")
-	header["z_valence"] = get_attr(Float64, node, "z_valence")
-	header["total_psenergy"] = get_attr(Float64, node, "total_psenergy")
-	header["wfc_cutoff"] = get_attr(Float64, node, "wfc_cutoff")
-	header["rho_cutoff"] = get_attr(Float64, node, "rho_cutoff")
-	header["l_max"] = get_attr(Int, node, "l_max")
-	header["l_max_rho"] = get_attr(Int, node, "l_max_rho")
-	header["l_local"] = get_attr(Int, node, "l_local")
-	header["mesh_size"] = get_attr(Int, node, "mesh_size")
-	header["number_of_wfc"] = get_attr(Int, node, "number_of_wfc")
-	header["number_of_proj"] = get_attr(Int, node, "number_of_proj")
-
-	return upf["header"] = header
+function upf2_parse_beta(node::EzXML.Node)
+    # Metadata
+    index = get_attr(Int, node, "index")
+    angular_momentum = get_attr(Int, node, "angular_momentum")
+    cutoff_radius_index = get_attr(Int, node, "cutoff_radius_index")
+    cutoff_radius = get_attr(Float64, node, "cutoff_radius")
+    norm_conserving_radius = get_attr(Float64, node, "norm_conserving_radius")
+    ultrasoft_cutoff_radius = get_attr(Float64, node, "ultrasoft_cutoff_radius")
+    label = get_attr(String, node, "label")
+    # PP_BETA.$i
+    beta = parse.(Float64, split(strip(nodecontent(node))))
+    return UpfBeta(beta, index, angular_momentum, cutoff_radius_index, cutoff_radius,
+                   norm_conserving_radius, ultrasoft_cutoff_radius, label)
 end
 
-"""
-	parse_radial_grid_upf2!(io::IO, upf::Dict)
+function upf2_parse_nonlocal(node::EzXML.Node)
+    # beta_nodes = filter(node -> occursin("PP_BETA.", nodename(node)), eachnode(node))
+    beta_nodes = [n for n in eachnode(node) if occursin("PP_BETA.", nodename(n))]
+    betas = upf2_parse_beta.(beta_nodes)
 
-Parse radial grid data (`<PP_R>`) and integration factors (`<PP_RAB>`) from the `<PP_MESH>`
-block, storing them in `upf["radial_grid"]` and `upf["radial_grid_derivative"]`
-respectively. Also, parse the attributes of `<PP_MESH>` and store them in
-`upf["radial_grid_parameters"]`:
-- `dx::Float64'
-- `mesh::Int`: number of mesh points
-- `xmin::Float64`
-- `rmax::Float64`
-- `zmesh::Float64`
-If these mesh parameters are present, the radial grid is one of the following:
-"log_1"
-``e^{x_\\text{min}} e^{(i - 1)dx} / Z_\\text{mesh}``
-"log_2"
-``e^{x_\\text{min}} (e^{(i - 1)dx} - 1) / Z_\\text{mesh}``
-Otherwised, it is likely a linear mesh.
-The type of mesh is stored in `upf["radial_grid_parameters"]["mesh_type"]`.
+    dij_node = findfirst("PP_DIJ", node)
+    # dij_size = get_attr(Int, dij_node, "size")
+    dij_vector = parse.(Float64, split(strip(nodecontent(dij_node))))
+    dij = reshape(dij_vector, length(betas), length(betas))
 
-The radial grid derivative is the factor for discrete integration:
-``\\int f(r) dr = \\sum_{i=1}^{N} f(i) r_{ab}(i)``  
-"""
-function parse_radial_grid_upf2!(doc_root::EzXML.Node, upf::Dict)
-	node = findfirst("PP_MESH/PP_R", doc_root)
-	upf["radial_grid"] = parse.(Float64, split(strip(node.content)))  # Bohr
+    augmentation_node = findfirst("PP_AUGMENTATION", node)
+    if isnothing(augmentation_node)
+        augmentation = nothing
+    else
+        augmentation = upf2_parse_augmentation(augmentation_node)
+    end
 
-	node = findfirst("PP_MESH/PP_RAB", doc_root)
-	upf["radial_grid_derivative"] = parse.(Float64, split(strip(node.content)))
+    return UpfNonlocal(betas, dij, augmentation)
+end
+upf2_parse_nonlocal(doc::EzXML.Document) = upf2_parse_nonlocal(findfirst("PP_NONLOCAL", root(doc)))
 
-	node = findfirst("PP_MESH", doc_root)
-	dx = get_attr(Float64, node, "dx")
-	mesh = get_attr(Int, node, "mesh")
-	xmin = get_attr(Float64, node, "xmin")
-	rmax = get_attr(Float64, node, "rmax")
-	zmesh = get_attr(Float64, node, "zmesh")
-
-	(mesh_type, mesh_a, mesh_b) = guess_mesh_type(upf["radial_grid"],
-												  upf["radial_grid_derivative"])
-	if mesh_type == "unknown"
-		raise(ExceptionError("Unknown mesh type"))
-	end
-	return upf["radial_grid_parameters"] = Dict("dx" => dx,
-												"mesh" => mesh,
-												"xmin" => xmin,
-												"rmax" => rmax,
-												"zmesh" => zmesh,
-												"a" => mesh_a,
-												"b" => mesh_b,
-												"mesh_type" => mesh_type)
+function upf2_parse_chi(node::EzXML.Node)
+    # Metadata
+    l = get_attr(Int, node, "l")
+    occupation = get_attr(Float64, node, "occupation")
+    index = get_attr(Int, node, "index")
+    label = get_attr(String, node, "label")
+    n = get_attr(Int, node, "n")
+    pseudo_energy = get_attr(Float64, node, "pseudo_energy")
+    cutoff_radius = get_attr(Float64, node, "cutoff_radius")
+    ultrasoft_cutoff_radius = get_attr(Float64, node, "ultrasoft_cutoff_radius")
+    # PP_CHI.$i
+    chi = parse.(Float64, split(strip(nodecontent(node))))
+    return UpfChi(chi, l, occupation, index, label, n, pseudo_energy, cutoff_radius,
+                  ultrasoft_cutoff_radius)
 end
 
-"""
-	parse_nlcc_upf2!(io::IO, upf::Dict)
-
-Parse non-linear core correction data from the `<PP_NLCC>` bock if present, storing them in
-`upf["core_charge_density"]`.
-
-``Z_c = \\int \\rho_c(r) r^2 dr d\\Omega``
-"""
-function parse_nlcc_upf2!(doc_root::EzXML.Node, upf::Dict)
-	if upf["header"]["core_correction"]
-		node = findfirst("PP_NLCC", doc_root)
-		# Z_c = ∫(ρ_c(r) r^2 dr dΩ)
-		upf["core_charge_density"] = parse.(Float64, split(strip(node.content)))
-	end
+function upf2_parse_relwfc(node::EzXML.Node)
+    jchi = get_attr(Float64, node, "jchi")
+    index = get_attr(Int, node, "index")
+    els = get_attr(String, node, "els")
+    nn = get_attr(Int, node, "nn")
+    lchi = get_attr(Int, node, "lchi")
+    oc = get_attr(Float64, node, "oc")
+    return UpfRelWfc(jchi, index, els, nn, lchi, oc)
 end
 
-"""
-	parse_local_upf2!(io::IO, upf::Dict)
-
-Parse the local potential from the `<PP_LOCAL>` block, storing it in
-`upf["local_potential"]`. The local potential contains a long-range term
-``-Z_\\text{valence} e^2 / r``.
-"""
-function parse_local_upf2!(doc_root::EzXML.Node, upf::Dict)
-	node = findfirst("PP_LOCAL", doc_root)
-	# Contains long range term -z_valence * e^2 / r
-	return upf["local_potential"] = parse.(Float64, split(strip(node.content)))  # Ry
+function upf2_parse_relbeta(node::EzXML.Node)
+    index = get_attr(Int, node, "index")
+    jjj = get_attr(Int, node, "jjj")
+    lll = get_attr(Int, node, "lll")
+    return UpfRelBeta(index, jjj, lll)
 end
 
-"""
-	parse_beta_projectors_upf2!(io::IO, upf::Dict)
+function upf2_parse_spinorb(node::EzXML.Node)
+    # relwfc_nodes = filter(node -> occursin("PP_RELWFC.", nodename(node)), eachnode(node))
+    relwfc_nodes = [n for n in eachnode(node) if occursin("PP_RELWFC.", nodename(n))]
+    relwfcs = upf2_parse_relwfc.(relwfc_nodes)
 
-Parse the `<PP_BETA>` blocks in `<PP_NONLOCAL>`, storing them in a vector in
-`upf["beta_projectors"]`. There are `upf["header"]["number_of_proj"]` blocks,
-each with the following data:
-- `label::String`: optional descriptive label
-- `index::Int`: index of the projector, used for correlating with Dij
-- `angular_momentum::Int`
-- `cutoff_radius_index::Int`: number of elements read from file, all others are zero
-- `radial_function::Vector{Float64}`: the beta projector, with length `cutoff_radius_index`
-- `cutoff_radius::Float64`: always `0.`
-- `ultrasoft_cutoff_radius::Float64`: always `0.`
+    # relbeta_nodes = filter(node -> occursin("PP_RELBETA.", nodename(node)), eachnode(nodes))
+    relbeta_nodes = [n for n in eachnode(node) if occursin("PP_RELBETA.", nodename(n))]
+    relbetas = upf2_parse_relbeta.(relbeta_nodes)
 
-If `upf["header"]["has_so"]`, spin-orbit data are parsed for each beta from
-`PP_SPIN_ORBL/PP_RELBETA.[i]`, overwriting the data from `PP_NONLOCAL/PP_BETA.[i]`:
-- `index::Int`: index of the projector, used for correlating with Dij
-- `angular_momentum::Int`
-- `total_angular_momentum::Int`
+    return UpfSpinOrb(relwfcs, relbetas)
+end
+upf2_parse_spinorb(doc::EzXML.Document) = upf2_parse_spinorb(findfirst("PP_SPINORB", root(doc)))
 
-!!! Note
-The units of the projectors are either ``\\text{Bohr}^{-1/2}`` or
-``\\text{Ry}~\\text{Bohr}^{-1/2}``.
-"""
-function parse_beta_projectors_upf2!(doc_root::EzXML.Node, upf::Dict)
-	beta_projectors = []
-	for i in 1:upf["header"]["number_of_proj"]
-		node = findfirst("PP_NONLOCAL/PP_BETA.$i", doc_root)
-		beta = Dict()
-		# Units are either Bohr^(-1/2) or Ry*Bohr^(-1/2)
-		# The quantity is actually rᵢβ(rᵢ)
-		beta["label"] = get_attr(String, node, "label")
-		beta["angular_momentum"] = get_attr(Int, node, "angular_momentum")
-		ir_cut = get_attr(Int, node, "cutoff_radius_index")
-		beta["cutoff_radius_index"] = ir_cut
-		beta["cutoff_radius"] = get_attr(Float64, node, "cutoff_radius")
-		beta["index"] = get_attr(Int, node, "index")
-		beta["radial_function"] = parse.(Float64, split(strip(node.content)))[1:ir_cut]
-		if upf["header"]["has_so"]
-			node_so = findfirst("PP_SPIN_ORB/PP_RELBETA.$i", doc_root)
-			beta["index"] = get_attr(Int, node_so, "index")
-			beta["angular_momentum"] = get_attr(Int, node_so, "lll")
-			beta["total_angular_momentum"] = get_attr(Float64, node_so, "jjj")
-		end
-		push!(beta_projectors, beta)
-	end
-	return upf["beta_projectors"] = beta_projectors
+function upf2_parse_wfc(node::EzXML.Node)
+    index = get_attr(Int, node, "index")
+    if isnothing(index)
+        index = parse(Int, split(nodename(node), '.')[end])
+    end
+    l = get_attr(Int, node, "l")
+    label = get_attr(String, node, "label")
+    wfc = parse.(Float64, split(strip(nodecontent(node))))
+    return UpfWfc(wfc, index, l, label)
 end
 
-"""
-	parse_dij_upf2!(io::IO, upf::Dict)
+function upf2_parse_full_wfc(node::EzXML.Node)
+    # aewfc_nodes = filter(node -> occursin("PP_AEWFC", nodename(node)), eachnode(node))
+    aewfc_nodes = [n for n in eachnode(node) if occursin("PP_AEWFC", nodename(n))]
+    aewfcs = upf2_parse_wfc.(aewfc_nodes)
 
-Parse the `<PP_DIJ>` block, storing it in `upf["D_ion"]` as a symmetric matrix where
-`D[i,j]` is the coupling coefficient between βᵢ and βⱼ (see `parse_beta_projectors_upf2!`
-for how the indices of the beta projectors are stored).
+    # pswfc_nodes = filter(node -> occursin("PP_PSWFC", nodename(node)), eachnode(node))
+    pswfc_nodes = [n for n in eachnode(node) if occursin("PP_PSWFC", nodename(n))]
+    pswfcs = upf2_parse_wfc.(pswfc_nodes)
 
-!!! Note
-The units of ``D_{ij}`` are either ``\\text{Ry}`` or ``\\text{Ry}^-1``, corresponding to the
-units of the projectors.
-"""
-function parse_dij_upf2!(doc_root::EzXML.Node, upf::Dict)
-	node = findfirst("PP_NONLOCAL/PP_DIJ", doc_root)
-	Dij = parse.(Float64, split(strip(node.content)))
-	Dij = reshape(Dij, upf["header"]["number_of_proj"], upf["header"]["number_of_proj"])
-	return upf["D_ion"] = Dij  # either Ry or Ry^-1
+    return UpfFullWfc(aewfcs, pswfcs)
+end
+upf2_parse_full_wfc(doc::EzXML.Document) = upf2_parse_full_wfc(findfirst("PP_FULL_WFC", root(doc)))
+
+function upf2_parse_paw(node::EzXML.Node)
+    occupations_node = findfirst("PP_OCCUPATIONS", node)
+    occupations = parse.(Float64, split(strip(nodecontent(occupations_node))))
+
+    ae_nlcc_node = findfirst("PP_AE_NLCC", node)
+    ae_nlcc = parse.(Float64, split(strip(nodecontent(ae_nlcc_node))))
+
+    ae_vloc_node = findfirst("PP_AE_VLOC", node)
+    ae_vloc = parse.(Float64, split(strip(nodecontent(ae_vloc_node))))
+
+    # aewfc_nodes = filter(node -> occursin("PP_AEWFC", nodename(node)), eachnode(node))
+    aewfc_nodes = [n for n in eachnode(node) if occursin("PP_AEWFC", nodename(n))]
+    aewfcs = upf2_parse_wfc.(aewfc_nodes)
+
+    # pswfc_nodes = filter(node -> occursin("PP_PSWFC", nodename(node)), eachnode(node))
+    pswfc_nodes = [n for n in eachnode(node) if occursin("PP_PSWFC", nodename(n))]
+    pswfcs = upf2_parse_wfc.(pswfc_nodes)
+
+    return UpfPaw(occupations, ae_nlcc, ae_vloc, aewfcs, pswfcs)
+end
+upf2_parse_paw(doc::EzXML.Document) = upf2_parse_paw(findfirst("PP_PAW", root(doc)))
+
+function upf2_parse_gipaw_core_orbital(node::EzXML.Node)
+    index = get_attr(Int, node, "index")
+    label = get_attr(String, node, "label")
+    # Some files have these integers printed as floats
+    n = Int(get_attr(Float64, node, "n"))
+    l = Int(get_attr(Float64, node, "l"))
+    core_orbital = parse.(Float64, split(strip(nodecontent(node))))
+    return UpfGipawCoreOrbital(index, label, n, l, core_orbital)
 end
 
-# function parse_augmentation_upf2!(doc_root::EzXML.Node, upf::Dict)
-# 	if !upf["header"]["is_ultrasoft"]
-# 		augmentation = []
-# 	else
-# 		node = findfirst("PP_NONLOCAL/PP_AUGMENTATION", doc_root)
-# 		q_with_l = get_attr(Bool, node, "q_with_l")
-# 		if ismissing(q_with_l)
-# 			throw(ErrorException("Parsing `q_with_l = T` is not supported."))
-# 		end
-
-# 		augmentation = []
-# 		for i in 1:upf["header"]["number_of_proj"]
-# 			li = upf["beta_projectors"][i]["angular_momentum"]
-# 			for j in i:upf["header"]["number_of_proj"]
-# 				lj = upf["beta_projectors"][j]["angular_momentum"]
-# 				for l in abs(li - lj):(li + lj)
-# 					if (li + lj + l) % 2 == 0
-# 						node = findfirst("PP_NONLOCAL/PP_AUGMENTATION/PP_QIJL.$i.$j.$l",
-# 										 doc_root)
-# 						Qij = Dict()
-# 						Qij["radial_function"] = parse.(Float64, split(strip(node.content)))
-# 						Qij["i"] = i
-# 						Qij["j"] = j
-# 						Qij["angular_momentum"] = get_attr(Int, node, "angular_momentum")
-# 						push!(augmentation, Qij)
-# 					end
-# 				end
-# 			end
-# 		end
-# 	end
-# 	return upf["augmentation"] = augmentation
-# end
-
-# function parse_paw_upf2!(doc_root::EzXML.Node, upf::Dict)
-# 	if !(lowercase(upf["header"]["pseudo_type"]) == "paw")
-# 		paw_data = Dict()
-# 	else
-# 		node = findfirst("PP_NONLOCAL/PP_AUGMENTATION", doc_root)
-# 		upf["header"]["cutoff_radius_index"] = get_attr(Int, node, "cutoff_r_index")
-
-# 		paw_data = Dict()
-
-# 		node_q = findfirst("PP_NONLOCAL/PP_AUGMENTATION/PP_Q", doc_root)
-# 		paw_data["aug_integrals"] = parse.(Float64, split(strip(node_q.content)))
-
-# 		node_mp = findfirst("PP_NONLOCAL/PP_AUGMENTATION/PP_MULTIPOLES", doc_root)
-# 		paw_data["aug_multipoles"] = parse.(Float64, split(strip(node_mp.content)))
-
-# 		paw_data["ae_wfc"] = []
-# 		for i in 1:upf["header"]["number_of_proj"]
-# 			wfc = Dict()
-# 			node_wfc = findfirst("PP_FULL_WFC/PP_AEWFC.$i", doc_root)
-# 			wfc["radial_function"] = parse.(Float64, split(strip(node_wfc.content)))
-# 			wfc["angular_momentum"] = get_attr(Int, node_wfc, "l")
-# 			wfc["label"] = get_attr(String, node_wfc, "label")
-# 			wfc["index"] = get_attr(Int, node_wfc, "index")
-# 			push!(paw_data["ae_wfc"], wfc)
-# 		end
-
-# 		paw_data["ps_wfc"] = []
-# 		for i in 1:upf["header"]["number_of_proj"]
-# 			wfc = Dict()
-# 			node_wfc = findfirst("PP_FULL_WFC/PP_PSWFC.$i", doc_root)
-# 			wfc["radial_function"] = parse.(Float64, split(strip(node_wfc.content)))
-# 			wfc["angular_momentum"] = get_attr(Int, node_wfc, "l")
-# 			# wfc["label"] = get_attr(String, node_wfc, "label")
-# 			# wfc["index"] = get_attr(Int, node_wfc, "index")
-# 			push!(paw_data["ps_wfc"], wfc)
-# 		end
-
-# 		node_paw = findfirst("PP_PAW", doc_root)
-# 		paw_core_energy = get_attr(Float64, node_paw, "core_energy"; default=missing)
-# 		if ismissing(paw_core_energy)
-# 			# @warn "`PP_PAW` has no `core_energy` set"
-# 		else
-# 			upf["header"]["paw_core_energy"] = paw_core_energy  # Ry
-# 		end
-
-# 		node_occ = findfirst("PP_PAW/PP_OCCUPATIONS", doc_root)
-# 		paw_data["occupations"] = parse.(Float64, split(strip(node_occ.content)))
-
-# 		node_ae_nlcc = findfirst("PP_PAW/PP_AE_NLCC", doc_root)
-# 		paw_data["ae_core_charge_density"] = parse.(Float64,
-# 													split(strip(node_ae_nlcc.content)))
-
-# 		node_ae_vloc = findfirst("PP_PAW/PP_AE_VLOC", doc_root)
-# 		paw_data["ae_local_potential"] = parse.(Float64, split(strip(node_ae_vloc.content)))  # Ry
-# 	end
-# 	return upf["paw_data"] = paw_data
-# end
-
-"""
-	parse_pswfc_upf2!(io::IO, upf::Dict)
-
-Parse the pseudo-atomic wavefunctions in the `<PP_PSWFC>` block, storing them in a vector in
-`upf["atomic_wave_functions"]`. There are `upf["header"]["number_of_wfc"]` blocks,
-each with the following data:
-- `label::String`: optional descriptive label, e.g. "2S"
-- `angular_momentum::Int`
-- `occupation::Float`
-- `index::Int`
-- `pseudo_energy::Float`
-- `radial_function::Vector{Float64}`: the pseudo-atomic wavefunction on the full radial mesh
-
-If `upf["header"]["has_so"]`, spin-orbit data are parsed for each pseudo-atomic orbital from
-`PP_SPIN_ORBL/PP_RELWFC.[i]`, overwriting the data from `PP_PSWFC/PP_CHI.[i]`:
-- `index::Int`
-- `angular_momentum::Int`
-- `total_angular_momentum::Int`
-- `principal_quantum_number::Int`
-"""
-function parse_pswfc_upf2!(doc_root::EzXML.Node, upf::Dict)
-	atomic_wave_functions = []
-	for i in 1:upf["header"]["number_of_wfc"]
-		node = findfirst("PP_PSWFC/PP_CHI.$i", doc_root)
-		wfc = Dict()
-		wfc["label"] = get_attr(String, node, "label")
-		wfc["angular_momentum"] = get_attr(Int, node, "l")
-		wfc["occupation"] = get_attr(Float64, node, "occupation")
-		wfc["pseudo_energy"] = get_attr(Float64, node, "pseudo_energy")  # Ry
-		wfc["index"] = get_attr(Int, node, "index")
-		wfc["radial_function"] = parse.(Float64, split(strip(node.content)))
-		if upf["header"]["has_so"]
-			node_so = findfirst("PP_SPIN_ORB/PP_RELWFC.$i", doc_root)
-			wfc["index"] = get_attr(Int, node_so, "index")
-			wfc["angular_momentum"] = get_attr(Int, node_so, "lchi")
-			wfc["total_angular_momentum"] = get_attr(Float64, node_so, "jchi")
-			wfc["principal_quantum_number"] = get_attr(Int, node_so, "nn")
-		end
-		push!(atomic_wave_functions, wfc)
-	end
-	return upf["atomic_wave_functions"] = atomic_wave_functions
+function upf2_parse_gipaw(node::EzXML.Node)
+    gipaw_data_format = get_attr(Int, node, "gipaw_data_format")
+    core_orbitals_node = findfirst("PP_GIPAW_CORE_ORBITALS", node)
+    # core_orbital_nodes = filter(node -> occursin("PP_GIPAW_CORE_ORBITAL.", nodename(node)),
+    #                             eachnode(core_orbitals_node))
+    core_orbital_nodes = [n for n in eachnode(core_orbitals_node)
+                          if occursin("PP_GIPAW_CORE_ORBITAL.", nodename(n))]
+    core_orbitals = upf2_parse_gipaw_core_orbital.(core_orbital_nodes)
+    return UpfGipaw(gipaw_data_format, core_orbitals)
 end
+upf2_parse_gipaw(doc::EzXML.Document) = upf2_parse_gipaw(findfirst("PP_GIPAW", root(doc)))
 
-"""
-	parse_rhoatom_upf2!(io::IO, upf::Dict)
+function upf2_parse_psp(doc::EzXML.Document)
+    root_node = root(doc)
+    version = get_attr(String, root_node, "version")
+    #* PP_INFO
+    info_node = findfirst("PP_INFO", root_node)
+    info = isnothing(info_node) ? nothing : nodecontent(info_node)
+    #* PP_HEADER
+    header = upf2_parse_header(doc)
+    #* PP_MESH
+    mesh = upf2_parse_mesh(doc)
+    #* PP_NLCC
+    nlcc_node = findfirst("PP_NLCC", root_node)
+    if isnothing(nlcc_node)
+        nlcc = nothing
+    else
+        nlcc = parse.(Float64, split(strip(nodecontent(nlcc_node))))
+    end
+    #* PP_LOCAL
+    local_node = findfirst("PP_LOCAL", root_node)
+    if isnothing(local_node) | header.is_coulomb
+        local_ = nothing
+    else
+        local_ = parse.(Float64, split(strip(nodecontent(local_node))))
+    end
+    #* PP_NONLOCAL
+    nonlocal = upf2_parse_nonlocal(doc)
+    #* PP_PSWFC
+    pswfc_node = findfirst("PP_PSWFC", root_node)
+    pswfc = [upf2_parse_chi(n) for n in eachnode(pswfc_node) if occursin("PP_CHI.", nodename(n))]
+    #* PP_FULL_WFC
+    if isnothing(findfirst("PP_FULL_WFC", root_node))
+        full_wfc = nothing
+    else
+        full_wfc = upf2_parse_full_wfc(doc)
+    end
+    #* PP_RHOATOM
+    rhoatom_node = findfirst("PP_RHOATOM", root_node)
+    rhoatom = parse.(Float64, split(strip(nodecontent(rhoatom_node))))
+    #* PP_SPINORB
+    if isnothing(findfirst("PP_SPINORB", root_node))
+        spinorb = nothing
+    else
+        spinorb = upf2_parse_spinorb(doc)
+    end
+    #* PP_PAW
+    if isnothing(findfirst("PP_PAW", root_node))
+        paw = nothing
+    else
+        paw = upf2_parse_paw(doc)
+    end
+    #* PP_GIPAW
+    if isnothing(findfirst("PP_GIPAW", root_node))
+        gipaw = nothing
+    else
+        gipaw = upf2_parse_gipaw(doc)
+    end
 
-Parse the total pseudo-atomic charge density from the `<PP_RHOATOM>` block, storing the data
-in `upf["total_charge_density"]`.
-
-!!! Note
-There is _no_ ``4π`` prefactor!
-"""
-function parse_rhoatom_upf2!(doc_root::EzXML.Node, upf::Dict)
-	node = findfirst("PP_RHOATOM", doc_root)
-	return upf["total_charge_density"] = parse.(Float64, split(strip(node.content)))
-end
-
-# function parse_spin_orbit_upf2!(doc_root::EzXML.Node, upf::Dict)
-# 	if upf["header"]["has_so"]
-# 		for i in 1:upf["header"]["number_of_proj"]
-# 			node = findfirst("PP_SPIN_ORB/PP_RELBETA.$i", doc_root)
-# 			upf["beta_projectors"][i]["angular_momentum"] = get_attr(Float64, node, "lll")
-# 			upf["beta_projectors"][i]["total_angular_momentum"] = get_attr(Float64, node,
-# 																		   "jjj")
-# 		end
-
-# 		for i in 1:upf["header"]["number_of_wfc"]
-# 			node = findfirst("PP_SPIN_ORB/PP_RELWFC.$i", doc_root)
-# 			upf["paw_data"]["ae_wfc"]["ae_wfc_rel"] = parse(Float64, strip(node.content))
-# 			upf["paw_data"]["ae_wfc"]["total_angular_momentum"] = get_attr(Float64, node,
-# 																		   "jchi")
-# 			upf["paw_data"]["ps_wfc"]["total_angular_momentum"] = get_attr(Float64, node,
-# 																		   "jchi")
-# 		end
-# 	end
-# end
-
-"""
-	parse_upf2(doc_root::EzXML.Node)
-
-Parse a UPF v2 (with schema) file.
-
-All quantities are in Rydberg units:
-- e² = 2
-- m = 1 / 2
-- ħ = 1
-- Lengths in Bohr (0.529177 Å)
-- Energies in Ry (13.6058 eV)
-- Potentials multiplied by e to give units of energy
-
-!!! Note
-PAW and ultrasoft potentials are not supported because parsing of `<PP_AUGMENTATION>` and
-`<PP_PAW>` are not fully implemented.
-"""
-function parse_upf2(doc_root::EzXML.Node)
-	upf = Dict()
-
-	parse_header_upf2!(doc_root, upf)
-	if upf["header"]["pseudo_type"] == "PAW"
-		@warn "PAW in UPF v2 is not implemented."
-	elseif upf["header"]["pseudo_type"] == "US"
-		@warn "Ultrasoft in UPF v2 is not implemented."
-	end
-	parse_radial_grid_upf2!(doc_root, upf)
-	parse_nlcc_upf2!(doc_root, upf)
-	parse_local_upf2!(doc_root, upf)
-	parse_beta_projectors_upf2!(doc_root, upf)
-	parse_dij_upf2!(doc_root, upf)
-	# parse_augmentation_upf2!(doc_root, upf)
-	# parse_paw_upf2!(doc_root, upf)
-	parse_pswfc_upf2!(doc_root, upf)
-	parse_rhoatom_upf2!(doc_root, upf)
-	# parse_spin_orbit_upf2!(doc_root, upf)
-
-	return upf
+    return UpfPsP(version, info, header, mesh, nlcc, local_, nonlocal, pswfc, full_wfc,
+                  rhoatom, spinorb, paw, gipaw)
 end

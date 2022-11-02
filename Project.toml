@@ -4,9 +4,12 @@ authors = ["Austin Zadoks"]
 version = "0.1.1"
 
 [deps]
+DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
 JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PeriodicTable = "7b2266bf-644c-5ea3-82d8-af4bbd25a884"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [compat]
 EzXML = "1"
