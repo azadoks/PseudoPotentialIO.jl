@@ -418,7 +418,7 @@ is_paw(psp::UpfPsP)::Bool = psp.header.is_paw
 is_ultrasoft(psp::UpfPsP)::Bool = psp.header.is_ultrasoft
 is_norm_conserving(psp::UpfPsP)::Bool = psp.header.pseudo_type == "NC"
 is_coulomb(psp::UpfPsP)::Bool = psp.header.is_coulomb
-has_spin_orbit(psp::UpfPsP)::Bool = psp.has_so
+has_spin_orbit(psp::UpfPsP)::Bool = psp.header.has_so
 has_nlcc(psp::UpfPsP)::Bool = psp.header.core_correction
 relativistic_treatment(psp::UpfPsP)::Symbol = Symbol(psp.header.relativistic)
 format(psp::UpfPsP)::String = "UPF v$(psp.version)"

@@ -226,12 +226,12 @@ end
 
 function upf2_parse_relbeta(node::EzXML.Node)
     index = get_attr(Int, node, "index")
-    jjj = get_attr(Int, node, "jjj")
+    jjj = get_attr(Float64, node, "jjj")
     lll = get_attr(Int, node, "lll")
     return UpfRelBeta(index, jjj, lll)
 end
 
-function upf2_parse_spinorb(node::EzXML.Node)
+function upf2_parse_spin_orb(node::EzXML.Node)
     # relwfc_nodes = filter(node -> occursin("PP_RELWFC.", nodename(node)), eachnode(node))
     relwfc_nodes = [n for n in eachnode(node) if occursin("PP_RELWFC.", nodename(n))]
     relwfcs = upf2_parse_relwfc.(relwfc_nodes)
@@ -242,7 +242,7 @@ function upf2_parse_spinorb(node::EzXML.Node)
 
     return UpfSpinOrb(relwfcs, relbetas)
 end
-upf2_parse_spinorb(doc::EzXML.Document) = upf2_parse_spinorb(findfirst("PP_SPINORB", root(doc)))
+upf2_parse_spin_orb(doc::EzXML.Document) = upf2_parse_spin_orb(findfirst("PP_SPIN_ORB", root(doc)))
 
 function upf2_parse_wfc(node::EzXML.Node)
     index = get_attr(Int, node, "index")
@@ -351,10 +351,10 @@ function upf2_parse_psp(doc::EzXML.Document)
     rhoatom_node = findfirst("PP_RHOATOM", root_node)
     rhoatom = parse.(Float64, split(strip(nodecontent(rhoatom_node))))
     #* PP_SPINORB
-    if isnothing(findfirst("PP_SPINORB", root_node))
+    if isnothing(findfirst("PP_SPIN_ORB", root_node))
         spinorb = nothing
     else
-        spinorb = upf2_parse_spinorb(doc)
+        spinorb = upf2_parse_spin_orb(doc)
     end
     #* PP_PAW
     if isnothing(findfirst("PP_PAW", root_node))
