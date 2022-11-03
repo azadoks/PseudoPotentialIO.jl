@@ -111,7 +111,7 @@ $(SIGNATURES)
 Evaluate the local part of the pseudopotential at real-space radial distance `r` from the
 nucleus.
 """
-function v_local_real(psp::AbstractPsP, r) end
+function v_local_real(psp::AbstractPsP, r::Real) end
 
 """
 $(SIGNATURES)
@@ -119,7 +119,9 @@ $(SIGNATURES)
 Evaluate the local part of the pseudopotential at real-space coordinate `R` in a coordinate
 frame centered on the nucleus.
 """
-v_local_real(psp::AbstractPsP, R::AbstractVector) = v_local_real(psp, norm(R))
+function v_local_real(psp::AbstractPsP, R::AbstractVector{T})::T where {T<:Real}
+    return v_local_real(psp, norm(R))
+end
 
 """
 $(SIGNATURES)
@@ -127,7 +129,9 @@ $(SIGNATURES)
 Correction to the local part of the pseudopotential at real-space radial distance `r` from
 the nucleus.
 """
-v_local_correction_real(psp::AbstractPsP, r) = -z_valence(psp) / r
+function v_local_correction_real(psp::AbstractPsP, r::T)::T where {T<:Real}
+    return -z_valence(psp) / r
+end
 
 """
 $(SIGNATURES)
@@ -135,7 +139,9 @@ $(SIGNATURES)
 Fourier transform of the correction to the local part of the pseudopotential at
 reciprocal-space distance `q` from the Γ-point.
 """
-v_local_correction_fourier(psp::AbstractPsP, q) = 4π * -z_valence(psp) / q^2
+function v_local_correction_fourier(psp::AbstractPsP, q::T)::T where {T<:Real}
+    return 4T(π) * -z_valence(psp) / q^2
+end
 
 """
 $(SIGNATURES)
@@ -144,31 +150,31 @@ Integrand for the centered Fourier transform of the local part of the pseudopote
 the real-space radial distance `r` from the nucleus to the reciprocal space radial distance
 `q` from the Γ-point.
 """
-function v_local_ft_integrand(psp::AbstractPsP, q, r)
-    return 4π * r^2 * sin(q * r) / (q * r) *
-           (v_local_real(psp, r) - v_local_correction_real(psp, r))
+function v_local_ft_integrand(psp::AbstractPsP, q::T, r::T)::T where {T<:Real}
+    v_local_corrected = (v_local_real(psp, r) - v_local_correction_real(psp, r))
+    return 4T(π) * r^2 * sphericalbesselj(0, q * r) * v_local_corrected
 end
 
 """
 $(SIGNATURES)
 """
-function v_local_fourier(psp::AbstractPsP, q)
+function v_local_fourier(psp::AbstractPsP, q::T)::T where {T<:Real}
     return quadgk(r -> v_local_ft_integrand(psp, q, r), 0, Inf)[1] +
            v_local_correction_fourier(psp, q)
 end
 
-function v_local_fourier(psp::AbstractPsP, G::AbstractVector)
+function v_local_fourier(psp::AbstractPsP, G::AbstractVector{T})::T where {T<:Real}
     return v_local_fourier(psp, norm(G))
 end
 
 function projector_real(psp::AbstractPsP, l::Integer, n::Integer, r) end
 
-function projector_real(psp::AbstractPsP, l::Integer, n::Integer,
-                        R::AbstractVector)
+function projector_real(psp::AbstractPsP, l::Int, n::Int,
+                        R::AbstractVector{T})::T where {T<:Real}
     return projector_real(psp, l, n, norm(R))
 end
 
-function projector_ft_integrand(psp::AbstractPsP, l::Integer, n::Integer, q, r)
+function projector_ft_integrand(psp::AbstractPsP, l::Int, n::Int, q::T, r::T)::T where {T<:Real}
     return 4π * r^2 * sphericalbesselj(l, q * r) * projector_real(psp, l, n, r)
 end
 
@@ -177,14 +183,14 @@ function projector_fourier(psp::AbstractPsP, l::Integer, n::Integer, q)
 end
 
 function projector_fourier(psp::AbstractPsP, l::Integer, n::Integer,
-                           G::AbstractVector)
+                           G::AbstractVector{T}) where {T<:Real}
     return projector_fourier(psp, l, n, norm(G))
 end
 
-function _pseudo_energy_correction_integrand(psp::AbstractPsP, n_electrons::Integer, r)
+function pseudo_energy_correction_ft_integrand(psp::AbstractPsP, n_electrons::Integer, r)
     return 4π * n_electrons * r^2 * (v_local_real(psp, r) - v_local_correction_real(psp, r))
 end
 
 function pseudo_energy_correction(psp::AbstractPsP, n_electrons::Integer)
-    return quadgk(r -> _pseudo_energy_correction_integrand(psp, n_electrons, r), 0, Inf)[1]
+    return quadgk(r -> pseudo_energy_correction_ft_integrand(psp, n_electrons, r), 0, Inf)[1]
 end

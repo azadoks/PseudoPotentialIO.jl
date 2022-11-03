@@ -1,6 +1,3 @@
-using EzXML
-using Printf
-
 function get_upf_version(io::IO)::Int
     pos = position(io)
     seek(io, 0)
@@ -300,5 +297,49 @@ function Base.show(io::IO, psp::UpfPsP)
     @printf "%032s: %s\n" "non-linear core correction" psp.header.core_correction
     @printf "%032s: %d\n" "maximum angular momentum" psp.header.l_max
     @printf "%032s: %s\n" "number of projectors" psp.header.number_of_proj
-    @printf "%032s: %s" "number of pseudo-wavefunctions" psp.header.number_of_wfc
+    @printf "%032s: %s"   "number of pseudo-wavefunctions" psp.header.number_of_wfc
+end
+
+l_max(psp::UpfPsP)::Int = psp.header.l_max
+n_proj_radial(psp::UpfPsP, l)::Int = count(beta -> beta.angular_momentum == l, psp.nonlocal.betas)
+n_pseudo_wfc(psp::UpfPsP)::Int = psp.header.number_of_wfc
+z_valence(psp::UpfPsP)::Float64 = psp.header.z_valence
+is_paw(psp::UpfPsP)::Bool = psp.header.is_paw
+is_ultrasoft(psp::UpfPsP)::Bool = psp.header.is_ultrasoft
+is_norm_conserving(psp::UpfPsP)::Bool = psp.header.pseudo_type == "NC"
+is_coulomb(psp::UpfPsP)::Bool = psp.header.is_coulomb
+has_spin_orbit(psp::UpfPsP)::Bool = psp.has_so
+has_nlcc(psp::UpfPsP)::Bool = psp.has_nlcc
+
+function get_projector(psp::UpfPsp, l, n)::UpfBeta
+    betas_l = filter(beta -> beta.angular_momentum == l, psp.nonlocal.betas)
+    return betas_l[n]
+end
+
+function e_kb(psp::UpfPsP, li, ni, lj, nj)::Float64
+    beta_li_ni = get_projector(psp, li, ni)
+    index_li_ni = beta_li_ni.index
+    beta_lj_nj = get_projector(psp, lj, nj)
+    index_lj_nj = beta_lj_nj.index
+    return psp.nonlocal.dij[index_li_ni, index_lj_nj]
+end
+
+function e_kb(psp::UpfPsP, l, n)::Float64
+    beta_l_n = get_projector(psp, l, n)
+    index_l_n = beta_l_n.index
+    return psp.nonlocal.dij[index_l_n, index_l_n]
+end
+
+function v_local_real(psp::UpfPsP, r::T)::T where {T<:Real}
+    interpolator = linear_interpolation((psp.mesh.r, ), psp.local_)
+    return interpolator(r)
+end
+
+function v_local_fourier(psp::UpfPsP, q::T)::T where {T<:Real}
+end
+
+function projector_real(psp::UpfPsP, l, n, r::T)::T where {T<:Real}
+    beta = get_projector(psp, l, n)
+    interpolator = linear_interpolation((psp.mesh.r, ), beta.beta)
+    return interpolator(r) / r
 end

@@ -2,6 +2,8 @@ module PseudoPotentialIO
 
 using EzXML
 using DocStringExtensions
+using Printf
+using Interpolations
 import PeriodicTable
 
 include("common.jl")
