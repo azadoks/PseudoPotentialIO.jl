@@ -32,7 +32,7 @@ function get_upf_version(filename::AbstractString)::Int
         elseif occursin("UPF version=\"2.0.1\"", line)
             return 2
         else
-            throw(Error("Unknown UPF version"))
+            error("Unknown UPF version")
         end
     end
 end
