@@ -6,13 +6,15 @@ end
 $TYPEDEF
 
 $(TYPEDFIELDS)
+
+PSP8 header block
 """
 struct Psp8Header
     "Description"
     title::String
     "Atomic charge"
     zatom::Float64
-    "Pseudo-atomic charge"
+    "Pseudo-atomic (valence) charge"
     zion::Float64
     "Generation date `ddmmyy`"
     pspd::Int
@@ -46,6 +48,8 @@ end
 $TYPEDEF
 
 $(TYPEDFIELDS)
+
+PSP8 pseudopotential
 """
 struct Psp8PsP <: PseudoPotentialIO.AbstractPsP
     "Various pseudopotential metadata"
@@ -246,17 +250,67 @@ function Psp8PsP(path::AbstractString)
     end
 end
 
-function Base.show(io::IO, psp::Psp8PsP)
-    has_so = psp.header.extension_switch in (2, 3)
-    relativistic = has_so ? "full" : "scalar"
-    has_nlcc = psp.header.fchrg > 0
-    element = PeriodicTable.elements[round(Int, psp.header.zatom)].symbol
-    println(io, "PSP v8")
-    @printf "%032s: %s\n" "type" "NC"
-    @printf "%032s: %s\n" "element" element
-    @printf "%032s: %f\n" "valence charge" psp.header.zion
-    @printf "%032s: %s\n" "relativistic treatment" relativistic
-    @printf "%032s: %s\n" "non-linear core correction" has_nlcc
-    @printf "%032s: %d\n" "maximum angular momentum" psp.header.lmax
-    @printf "%032s: %s" "number of projectors" sum(psp.header.nproj)
+function element(psp::Psp8PsP)::PeriodicTable.Element
+    return PeriodicTable.elements[round(Int, psp.header.zatom)]
+end
+l_max(psp::Psp8PsP)::Int = psp.header.lmax
+n_proj_radial(psp::Psp8PsP, l::Integer)::Int = psp.header.nproj[l+1]
+n_pseudo_wfc(::Psp8PsP)::Int = 0
+z_valence(psp::Psp8PsP)::Float64 = psp.header.zion
+is_paw(::Psp8PsP)::Bool = false
+is_ultrasoft(::Psp8PsP)::Bool = false
+is_norm_conserving(::Psp8PsP)::Bool = true
+is_coulomb(::Psp8PsP)::Bool = false
+has_spin_orbit(psp::Psp8PsP)::Bool = psp.header.extension_switch in (2, 3)
+has_nlcc(psp::Psp8PsP)::Bool = psp.header.fchrg > 0
+relativistic_treatment(psp::Psp8PsP)::Symbol = has_spin_orbit(psp) ? :full : :scalar
+formalism(::Psp8PsP)::Symbol = :norm_conserving
+format(::Psp8PsP) = "PSP v8"
+dr(psp::Psp8PsP) = mean(diff(psp.rgrid))
+
+function get_projector_radial(psp::Psp8PsP, l::Integer, n::Integer)::Vector{Float64}
+    return psp.projectors[l+1][n]
+end
+
+function e_kb(psp::Psp8PsP, l::Integer, n::Integer)::Vector{Float64}
+    return psp.ekb[l][n]
+end
+
+function v_local_real(psp::Psp8PsP, r::T)::T where {T<:Real}
+    interpolator = linear_interpolation((psp.rgrid, ), psp.v_local)
+    return interpolator(r)
+end
+
+function v_local_fourier(psp::Psp8PsP, q::T)::T where {T<:Real}
+    v_corr_fourier = v_local_correction_fourier(psp, q)
+    @. integrand = psp.rgrid^2 * sphericalbesselj_fast(0, q * psp.rgrid) *
+                   (psp.v_local - v_local_correction_real(psp, psp.rgrid))
+    return 4T(π) * simpson(integrand, dr(psp)) + v_corr_fourier
+end
+
+function projector_radial_real(psp::Psp8PsP, l::Integer, n::Integer, r::T)::T where {T<:Real}
+    projector = get_projector_radial(psp, l, n)
+    interpolator = linear_interpolation((psp.rgrid, ), projector)
+    return interpolator(r)
+end
+
+function projector_radial_fourier(psp::Psp8PsP, l::Integer, n::Integer, q::T)::T where {T<:Real}
+    projector = get_projector_radial(psp, l, n)
+    @. integrand = psp.rgrid^2 * sphericalbesselj_fast(l, q * psp.rgrid) * projector
+    return 4T(π) * trapezoid(integrand, dr(psp))
+end
+
+function pseudo_energy_correction(psp::Psp8PsP)::Float64
+    v_local_corrected = psp.v_local - v_local_correction_real.(psp, psp.rgrid)
+    return 4Float64(π) * trapezoid(v_local_corrected, dr(psp))
+end
+
+function core_charge_density_real(psp::Psp8PsP, r::T)::T where {T<:Real}
+    interpolator = linear_interpolation((psp.rgrid,), psp.rhoc)
+    return interpolator(r)
+end
+
+function core_charge_density_fourier(psp::Psp8PsP, q::T)::T where {T<:Real}
+    @. integrand = psp.rgrid^2 * sphericalbesselj_fast(0, q * psp.rgrid) * psp.rhoc
+    return trapezoid(integrand, dr(psp))
 end

@@ -15,11 +15,18 @@ function get_upf_version(io::IO)::Int
 end
 
 function get_upf_version(path::AbstractString)::Int
-	open(path, "r") do io
-		return get_upf_version(io)
-	end
+    open(path, "r") do io
+        return get_upf_version(io)
+    end
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_HEADER>`
+"""
 struct UpfHeader
     "Generation code"
     generated::Union{Nothing,String}
@@ -71,6 +78,13 @@ struct UpfHeader
     number_of_proj::Int
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_MESH>`
+"""
 struct UpfMesh
     "Radial mesh"
     r::Vector{Float64}
@@ -86,6 +100,13 @@ struct UpfMesh
     zmesh::Union{Nothing,Float64}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_NONLOCAL/PP_AUGMENTATION/PP_QIJ.[i].[j]>`
+"""
 struct UpfQij
     qij::Vector{Float64}
     first_index::Union{Nothing,Int}
@@ -94,6 +115,13 @@ struct UpfQij
     is_null::Union{Nothing,Bool}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_NONLOCAL/PP_AUGMENTATION/PP_QIJL.[i].[j].[l]>`
+"""
 struct UpfQijl
     qijl::Vector{Float64}
     angular_momentum::Int
@@ -103,6 +131,13 @@ struct UpfQijl
     is_null::Union{Nothing,Bool}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_NONLOCAL/PP_AUGMENTATION>`
+"""
 struct UpfAugmentation
     """Norms of the augmentation functions (NB: `q = 0` does _not_ guarantee that the
     corresponding augmentation function is zero)"""
@@ -145,6 +180,13 @@ struct UpfAugmentation
     cutoff_r_index::Union{Nothing,Float64}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_NONLOCAL/PP_BETA.[i]>`
+"""
 struct UpfBeta
     "Kleinman-Bylander nonlocal projector multiplied by the radial mesh, on the radial mesh"
     beta::Vector{Float64}
@@ -157,6 +199,13 @@ struct UpfBeta
     label::Union{Nothing,String}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_NONLOCAL>`
+"""
 struct UpfNonlocal
     """Kleinman-Bylander nonlocal projectors multiplied by the radial mesh,
     on the radial mesh"""
@@ -167,6 +216,13 @@ struct UpfNonlocal
     augmentation::Union{Nothing,UpfAugmentation}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_PSWFC/PP_CHI>`
+"""
 struct UpfChi
     "Pseudo-atomic valence wavefunction on the radial mesh"
     chi::Vector{Float64}
@@ -175,13 +231,20 @@ struct UpfChi
     occupation::Float64
     index::Union{Nothing,Int}
     label::Union{Nothing,String}
-    "Principle quantum number"
+    "Principal quantum number"
     n::Union{Nothing,Int}
     pseudo_energy::Union{Nothing,Float64}
     cutoff_radius::Union{Nothing,Float64}
     ultrasoft_cutoff_radius::Union{Nothing,Float64}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_SPINORB/PP_RELWFC.[i]>`
+"""
 struct UpfRelWfc
     jchi::Float64
     index::Union{Nothing,Int}
@@ -191,17 +254,38 @@ struct UpfRelWfc
     oc::Union{Nothing,Float64}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_SPINORB/PP_RELBETA.[i]>`
+"""
 struct UpfRelBeta
     index::Union{Nothing,Int}
     jjj::Float64
     lll::Union{Nothing,Int}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_SPINORB>`
+"""
 struct UpfSpinOrb
     relwfcs::Vector{UpfRelWfc}
     relbetas::Vector{UpfRelBeta}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<//PP_(AE|PS)WFC.[i]>`
+"""
 struct UpfWfc
     wfc::Vector{Float64}
     index::Int
@@ -209,11 +293,25 @@ struct UpfWfc
     label::Union{Nothing,String}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_FULL_WFC>`
+"""
 struct UpfFullWfc
     aewfcs::Vector{UpfWfc}
     pswfcs::Vector{UpfWfc}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_PAW>`
+"""
 struct UpfPaw
     occupations::Vector{Float64}
     ae_nlcc::Vector{Float64}
@@ -222,6 +320,13 @@ struct UpfPaw
     pswfcs::Vector{UpfWfc}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_GIPAW/PP_GIPAW_CORE_ORBITALS/PP_GIPAW_CORE_ORBITAL.[i]>`
+"""
 struct UpfGipawCoreOrbital
     index::Int
     label::Union{Nothing,String}
@@ -232,11 +337,25 @@ struct UpfGipawCoreOrbital
     core_orbital::Vector{Float64}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF `<PP_GIPAW>`
+"""
 struct UpfGipaw
     gipaw_data_format::Int
     core_orbitals::Vector{UpfGipawCoreOrbital}
 end
 
+"""
+$TYPEDEF
+
+$(TYPEDFIELDS)
+
+UPF pseudopotential
+"""
 struct UpfPsP <: PseudoPotentialIO.AbstractPsP
     "UPF format version"
     version::String
@@ -278,30 +397,21 @@ function UpfPsP(io::IO)
         return upf1_parse_psp(io)
     end
     if version == 2
-		text = read(io, String)
-		# Remove end-of-file junk (input data, etc.)
-		text = string(split(text, "</UPF>")[1], "</UPF>")
-		# Clean any errant `&` characters
-		text = replace(text, "&" => "")
+        text = read(io, String)
+        # Remove end-of-file junk (input data, etc.)
+        text = string(split(text, "</UPF>")[1], "</UPF>")
+        # Clean any errant `&` characters
+        text = replace(text, "&" => "")
         return upf2_parse_psp(parsexml(text))
     end
 end
 
-function Base.show(io::IO, psp::UpfPsP)
-    println(io, "UPF v$(psp.version)")
-    @printf "%032s: %s\n" "type" psp.header.pseudo_type
-    @printf "%032s: %s\n" "element" psp.header.element
-    @printf "%032s: %f\n" "valence charge" psp.header.z_valence
-    @printf "%032s: %s\n" "functional" psp.header.functional
-    @printf "%032s: %s\n" "relativistic treatment" psp.header.relativistic
-    @printf "%032s: %s\n" "non-linear core correction" psp.header.core_correction
-    @printf "%032s: %d\n" "maximum angular momentum" psp.header.l_max
-    @printf "%032s: %s\n" "number of projectors" psp.header.number_of_proj
-    @printf "%032s: %s"   "number of pseudo-wavefunctions" psp.header.number_of_wfc
+function element(psp::UpfPsP)::PeriodicTable.Element
+    return PeriodicTable.elements[Symbol(psp.header.element)]
 end
-
 l_max(psp::UpfPsP)::Int = psp.header.l_max
-n_proj_radial(psp::UpfPsP, l)::Int = count(beta -> beta.angular_momentum == l, psp.nonlocal.betas)
+n_proj_radial(psp::UpfPsP, l::Integer)::Int = count(beta -> beta.angular_momentum == l,
+                                           psp.nonlocal.betas)
 n_pseudo_wfc(psp::UpfPsP)::Int = psp.header.number_of_wfc
 z_valence(psp::UpfPsP)::Float64 = psp.header.z_valence
 is_paw(psp::UpfPsP)::Bool = psp.header.is_paw
@@ -309,37 +419,94 @@ is_ultrasoft(psp::UpfPsP)::Bool = psp.header.is_ultrasoft
 is_norm_conserving(psp::UpfPsP)::Bool = psp.header.pseudo_type == "NC"
 is_coulomb(psp::UpfPsP)::Bool = psp.header.is_coulomb
 has_spin_orbit(psp::UpfPsP)::Bool = psp.has_so
-has_nlcc(psp::UpfPsP)::Bool = psp.has_nlcc
+has_nlcc(psp::UpfPsP)::Bool = psp.header.core_correction
+relativistic_treatment(psp::UpfPsP)::Symbol = Symbol(psp.header.relativistic)
+format(psp::UpfPsP)::String = "UPF v$(psp.version)"
 
-function get_projector(psp::UpfPsp, l, n)::UpfBeta
-    betas_l = filter(beta -> beta.angular_momentum == l, psp.nonlocal.betas)
-    return betas_l[n]
+function get_projector_radial(psp::UpfPsP, l, n)::UpfBeta
+    projectors_l = filter(beta -> beta.angular_momentum == l, psp.nonlocal.betas)
+    return projectors_l[n]
+end
+
+function get_pseudo_orbital_radial(psp::UpfPsP, l)::UpfChi
+    orbitals = filter(orbital -> orbital.l == l, psp.pswfc)
+    @assert length(orbital) == 1
+    return first(orbitals)
 end
 
 function e_kb(psp::UpfPsP, li, ni, lj, nj)::Float64
-    beta_li_ni = get_projector(psp, li, ni)
-    index_li_ni = beta_li_ni.index
-    beta_lj_nj = get_projector(psp, lj, nj)
-    index_lj_nj = beta_lj_nj.index
+    projector_li_ni = get_projector_radial(psp, li, ni)
+    index_li_ni = projector_li_ni.index
+    projector_lj_nj = get_projector_radial(psp, lj, nj)
+    index_lj_nj = projector_lj_nj.index
     return psp.nonlocal.dij[index_li_ni, index_lj_nj]
 end
 
 function e_kb(psp::UpfPsP, l, n)::Float64
-    beta_l_n = get_projector(psp, l, n)
-    index_l_n = beta_l_n.index
+    projector_l_n = get_projector_radial(psp, l, n)
+    index_l_n = projector_l_n.index
     return psp.nonlocal.dij[index_l_n, index_l_n]
 end
 
 function v_local_real(psp::UpfPsP, r::T)::T where {T<:Real}
-    interpolator = linear_interpolation((psp.mesh.r, ), psp.local_)
+    interpolator = linear_interpolation((psp.mesh.r,), psp.local_)
     return interpolator(r)
 end
 
 function v_local_fourier(psp::UpfPsP, q::T)::T where {T<:Real}
+    v_corr_fourier = v_local_correction_fourier(psp, q)
+    @. integrand = psp.mesh.r^2 * sphericalbesselj_fast(0, q * psp.mesh.r) *
+                   (psp.local_ - v_local_correction_real(psp, psp.mesh.r))
+    return 4T(π) * simpson(integrand, psp.rab) + v_corr_fourier
 end
 
-function projector_real(psp::UpfPsP, l, n, r::T)::T where {T<:Real}
-    beta = get_projector(psp, l, n)
-    interpolator = linear_interpolation((psp.mesh.r, ), beta.beta)
+#TODO this will create NaNs for linear meshes that start at r=0
+function projector_radial_real(psp::UpfPsP, l, n, r::T)::T where {T<:Real}
+    projector = get_projector_radial(psp, l, n)
+    interpolator = linear_interpolation((psp.mesh.r,), projector.beta)
     return interpolator(r) / r
+end
+
+function projector_radial_fourier(psp::UpfPsP, l, n, q::T)::T where {T<:Real}
+    projector = get_projector_radial(psp, l, n)
+    @. integrand = psp.mesh.r * sphericalbesselj_fast(l, q * psp.mesh.r) * projector
+    return 4T(π) * trapezoid(integrand, psp.mesh.rab)
+end
+
+function pseudo_energy_correction(psp::UpfPsP)::Float64
+    v_local_corrected = psp.local_ - v_local_correction_real.(psp, psp.mesh.r)
+    return 4π * trapezoid(v_local_corrected, psp.mesh.rab)
+end
+
+function core_charge_density_real(psp::UpfPsP, r::T)::T where {T<:Real}
+    interpolator = linear_interpolation((psp.mesh.r,), psp.nlcc)
+    return interpolator(r)
+end
+
+function core_charge_density_fourier(psp::UpfPsP, q::T)::T where {T<:Real}
+    @. integrand = psp.mesh.r^2 * sphericalbesselj_fast(0, q * psp.mesh.r) * psp.nlcc
+    return 4T(π) * trapezoid(integrand, psp.mesh.rab)
+end
+
+#TODO this will create NaNs for linear meshes that start at r=0
+function valence_charge_density_real(psp::UpfPsP, r::T)::T where {T<:Real}
+    interpolator = linear_interpolation((psp.rhoatom,), psp.rhoatom)
+    return interpolator(r) / (4T(π) * r^2)
+end
+
+function valence_charge_density_fourier(psp::UpfPsP, q::T)::T where {T<:Real}
+    @. integrand = sphericalbesselj_fast(0, q * psp.mesh.r) * psp.rhoatom
+    return trapezoid(integrand, psp.mesh.rab)
+end
+
+function pseudo_orbital_radial_real(psp::UpfPsP, l, r::T)::T where {T<:Real}
+    orbital = get_pseudo_orbital_radial(psp, l)
+    interpolator = linear_interpolation((psp.rhoatom,), orbital.chi)
+    return interpolator(r)
+end
+
+function pseudo_orbital_radial_fourier(psp::UpfPsP, l, q::T)::T where {T<:Real}
+    orbital = get_pseudo_orbital_radial(psp, l)
+    @. integrand = psp.mesh.r^2 * sphericalbesselj_fast(0, q * psp.mesh.r) * orbital
+    return 4T(π) * trapezoid(integrand, psp.mesh.rab)
 end

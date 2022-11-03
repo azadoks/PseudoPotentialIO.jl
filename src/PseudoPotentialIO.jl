@@ -4,6 +4,7 @@ using EzXML
 using DocStringExtensions
 using Printf
 using Interpolations
+using Statistics
 import PeriodicTable
 
 include("common.jl")
@@ -18,5 +19,8 @@ include("upf2.jl")
 
 export Psp8PsP
 include("psp8.jl")
+
+export HghPsP
+include("hgh.jl")
 
 end
