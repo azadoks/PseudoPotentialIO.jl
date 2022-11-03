@@ -243,7 +243,7 @@ $TYPEDEF
 
 $(TYPEDFIELDS)
 
-UPF `<PP_SPINORB/PP_RELWFC.[i]>`
+UPF `<PP_SPIN_ORB/PP_RELWFC.[i]>`
 """
 struct UpfRelWfc
     jchi::Float64
@@ -259,7 +259,7 @@ $TYPEDEF
 
 $(TYPEDFIELDS)
 
-UPF `<PP_SPINORB/PP_RELBETA.[i]>`
+UPF `<PP_SPIN_ORB/PP_RELBETA.[i]>`
 """
 struct UpfRelBeta
     index::Union{Nothing,Int}
@@ -272,7 +272,7 @@ $TYPEDEF
 
 $(TYPEDFIELDS)
 
-UPF `<PP_SPINORB>`
+UPF `<PP_SPIN_ORB>`
 """
 struct UpfSpinOrb
     relwfcs::Vector{UpfRelWfc}
@@ -378,7 +378,7 @@ struct UpfPsP <: PseudoPotentialIO.AbstractPsP
     "Pseudo-atomic valence charge density on the radial grid"
     rhoatom::Vector{Float64}
     "Spin-orbit coupling data, (ignored if `has_so` is false)"
-    spinorb::Union{Nothing,UpfSpinOrb}
+    spin_orb::Union{Nothing,UpfSpinOrb}
     "PAW data, (ignored if `is_paw` is false)"
     paw::Union{Nothing,UpfPaw}
     "GIPAW data"

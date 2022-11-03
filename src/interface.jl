@@ -102,7 +102,7 @@ or Coulomb).
 """
 function formalism(psp::AbstractPsP)::Symbol
     is_norm_conserving(psp) && return :norm_conserving
-    is_ultrasoft(psp) && return :ultrasoft
+    (is_ultrasoft(psp) & !is_paw(psp)) && return :ultrasoft
     is_paw(psp) && return :projector_augmented_wave
     is_coulomb(psp) && return :coulomb
 end

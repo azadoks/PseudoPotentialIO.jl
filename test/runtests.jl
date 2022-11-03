@@ -1,6 +1,7 @@
 using Test
 using PseudoPotentialIO
 using Random
+using PeriodicTable
 
 TAGS = ARGS
 isempty(TAGS) && (TAGS = ["all"])

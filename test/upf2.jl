@@ -6,8 +6,8 @@
 #     end
 # end
 
-@testset "Mg_nc-fr-04_pbesol_stringent.upf" begin
-    psp = UpfPsP("./upf2/Mg_nc-fr-04_pbesol_stringent.upf")
+@testset "[UPF v2.0.1] Mg_nc-fr-04_pbesol_stringent.upf" begin
+    psp = UpfPsP("upf2/Mg_nc-fr-04_pbesol_stringent.upf")
     @test z_valence(psp) == 10.0
     @test element(psp).symbol == "Mg"
     @test is_norm_conserving(psp)
@@ -35,23 +35,23 @@
     @test psp.pswfc[1].l == 0
     @test psp.pswfc[1].occupation == 2.0
     @test psp.pswfc[1].chi[5] == 1.3903075777E-01
-    @test length(psp.spinorb.relbetas) == 6
-    @test psp.spinorb.relbetas[3].lll == 1
-    @test psp.spinorb.relbetas[3].jjj == 0.5
-    for i = eachindex(psp.spinorb.relbetas)
-        @test psp.spinorb.relbetas[i].index == i
+    @test length(psp.spin_orb.relbetas) == 6
+    @test psp.spin_orb.relbetas[3].lll == 1
+    @test psp.spin_orb.relbetas[3].jjj == 0.5
+    for i = eachindex(psp.spin_orb.relbetas)
+        @test psp.spin_orb.relbetas[i].index == i
     end
-    @test length(psp.spinorb.relwfcs) == 4
-    @test psp.spinorb.relwfcs[3].lchi == 1
-    @test psp.spinorb.relwfcs[3].jchi == 0.5
-    @test psp.spinorb.relwfcs[3].nn == 2
-    for i = eachindex(psp.spinorb.relwfcs)
-        @test psp.spinorb.relwfcs[i].index == i
+    @test length(psp.spin_orb.relwfcs) == 4
+    @test psp.spin_orb.relwfcs[3].lchi == 1
+    @test psp.spin_orb.relwfcs[3].jchi == 0.5
+    @test psp.spin_orb.relwfcs[3].nn == 2
+    for i = eachindex(psp.spin_orb.relwfcs)
+        @test psp.spin_orb.relwfcs[i].index == i
     end
 end
 
-@testset "Si.pbe-n-rrkjus_psl.1.0.0.upf" begin
-    psp = UpfPsP("./upf2/Si.pbe-n-rrkjus_psl.1.0.0.upf")
+@testset "[UPF v2.0.1] Si.pbe-n-rrkjus_psl.1.0.0.upf" begin
+    psp = UpfPsP("upf2/Si.pbe-n-rrkjus_psl.1.0.0.upf")
     @test z_valence(psp) == 4.0
     @test element(psp).symbol == "Si"
     @test is_ultrasoft(psp)
@@ -91,68 +91,72 @@ end
     @test psp.rhoatom[5] == 6.986543942450972E-009 
 end
 
-@testset "Al.pbe-n-kjpaw_psl.1.0.0.upf" begin
-    psp = UpfPsP("./upf2/Al.pbe-n-kjpaw_psl.1.0.0.upf")
-    @test z_valence(psp) == 19.0
+@testset "[UPF v2.0.1] Al.pbe-n-kjpaw_psl.1.0.0.upf" begin
+    psp = UpfPsP("upf2/Al.pbe-n-kjpaw_psl.1.0.0.upf")
+    @test z_valence(psp) == 3.0
     @test element(psp).symbol == "Al"
     @test is_ultrasoft(psp)
+    @test is_paw(psp)
+    @test psp.header.has_gipaw
+    @test psp.header.paw_as_gipaw
     @test l_max(psp) == 2
-    @test psp.header.mesh_size == 887
+    @test psp.header.l_max_rho == 4
+    @test psp.header.mesh_size == 1135
     @test n_proj_radial(psp) == 6
-    @test n_pseudo_wfc(psp) == 5
-    @test psp.mesh.r[5] == 5.05789189118E-09
-    @test psp.mesh.rab[5] == 1.32875017333E-09
-    @test psp.nlcc[5] == 4.66361704568E-01
+    @test n_pseudo_wfc(psp) == 2
+    @test psp.mesh.r[5] == 7.374116566877076E-005
+    @test psp.mesh.rab[5] == 9.217645708596345E-007
+    @test psp.nlcc[5] ==  2.656001002192721E-001
+    @test psp.local_[5] == -6.296496837141098E+000
+    @test psp.nonlocal.betas[1].label == "3S"
     @test psp.nonlocal.betas[1].angular_momentum == 0
-    @test psp.nonlocal.betas[1].cutoff_radius_index == 717
-    @test psp.nonlocal.betas[1].beta[5] == -5.63186386318E-05
+    @test psp.nonlocal.betas[1].cutoff_radius_index == 827
+    @test psp.nonlocal.betas[1].beta[5] == -1.792962988082909E-003
     for i = eachindex(psp.nonlocal.betas)
         @test psp.nonlocal.betas[i].index == i
     end
-    @test e_kb(psp, 0, 1) == -1.76074960113E+00
+    @test e_kb(psp, 0, 1) == 4.162665025130763E-001
+    @test psp.nonlocal.augmentation.q_with_l
+    @test psp.nonlocal.augmentation.nqf == 0
+    @test psp.nonlocal.augmentation.nqlc == 5
+    @test psp.nonlocal.augmentation.shape == "PSQ"
+    @test psp.nonlocal.augmentation.cutoff_r_index == 839
+    @test psp.nonlocal.augmentation.l_max_aug == 4
+    @test psp.nonlocal.augmentation.q[1] == -3.070968103524502E-002
+    @test psp.nonlocal.augmentation.multipoles[7] == -3.491452538270029E-002
+    @test isnothing(psp.nonlocal.augmentation.rinner)
+    @test isnothing(psp.nonlocal.augmentation.qfcoeff)
+    @test isnothing(psp.nonlocal.augmentation.qijs)
+    @test length(psp.nonlocal.augmentation.qijls) == 34
+    @test psp.nonlocal.augmentation.qijls[1].qijl[5] == 1.301443338375301E-009
+    @test psp.pswfc[1].label == "3S"
+    @test psp.pswfc[1].l == 0
+    @test psp.pswfc[1].occupation == 2.0
+    @test psp.pswfc[1].chi[5] == 2.099526933006344E-005
     for i = eachindex(psp.pswfc)
         @test psp.pswfc[i].index == i
     end
-    @test length(psp.nonlocal.augmentation.rinner) == 5
-    @test psp.nonlocal.augmentation.rinner[1] == 1.30000000000E+00
-    @test psp.nonlocal.augmentation.qijs[1].qij[5] == -1.55354181933E-16
-    @test length(psp.nonlocal.augmentation.qijs) == 21
-    @test psp.nonlocal.augmentation.qfcoeff[1][5] == -3.73585933729E+00
-    @test psp.pswfc[1].label == "4S"
-    @test psp.pswfc[1].l == 0
-    @test psp.pswfc[1].occupation == 2.0
-    @test psp.pswfc[1].chi[5] == 1.53041946142E-08
 end
 
-# @testset "he-q2.upf" begin
-#     psp = UpfPsP("./upf2/he-q2.upf")
-#     @test z_valence(psp) == 19.0
-#     @test element(psp).symbol == "Al"
-#     @test is_ultrasoft(psp)
-#     @test l_max(psp) == 2
-#     @test psp.header.mesh_size == 887
-#     @test n_proj_radial(psp) == 6
-#     @test n_pseudo_wfc(psp) == 5
-#     @test psp.mesh.r[5] == 5.05789189118E-09
-#     @test psp.mesh.rab[5] == 1.32875017333E-09
-#     @test psp.nlcc[5] == 4.66361704568E-01
-#     @test psp.nonlocal.betas[1].angular_momentum == 0
-#     @test psp.nonlocal.betas[1].cutoff_radius_index == 717
-#     @test psp.nonlocal.betas[1].beta[5] == -5.63186386318E-05
-#     for i = eachindex(psp.nonlocal.betas)
-#         @test psp.nonlocal.betas[i].index == i
-#     end
-#     @test e_kb(psp, 0, 1) == -1.76074960113E+00
-#     for i = eachindex(psp.pswfc)
-#         @test psp.pswfc[i].index == i
-#     end
-#     @test length(psp.nonlocal.augmentation.rinner) == 5
-#     @test psp.nonlocal.augmentation.rinner[1] == 1.30000000000E+00
-#     @test psp.nonlocal.augmentation.qijs[1].qij[5] == -1.55354181933E-16
-#     @test length(psp.nonlocal.augmentation.qijs) == 21
-#     @test psp.nonlocal.augmentation.qfcoeff[1][5] == -3.73585933729E+00
-#     @test psp.pswfc[1].label == "4S"
-#     @test psp.pswfc[1].l == 0
-#     @test psp.pswfc[1].occupation == 2.0
-#     @test psp.pswfc[1].chi[5] == 1.53041946142E-08
-# end
+@testset "he-q2.upf" begin
+    psp = UpfPsP("upf2/he-q2.upf")
+    @test z_valence(psp) == 2.0
+    @test element(psp).symbol == "He"
+    @test l_max(psp) == -1
+    @test psp.header.mesh_size == 985
+    @test n_proj_radial(psp) == 0
+    @test n_pseudo_wfc(psp) == 1
+    @test psp.mesh.r[5] == 4.793175768470099E-004
+    @test psp.mesh.rab[5] == 5.991469710587625E-006
+    @test !has_nlcc(psp)
+    @test isempty(psp.nonlocal.betas)
+    @test isempty(psp.nonlocal.dij)
+    for i = eachindex(psp.pswfc)
+        @test psp.pswfc[i].index == i
+    end
+    @test psp.pswfc[1].label == "1S"
+    @test psp.pswfc[1].l == 0
+    @test psp.pswfc[1].occupation == 2.0
+    @test psp.pswfc[1].chi[5] == 1.831401620367775E-003
+    @test psp.rhoatom[5] == 6.708063790171425E-006
+end

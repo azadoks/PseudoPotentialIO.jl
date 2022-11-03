@@ -1,13 +1,77 @@
-# @testset "Load all UPF v1.old" begin
-#     for (root, dirs, files) in walkdir("./upf1/"), file in files
-#         psp = UpfPsP(joinpath(root, file))
-#         @test isa(psp, UpfPsP)
-#         @test format(psp) == "UPF v1.old"
-#     end
-# end
+@testset "[UPF v1.old] Loading and consistency" begin
+    for (root, dirs, files) in walkdir("./upf1/"), file in files
+        psp = UpfPsP(joinpath(root, file))
 
-@testset "ag_lda_v1.4.uspp.F.upf" begin
-    psp = UpfPsP("./upf1/ag_lda_v1.4.uspp.F.upf")
+        @test isa(psp, UpfPsP)
+        @test format(psp) == "UPF v1.old"
+
+        @test haskey(PeriodicTable.elements, Symbol(psp.header.element))
+        z_atom = PeriodicTable.elements[Symbol(psp.header.element)].number
+        @test psp.header.z_valence <= z_atom
+        
+        @test psp.header.is_ultrasoft + psp.header.is_coulomb <= 1
+        @test psp.header.is_paw + psp.header.is_coulomb <= 1
+        @test psp.header.is_paw + psp.header.is_ultrasoft <= 1
+        if psp.header.is_ultrasoft | psp.header.is_paw
+            @test !isnothing(psp.nonlocal.augmentation)
+            augmentation = psp.nonlocal.augmentation
+            @test isnothing(augmentation.q)
+            @test isnothing(augmentation.multipoles)
+            @test length(augmentation.rinner) == 2psp.header.l_max + 1
+            if augmentation.q_with_l
+                @test isnothing(augmentation.qijs)
+                @test !isnothing(augmentation.qijls)
+                @test (length(augmentation.qijls) == psp.header.number_of_proj
+                       * augmentation.nqlc)
+            else
+                @test !isnothing(augmentation.qijs)
+                @test isnothing(augmentation.qijls)
+                n_proj = psp.header.number_of_proj
+                @test length(augmentation.qijs) == n_proj * (n_proj + 1) / 2
+                @test length(augmentation.qfcoeff) == n_proj * (n_proj + 1) / 2
+                @test all(length.(augmentation.qfcoeff) .== 
+                          augmentation.nqf * (2psp.header.l_max + 1))
+            end
+        else
+            @test isnothing(psp.nonlocal.augmentation)
+        end
+        if psp.header.is_coulomb
+            #? What else should be missing in this case?
+            @test isnothing(psp.local_)
+        else
+            @test !isnothing(psp.local_)
+            @test length(psp.local_) == psp.header.mesh_size
+        end
+
+        if psp.header.core_correction
+            @test !isnothing(psp.nlcc)
+            @test length(psp.nlcc) == psp.header.mesh_size
+        end
+
+        if psp.header.has_so
+            @test !isnothing(psp.spin_orb)
+            @test len(psp.spin_orb.relbetas) == psp.header.number_of_proj
+            @test len(psp.spin_orb.relwfcs) == psp.header.number_of_wfc
+        end
+
+        @test length(psp.nonlocal.betas) == psp.header.number_of_proj
+        if psp.header.number_of_wfc > 0
+            @test length(psp.pswfc) == psp.header.number_of_wfc
+        else
+            @test isnothing(psp.pswfc)
+        end
+
+        @test (length(psp.mesh.r) == length(psp.mesh.rab) == psp.mesh.mesh
+               == psp.header.mesh_size)
+
+        for beta in psp.nonlocal.betas
+            @test length(beta.beta) == beta.cutoff_radius_index
+        end
+    end
+end
+
+@testset "[UPF v1.old] ag_lda_v1.4.uspp.F.upf" begin
+    psp = UpfPsP("upf1/ag_lda_v1.4.uspp.F.upf")
     @test z_valence(psp) == 19.0
     @test element(psp).symbol == "Ag"
     @test is_ultrasoft(psp)
@@ -39,8 +103,8 @@
     @test psp.pswfc[1].chi[5] == 1.53041946142E-08
 end
 
-@testset "B_pbe_v1.01.uspp.F.upf" begin
-    psp = UpfPsP("./upf1/B_pbe_v1.01.uspp.F.upf")
+@testset "[UPF v1.old] B_pbe_v1.01.uspp.F.upf" begin
+    psp = UpfPsP("upf1/B_pbe_v1.01.uspp.F.upf")
     @test z_valence(psp) == 3.00
     @test element(psp).symbol == "B"
     @test is_ultrasoft(psp)
@@ -73,8 +137,8 @@ end
     @test psp.pswfc[1].chi[5] == 5.96294641979E-06
 end
 
-@testset "si_pbesol_v1.uspp.F.upf" begin
-    psp = UpfPsP("./upf1/si_pbesol_v1.uspp.F.upf")
+@testset "[UPF v1.old] si_pbesol_v1.uspp.F.upf" begin
+    psp = UpfPsP("upf1/si_pbesol_v1.uspp.F.upf")
     @test z_valence(psp) == 4.0
     @test element(psp).symbol == "Si"
     @test is_ultrasoft(psp)
@@ -107,8 +171,8 @@ end
     @test psp.pswfc[1].chi[5] == 6.44327877084E-07
 end
 
-@testset "mg_pbe_v1.4.uspp.F.upf" begin
-    psp = UpfPsP("./upf1/mg_pbe_v1.4.uspp.F.upf")
+@testset "[UPF v1.old] mg_pbe_v1.4.uspp.F.upf" begin
+    psp = UpfPsP("upf1/mg_pbe_v1.4.uspp.F.upf")
     @test z_valence(psp) == 10.0
     @test element(psp).symbol == "Mg"
     @test is_ultrasoft(psp)
