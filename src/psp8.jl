@@ -71,11 +71,11 @@ struct Psp8PsP <: PseudoPotentialIO.AbstractPsP
     "First derivative of the model core charge"
     d_rhoc_dr::Union{Nothing,Vector{Float64}}
     "Second derivative of the model core charge"
-    d2_rhoc_dr::Union{Nothing,Vector{Float64}}
+    d2_rhoc_dr2::Union{Nothing,Vector{Float64}}
     "Third derivative of the model core charge"
-    d3_rhoc_dr::Union{Nothing,Vector{Float64}}
+    d3_rhoc_dr3::Union{Nothing,Vector{Float64}}
     "Fourth derivative of the model core charge"
-    d4_rhoc_dr::Union{Nothing,Vector{Float64}}
+    d4_rhoc_dr4::Union{Nothing,Vector{Float64}}
 end
 
 function psp8_parse_header(io::IO)
@@ -102,7 +102,7 @@ function psp8_parse_header(io::IO)
     qchrg = parse_fortran(Float64, s[3])
     # line 5
     s = split(readline(io))
-    nproj = [parse(Int, s[i]) for i in 1:(lmax + 1)]
+    nproj = [parse(Int, s[l + 1]) for l in 0:lmax]
     if lloc <= lmax
         @assert nproj[lloc + 1] == 0
     end
@@ -110,7 +110,7 @@ function psp8_parse_header(io::IO)
     s = split(readline(io))
     extension_switch = parse(Int, s[1])
     # line 7
-    if extension_switch in [2, 3]
+    if extension_switch in (2, 3)
         s = split(readline(io))
         nprojso = [0, [parse(Int, s[i]) for i in 1:lmax]...]
     else
@@ -177,6 +177,9 @@ function psp8_parse_main_blocks(io, mmax, nproj, lmax, lloc)
         block_l = parse(Int, header_line[1])
         if block_l == lloc
             v_local_block = psp8_parse_v_local(io, mmax)
+            if lloc <= lmax
+                push!(projector_blocks, (; l=block_l, rgrid=nothing, projectors=[], ekb=[]))
+            end
         else
             block = psp8_parse_projector_block(io, nproj, mmax)
             push!(projector_blocks, block)
@@ -229,6 +232,9 @@ function Psp8PsP(io::IO)
     if header.extension_switch in (2, 3)
         spin_orbit = psp8_parse_spin_orbit_blocks(io, header.mmax, header.nprojso,
                                                   header.lmax)
+        # Add empty vectors for l=0 to maintain angular momentum - index correspondence
+        spin_orbit = (projectors=[[], spin_orbit.projectors...],
+                      ekb=[[], spin_orbit.ekb...])
     else
         spin_orbit = (projectors=nothing, ekb=nothing)
     end
@@ -236,7 +242,7 @@ function Psp8PsP(io::IO)
         nlcc = psp8_parse_nlcc(io, header.mmax)
     else
         nlcc = (rhoc=nothing, d_rhoc_dr=nothing, d2_rhoc_dr2=nothing, d3_rhoc_dr3=nothing,
-		        d4_rhoc_dr4=nothing)
+                d4_rhoc_dr4=nothing)
     end
     return Psp8PsP(header, main_blocks.rgrid, main_blocks.v_local, main_blocks.projectors,
                    main_blocks.ekb, spin_orbit.projectors, spin_orbit.ekb,
@@ -254,7 +260,7 @@ function element(psp::Psp8PsP)::PeriodicTable.Element
     return PeriodicTable.elements[round(Int, psp.header.zatom)]
 end
 l_max(psp::Psp8PsP)::Int = psp.header.lmax
-n_proj_radial(psp::Psp8PsP, l::Integer)::Int = psp.header.nproj[l+1]
+n_proj_radial(psp::Psp8PsP, l::Integer)::Int = psp.header.nproj[l + 1]
 n_pseudo_wfc(::Psp8PsP)::Int = 0
 z_valence(psp::Psp8PsP)::Float64 = psp.header.zion
 is_paw(::Psp8PsP)::Bool = false
@@ -269,7 +275,7 @@ format(::Psp8PsP) = "PSP v8"
 dr(psp::Psp8PsP) = mean(diff(psp.rgrid))
 
 function get_projector_radial(psp::Psp8PsP, l::Integer, n::Integer)::Vector{Float64}
-    return psp.projectors[l+1][n]
+    return psp.projectors[l + 1][n]
 end
 
 function e_kb(psp::Psp8PsP, l::Integer, n::Integer)::Vector{Float64}
@@ -277,7 +283,7 @@ function e_kb(psp::Psp8PsP, l::Integer, n::Integer)::Vector{Float64}
 end
 
 function v_local_real(psp::Psp8PsP, r::T)::T where {T<:Real}
-    interpolator = linear_interpolation((psp.rgrid, ), psp.v_local)
+    interpolator = linear_interpolation((psp.rgrid,), psp.v_local)
     return interpolator(r)
 end
 
@@ -288,13 +294,15 @@ function v_local_fourier(psp::Psp8PsP, q::T)::T where {T<:Real}
     return 4T(π) * simpson(integrand, dr(psp)) + v_corr_fourier
 end
 
-function projector_radial_real(psp::Psp8PsP, l::Integer, n::Integer, r::T)::T where {T<:Real}
+function projector_radial_real(psp::Psp8PsP, l::Integer, n::Integer,
+                               r::T)::T where {T<:Real}
     projector = get_projector_radial(psp, l, n)
-    interpolator = linear_interpolation((psp.rgrid, ), projector)
+    interpolator = linear_interpolation((psp.rgrid,), projector)
     return interpolator(r)
 end
 
-function projector_radial_fourier(psp::Psp8PsP, l::Integer, n::Integer, q::T)::T where {T<:Real}
+function projector_radial_fourier(psp::Psp8PsP, l::Integer, n::Integer,
+                                  q::T)::T where {T<:Real}
     projector = get_projector_radial(psp, l, n)
     @. integrand = psp.rgrid^2 * sphericalbesselj_fast(l, q * psp.rgrid) * projector
     return 4T(π) * trapezoid(integrand, dr(psp))

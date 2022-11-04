@@ -36,7 +36,7 @@ struct UpfHeader
     comment::Union{Nothing,String}
     "A valid chemical symbol: `{H, He, Li, ..., Og}`"
     element::String
-    "A valid type of pseudopotential: `{NC, SL, 1/r, US, PAW}`"
+    "A valid type of pseudopotential: `{NC, SL, 1/r, US, PAW, USPP}`"
     pseudo_type::String
     "A valid relativistic treatment: `{scalar, full, relativistic}`"
     relativistic::Union{Nothing,String}

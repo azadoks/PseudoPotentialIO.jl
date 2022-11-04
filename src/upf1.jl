@@ -58,9 +58,10 @@ function upf1_parse_header(io::IO)
 
     s = split(readline(io))
     pseudo_type = s[1]
-    is_ultrasoft = pseudo_type == "US"
+    is_ultrasoft = pseudo_type in ("PAW", "US", "USPP")
     is_paw = pseudo_type == "PAW"
     is_coulomb = pseudo_type == "1/r"
+    pseudo_type == "SL" && error("Semilocal pseudopotentials are not supported")
 
     s = split(readline(io))
     core_correction = occursin("T", uppercase(s[1])) ? true : false

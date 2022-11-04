@@ -5,13 +5,8 @@
         @test isa(psp, UpfPsP)
         @test format(psp) == "UPF v1.old"
 
-        @test haskey(PeriodicTable.elements, Symbol(psp.header.element))
-        z_atom = PeriodicTable.elements[Symbol(psp.header.element)].number
-        @test psp.header.z_valence <= z_atom
-        
-        @test psp.header.is_ultrasoft + psp.header.is_coulomb <= 1
-        @test psp.header.is_paw + psp.header.is_coulomb <= 1
-        @test psp.header.is_paw + psp.header.is_ultrasoft <= 1
+        # UPF v1.old has a different augmentation data format
+        # from UPF v2.0.1
         if psp.header.is_ultrasoft | psp.header.is_paw
             @test !isnothing(psp.nonlocal.augmentation)
             augmentation = psp.nonlocal.augmentation
@@ -32,40 +27,6 @@
                 @test all(length.(augmentation.qfcoeff) .== 
                           augmentation.nqf * (2psp.header.l_max + 1))
             end
-        else
-            @test isnothing(psp.nonlocal.augmentation)
-        end
-        if psp.header.is_coulomb
-            #? What else should be missing in this case?
-            @test isnothing(psp.local_)
-        else
-            @test !isnothing(psp.local_)
-            @test length(psp.local_) == psp.header.mesh_size
-        end
-
-        if psp.header.core_correction
-            @test !isnothing(psp.nlcc)
-            @test length(psp.nlcc) == psp.header.mesh_size
-        end
-
-        if psp.header.has_so
-            @test !isnothing(psp.spin_orb)
-            @test len(psp.spin_orb.relbetas) == psp.header.number_of_proj
-            @test len(psp.spin_orb.relwfcs) == psp.header.number_of_wfc
-        end
-
-        @test length(psp.nonlocal.betas) == psp.header.number_of_proj
-        if psp.header.number_of_wfc > 0
-            @test length(psp.pswfc) == psp.header.number_of_wfc
-        else
-            @test isnothing(psp.pswfc)
-        end
-
-        @test (length(psp.mesh.r) == length(psp.mesh.rab) == psp.mesh.mesh
-               == psp.header.mesh_size)
-
-        for beta in psp.nonlocal.betas
-            @test length(beta.beta) == beta.cutoff_radius_index
         end
     end
 end

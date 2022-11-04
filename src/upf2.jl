@@ -48,13 +48,19 @@ function upf2_parse_header(node::EzXML.Node)
     mesh_size = get_attr(Int, node, "mesh_size")
     number_of_wfc = get_attr(Int, node, "number_of_wfc")
     number_of_proj = get_attr(Int, node, "number_of_proj")
+
+    pseudo_type == "SL" && error("Semilocal pseudopotentials are not supported")
+
     return UpfHeader(generated, author, date, comment, element, pseudo_type,
                      relativistic, is_ultrasoft, is_paw, is_coulomb, has_so, has_wfc,
                      has_gipaw, paw_as_gipaw, core_correction, functional, z_valence,
                      total_psenergy, wfc_cutoff, rho_cutoff, l_max, l_max_rho, l_local,
                      mesh_size, number_of_wfc, number_of_proj)
 end
-upf2_parse_header(doc::EzXML.Document) = upf2_parse_header(findfirst("PP_HEADER", root(doc)))
+
+function upf2_parse_header(doc::EzXML.Document)
+    return upf2_parse_header(findfirst("PP_HEADER", root(doc)))
+end
 
 function upf2_parse_mesh(node::EzXML.Node)
     # Metadata

@@ -1,10 +1,14 @@
-# @testset "Load all UPF v2.0.1" begin
-#     for (root, dirs, files) in walkdir("./upf2/"), file in files
-#         psp = UpfPsP(joinpath(root, file))
-#         @test isa(psp, UpfPsP)
-#         @test format(psp) == "UPF v2.0.1"
-#     end
-# end
+@testset "[UPF v2.0.1] Loading and consistency" begin
+    for (root, dirs, files) in walkdir("./upf2/"), file in files
+        psp = UpfPsP(joinpath(root, file))
+
+        @test isa(psp, UpfPsP)
+        @test format(psp) == "UPF v2.0.1"
+
+        # UPF v2.0.1 has a different augmentation data format from UPF v1.old
+        #TODO v2 augmentation consistency tests
+    end
+end
 
 @testset "[UPF v2.0.1] Mg_nc-fr-04_pbesol_stringent.upf" begin
     psp = UpfPsP("upf2/Mg_nc-fr-04_pbesol_stringent.upf")
@@ -23,11 +27,11 @@
     @test psp.nonlocal.betas[1].cutoff_radius_index == 160
     @test psp.nonlocal.betas[1].cutoff_radius == 1.5900000000E+00
     @test psp.nonlocal.betas[1].beta[5] == 1.2872222840E-01
-    for i = eachindex(psp.nonlocal.betas)
+    for i in eachindex(psp.nonlocal.betas)
         @test psp.nonlocal.betas[i].index == i
     end
     @test e_kb(psp, 0, 1) == -1.6525827200E+00
-    for i = eachindex(psp.pswfc)
+    for i in eachindex(psp.pswfc)
         @test psp.pswfc[i].index == i
     end
     @test isnothing(psp.nonlocal.augmentation)
@@ -38,14 +42,14 @@
     @test length(psp.spin_orb.relbetas) == 6
     @test psp.spin_orb.relbetas[3].lll == 1
     @test psp.spin_orb.relbetas[3].jjj == 0.5
-    for i = eachindex(psp.spin_orb.relbetas)
+    for i in eachindex(psp.spin_orb.relbetas)
         @test psp.spin_orb.relbetas[i].index == i
     end
     @test length(psp.spin_orb.relwfcs) == 4
     @test psp.spin_orb.relwfcs[3].lchi == 1
     @test psp.spin_orb.relwfcs[3].jchi == 0.5
     @test psp.spin_orb.relwfcs[3].nn == 2
-    for i = eachindex(psp.spin_orb.relwfcs)
+    for i in eachindex(psp.spin_orb.relwfcs)
         @test psp.spin_orb.relwfcs[i].index == i
     end
 end
@@ -69,7 +73,7 @@ end
     @test psp.nonlocal.betas[1].cutoff_radius_index == 829
     @test psp.nonlocal.betas[1].ultrasoft_cutoff_radius == 1.800000000000000E+000
     @test psp.nonlocal.betas[1].beta[5] == -1.233266788373589E-003
-    for i = eachindex(psp.nonlocal.betas)
+    for i in eachindex(psp.nonlocal.betas)
         @test psp.nonlocal.betas[i].index == i
     end
     @test e_kb(psp, 0, 1) == 4.959233384252660E-001
@@ -81,14 +85,14 @@ end
     @test psp.nonlocal.augmentation.qijls[1].qijl[5] == 7.047762479021314E-010
     @test isnothing(psp.nonlocal.augmentation.rinner)
     @test isnothing(psp.nonlocal.augmentation.qfcoeff)
-    for i = eachindex(psp.pswfc)
+    for i in eachindex(psp.pswfc)
         @test psp.pswfc[i].index == i
     end
     @test psp.pswfc[1].label == "3S"
     @test psp.pswfc[1].l == 0
     @test psp.pswfc[1].occupation == 2.0
     @test psp.pswfc[1].chi[5] == 3.542904978471305E-005
-    @test psp.rhoatom[5] == 6.986543942450972E-009 
+    @test psp.rhoatom[5] == 6.986543942450972E-009
 end
 
 @testset "[UPF v2.0.1] Al.pbe-n-kjpaw_psl.1.0.0.upf" begin
@@ -106,13 +110,13 @@ end
     @test n_pseudo_wfc(psp) == 2
     @test psp.mesh.r[5] == 7.374116566877076E-005
     @test psp.mesh.rab[5] == 9.217645708596345E-007
-    @test psp.nlcc[5] ==  2.656001002192721E-001
+    @test psp.nlcc[5] == 2.656001002192721E-001
     @test psp.local_[5] == -6.296496837141098E+000
     @test psp.nonlocal.betas[1].label == "3S"
     @test psp.nonlocal.betas[1].angular_momentum == 0
     @test psp.nonlocal.betas[1].cutoff_radius_index == 827
     @test psp.nonlocal.betas[1].beta[5] == -1.792962988082909E-003
-    for i = eachindex(psp.nonlocal.betas)
+    for i in eachindex(psp.nonlocal.betas)
         @test psp.nonlocal.betas[i].index == i
     end
     @test e_kb(psp, 0, 1) == 4.162665025130763E-001
@@ -133,7 +137,7 @@ end
     @test psp.pswfc[1].l == 0
     @test psp.pswfc[1].occupation == 2.0
     @test psp.pswfc[1].chi[5] == 2.099526933006344E-005
-    for i = eachindex(psp.pswfc)
+    for i in eachindex(psp.pswfc)
         @test psp.pswfc[i].index == i
     end
 end
@@ -151,7 +155,7 @@ end
     @test !has_nlcc(psp)
     @test isempty(psp.nonlocal.betas)
     @test isempty(psp.nonlocal.dij)
-    for i = eachindex(psp.pswfc)
+    for i in eachindex(psp.pswfc)
         @test psp.pswfc[i].index == i
     end
     @test psp.pswfc[1].label == "1S"
