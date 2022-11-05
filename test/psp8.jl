@@ -1,4 +1,4 @@
-@testset "[PSP v8] Loading and consistency" begin
+@testset "[PSP v8] Internal data consistency" begin
     for (root, dirs, files) in walkdir("./psp8/"), file in files
         psp = Psp8PsP(joinpath(root, file))
 

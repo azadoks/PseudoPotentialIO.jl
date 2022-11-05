@@ -5,6 +5,7 @@ using DocStringExtensions
 using Printf
 using Interpolations
 using Statistics
+using LinearAlgebra
 import PeriodicTable
 
 include("common.jl")

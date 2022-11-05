@@ -61,7 +61,7 @@ struct UpfHeader
     "Total pseudo-valence energy of the pseudopotential"
     total_psenergy::Union{Nothing,Float64}
     "Suggested plane wave cutoff for expansion of Kohn-Sham orbitals"
-    wcf_cutoff::Union{Nothing,Float64}
+    wfc_cutoff::Union{Nothing,Float64}
     "Suggested plane wave cutoff for expansion of charge density"
     rho_cutoff::Union{Nothing,Float64}
     "Maximum angular momentum channel in the pseudopotential"
@@ -91,7 +91,7 @@ struct UpfMesh
     "Integration factors for integrating quantities on the radial mesh"
     rab::Vector{Float64}
     "Number of points in the radial mesh"
-    mesh::Int
+    mesh::Union{Nothing,Int}
     "Maximum value of the radial mesh"
     rmax::Union{Nothing,Float64}
     # Mesh generation parameters
@@ -141,14 +141,14 @@ UPF `<PP_NONLOCAL/PP_AUGMENTATION>`
 struct UpfAugmentation
     """Norms of the augmentation functions (NB: `q = 0` does _not_ guarantee that the
     corresponding augmentation function is zero)"""
-    q::Union{Nothing,Vector{Float64}}
-    """Electronic multipoles of the corresponding augmentation channel. If the absolute
-    value of a multipole is less than `augmentation_epsilon`, the corresponding augmentation
-    function should be considered zero"""
+    q::Union{Nothing,Matrix{Float64}}
+    """(PAW) Electronic multipoles of the corresponding augmentation channel. If the
+    absolute value of a multipole is less than `augmentation_epsilon`, the corresponding
+    augmentation function should be considered zero"""
     multipoles::Union{Nothing,Vector{Float64}}
     """Coefficients used to perform a Taylor expansion of the augmentation functions at
     small radii (NB: compulsory if `nqf > 0`, ignored otherwise)"""
-    qfcoeff::Union{Nothing,Vector{Float64},Vector{Vector{Float64}}}
+    qfcoeff::Union{Nothing,Vector{Vector{Float64}}}
     rinner::Union{Nothing,Vector{Float64}}
     "If `q_with_l` is false, the augmentation functions for `i,j in 1:number_of_proj`"
     qijs::Union{Nothing,Vector{UpfQij}}
@@ -313,6 +313,8 @@ $(TYPEDFIELDS)
 UPF `<PP_PAW>`
 """
 struct UpfPaw
+    paw_data_format::Union{Nothing,Int}
+    core_energy::Union{Nothing,Float64}
     occupations::Vector{Float64}
     ae_nlcc::Vector{Float64}
     ae_vloc::Vector{Float64}

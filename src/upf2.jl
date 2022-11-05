@@ -119,7 +119,10 @@ function upf2_parse_augmentation(node::EzXML.Node)
     cutoff_r_index = get_attr(Float64, node, "cutoff_r_index")
 
     q_node = findfirst("PP_Q", node)
-    q = parse.(Float64, split(strip(nodecontent(q_node))))
+    q_vector = parse.(Float64, split(strip(nodecontent(q_node))))
+    q_size = get_attr(Int, q_node, "size")
+    nq = Int(sqrt(q_size))
+    q = reshape(q_vector, nq, nq)
 
     multipoles_node = findfirst("PP_MULTIPOLES", node)
     if isnothing(multipoles_node)
@@ -178,7 +181,7 @@ function upf2_parse_beta(node::EzXML.Node)
     ultrasoft_cutoff_radius = get_attr(Float64, node, "ultrasoft_cutoff_radius")
     label = get_attr(String, node, "label")
     # PP_BETA.$i
-    beta = parse.(Float64, split(strip(nodecontent(node))))
+    beta = parse.(Float64, split(strip(nodecontent(node))))[1:cutoff_radius_index]
     return UpfBeta(beta, index, angular_momentum, cutoff_radius_index, cutoff_radius,
                    norm_conserving_radius, ultrasoft_cutoff_radius, label)
 end
@@ -275,6 +278,9 @@ end
 upf2_parse_full_wfc(doc::EzXML.Document) = upf2_parse_full_wfc(findfirst("PP_FULL_WFC", root(doc)))
 
 function upf2_parse_paw(node::EzXML.Node)
+    paw_data_format = get_attr(Int, node, "paw_data_format")
+    core_energy = get_attr(Float64, node, "core_energy")
+
     occupations_node = findfirst("PP_OCCUPATIONS", node)
     occupations = parse.(Float64, split(strip(nodecontent(occupations_node))))
 
@@ -292,7 +298,7 @@ function upf2_parse_paw(node::EzXML.Node)
     pswfc_nodes = [n for n in eachnode(node) if occursin("PP_PSWFC", nodename(n))]
     pswfcs = upf2_parse_wfc.(pswfc_nodes)
 
-    return UpfPaw(occupations, ae_nlcc, ae_vloc, aewfcs, pswfcs)
+    return UpfPaw(paw_data_format, core_energy, occupations, ae_nlcc, ae_vloc, aewfcs, pswfcs)
 end
 upf2_parse_paw(doc::EzXML.Document) = upf2_parse_paw(findfirst("PP_PAW", root(doc)))
 

@@ -67,7 +67,7 @@ function upf1_parse_header(io::IO)
     core_correction = occursin("T", uppercase(s[1])) ? true : false
 
     s = strip.(split(strip(readline(io))))
-    functional = join(filter(s_i -> length(s_i) <= 4 , s), ' ')
+    functional = join(filter(s_i -> length(s_i) <= 6 , s), ' ')
 
     s = split(readline(io))
     z_valence = parse(Float64, s[1])
@@ -118,7 +118,7 @@ function upf1_parse_mesh(io::IO, mesh_size::Int)
     rab = read_mesh_data(Float64, io, mesh_size)
     seek(io, pos)
 
-    mesh = mesh_size
+    mesh = nothing
     rmax = nothing
     dx = nothing
     xmin = nothing
@@ -210,15 +210,16 @@ function upf1_parse_augmentation(io::IO, mesh_size::Int, number_of_proj::Int, l_
     end
     read_until(io, "</PP_RINNER>")
 
+    q = zeros(Float64, number_of_proj, number_of_proj)
     qijs = UpfQij[]
     qfcoeff = Vector{Float64}[]
 
     for i in 1:number_of_proj, _ in i:number_of_proj
         s = split(readline(io))
-        first_index, second_index, _ = parse.(Int, s[1:3])
+        first_index, second_index, second_index_angular_momentum = parse.(Int, s[1:3])
 
         s = split(readline(io))
-        _ = parse(Float64, s[1])  # integral of augmentation charge
+        Q_int = parse(Float64, s[1])  # integral of augmentation charge
 
         qij = read_mesh_data(Float64, io, mesh_size)
 
@@ -229,11 +230,12 @@ function upf1_parse_augmentation(io::IO, mesh_size::Int, number_of_proj::Int, l_
         is_null = nothing
         composite_index = nothing
 
+        q[first_index, second_index] = Q_int
+        q[second_index, first_index] = Q_int
         push!(qijs, UpfQij(qij, first_index, second_index, composite_index, is_null))
         push!(qfcoeff, qfcoeff_ij)
     end
 
-    q = nothing
     multipoles = nothing
     qijls = nothing
     q_with_l = false

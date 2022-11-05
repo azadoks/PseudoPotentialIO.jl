@@ -1,4 +1,4 @@
-@testset "[UPF] Loading and consistency" begin
+@testset "[UPF] Internal data consistency" begin
     for (root, dirs, files) in walkdir("./upf1/"), file in files
         psp = UpfPsP(joinpath(root, file))
 
@@ -80,8 +80,10 @@
             @test isnothing(psp.full_wfc)
         end
 
-        @test (length(psp.mesh.r) == length(psp.mesh.rab) == psp.mesh.mesh
-               == psp.header.mesh_size)
+        @test (length(psp.mesh.r) == length(psp.mesh.rab) == psp.header.mesh_size)
+        if !isnothing(psp.mesh.mesh)
+            @test psp.mesh.mesh == psp.header.mesh_size
+        end
 
         @test length(psp.nonlocal.betas) == psp.header.number_of_proj
         for beta in psp.nonlocal.betas
