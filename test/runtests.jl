@@ -2,6 +2,11 @@ using Test
 using PseudoPotentialIO
 using Random
 using PeriodicTable
+using SpecialFunctions
+using Interpolations
+using QuadGK
+
+Random.seed!(0)
 
 TAGS = ARGS
 isempty(TAGS) && (TAGS = ["all"])
@@ -14,8 +19,6 @@ println("\tRunning tests (TAGS = $(join(TAGS, ", "))).")
     end
 
     if "all" in TAGS || "upf" in TAGS || "numeric" in TAGS
-        include("upf1.jl")
-        include("upf2.jl")
         include("upf.jl")
     end
 
@@ -23,7 +26,7 @@ println("\tRunning tests (TAGS = $(join(TAGS, ", "))).")
         include("psp8.jl")
     end
 
-    if "all" in TAGS || "hgh" in TAGS || "analytic" in TAGS
+    if "all" in TAGS || "hgh" in TAGS || "analytical" in TAGS
         include("hgh.jl")
     end
 end

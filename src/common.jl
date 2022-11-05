@@ -9,6 +9,7 @@ linear_mesh(i::Int, a::T, b::T) where {T<:Real} = a * i + b
 $(SIGNATURES)
 
 Compute the value of a logarithmic mesh `b * exp(a * (i - 1))` at index `i`.
+NB: for UPF pseudopotentials `a = dx`, `b = e^{xmin} / zmesh`.
 """
 logarithmic_mesh1(i::Int, a::T, b::T) where {T<:Real} = b * exp(a * (i - 1))
 function logarithmic_mesh1(i::Int, xmin::T, dx::T, z::T) where {T<:Real}
@@ -19,6 +20,7 @@ end
 $(SIGNATURES)
 
 Compute the value of a logarithmic mesh `b * (exp(a * (i - 1)) - 1)` at index `i`.
+NB: for UPF pseudopotentials `a = dx`, `b = e^{xmin} / zmesh`.
 """
 logarithmic_mesh2(i::Int, a::T, b::T) where {T<:Real} = b * (exp((i - 1) * a) - 1)
 function logarithmic_mesh2(i::Int, xmin::T, dx::T, z::T) where {T<:Real}
@@ -78,7 +80,8 @@ https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions and wit
     l == 4 && return (sin(x) * (105 - 45x^2 + x^4) + cos(x) * (10x^3 - 105x)) / x^5
     l == 5 &&
         return (sin(x) * (945 - 420x^2 + 15x^4) + cos(x) * (-945x + 105x^3 - x^5)) / x^6
-    return error("The case l = $l is not implemented")
+    
+    error("The case l = $l is not implemented")
 end
 
 """

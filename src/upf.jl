@@ -139,9 +139,10 @@ $(TYPEDFIELDS)
 UPF `<PP_NONLOCAL/PP_AUGMENTATION>`
 """
 struct UpfAugmentation
-    """Norms of the augmentation functions (NB: `q = 0` does _not_ guarantee that the
-    corresponding augmentation function is zero)"""
-    q::Union{Nothing,Matrix{Float64}}
+    """Integrals of the augmentation functions 4π ∫ Qij(r) r^2 dr.
+    NB: `q = 0` does _not_ guarantee that the corresponding augmentation function is
+    zero."""
+    q::Matrix{Float64}
     """(PAW) Electronic multipoles of the corresponding augmentation channel. If the
     absolute value of a multipole is less than `augmentation_epsilon`, the corresponding
     augmentation function should be considered zero"""
