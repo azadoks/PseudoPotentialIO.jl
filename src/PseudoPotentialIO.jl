@@ -3,7 +3,6 @@ using DocStringExtensions
 using EzXML
 using Interpolations
 using LinearAlgebra
-using LoopVectorization
 using OffsetArrays
 using Polynomials
 using Printf
