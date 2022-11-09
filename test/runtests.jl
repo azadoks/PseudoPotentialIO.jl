@@ -14,6 +14,8 @@ isempty(TAGS) && (TAGS = ["all"])
 
 println("\tRunning tests (TAGS = $(join(TAGS, ", "))).")
 
+include("fixtures.jl")
+
 @testset "PseudoPotentialIO.jl" begin
     if any(in.(("all", "common"), Ref(TAGS)))
         include("common.jl")
@@ -21,6 +23,14 @@ println("\tRunning tests (TAGS = $(join(TAGS, ", "))).")
 
     if any(in.(("all", "file", "upf"), Ref(TAGS)))
         include("file/upf.jl")
+    end
+
+    if any(in.(("all", "file", "upf1"), Ref(TAGS)))
+        include("file/upf1.jl")
+    end
+
+    if any(in.(("all", "file", "upf2"), Ref(TAGS)))
+        include("file/upf2.jl")
     end
 
     if any(in.(("all", "file", "psp8"), Ref(TAGS)))

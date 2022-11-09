@@ -1,3 +1,6 @@
+#TODO functions for listing pseudo families, pseudos of a given element, etc.
+#TODO functions for working with the pseudo family artifacts
+
 function load_psp_file(path::AbstractString)
     _, ext = splitext(path)
     ext = lowercase(ext)

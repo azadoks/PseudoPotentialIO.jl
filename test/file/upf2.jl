@@ -1,7 +1,7 @@
 @testset "UPF v2.0.1" begin
     @testset "Internal data consistency" begin
-        for (root, dirs, files) in walkdir("./data/upf2/"), file in files
-            psp = load_psp_file(joinpath(root, file))
+        for filepath in values(upf2_filepaths)
+            psp = load_psp_file(filepath)
 
             @test format(psp) == "UPF v2.0.1"
 
@@ -20,10 +20,11 @@
         end
     end
 
-    @testset "Mg_nc-fr-04_pbesol_stringent.upf" begin
-        psp = load_psp_file("./data/upf2/Mg_nc-fr-04_pbesol_stringent.upf")
+    @testset "Mg.upf" begin
+        filename = "Mg.upf"
+        file = load_psp_file(upf2_filepaths[filename])
 
-        header = psp.header
+        header = file.header
         @test header.generated == "Generated using ONCVPSP code by D. R. Hamann"
         @test header.author == "anonymous"
         @test header.date == "180509"
@@ -51,9 +52,9 @@
         @test header.number_of_wfc == 4
         @test header.number_of_proj == 6
 
-        mesh = psp.mesh
-        @test length(mesh.r) == psp.header.mesh_size
-        @test length(mesh.rab) == psp.header.mesh_size
+        mesh = file.mesh
+        @test length(mesh.r) == file.header.mesh_size
+        @test length(mesh.rab) == file.header.mesh_size
         @test mesh.r[5] == 0.0400
         @test mesh.rab[5] == 0.0100
         @test mesh.mesh == 1510
@@ -62,15 +63,15 @@
         @test isnothing(mesh.rmax)
         @test isnothing(mesh.zmesh)
 
-        @test isnothing(psp.nlcc)
+        @test isnothing(file.nlcc)
 
-        @test length(psp.local_) == psp.header.mesh_size
-        @test psp.local_[5] == -3.9295603163E+01
+        @test length(file.local_) == file.header.mesh_size
+        @test file.local_[5] == -3.9295603163E+01
 
-        nonlocal = psp.nonlocal
+        nonlocal = file.nonlocal
 
-        betas = psp.nonlocal.betas
-        @test length(betas) == psp.header.number_of_proj
+        betas = file.nonlocal.betas
+        @test length(betas) == file.header.number_of_proj
         for (i, beta) in enumerate(betas)
             @test beta.index == i
             @test length(beta.beta) == beta.cutoff_radius_index
@@ -120,9 +121,9 @@
 
         @test isnothing(nonlocal.augmentation)
 
-        pswfc = psp.pswfc
-        @test length(pswfc) == psp.header.number_of_wfc
-        for (i, chi) in enumerate(psp.pswfc)
+        pswfc = file.pswfc
+        @test length(pswfc) == file.header.number_of_wfc
+        for (i, chi) in enumerate(file.pswfc)
             @test chi.index == i
             @test isnothing(chi.n)
             @test isnothing(chi.ultrasoft_cutoff_radius)
@@ -146,12 +147,12 @@
         @test pswfc[4].pseudo_energy == -0.3439210732E+00
         @test pswfc[4].chi[5] == 3.1825890104E-02
 
-        @test isnothing(psp.full_wfc)
+        @test isnothing(file.full_wfc)
 
-        @test length(psp.rhoatom) == psp.header.mesh_size
-        @test psp.rhoatom[5] == 4.1614005220E-02
+        @test length(file.rhoatom) == file.header.mesh_size
+        @test file.rhoatom[5] == 4.1614005220E-02
 
-        spin_orb = psp.spin_orb
+        spin_orb = file.spin_orb
 
         @test length(spin_orb.relbetas) == 6
         for (i, relbeta) in enumerate(spin_orb.relbetas)
@@ -177,14 +178,15 @@
         @test spin_orb.relwfcs[4].jchi == 0.5
         @test spin_orb.relwfcs[4].nn == 3
 
-        @test isnothing(psp.paw)
-        @test isnothing(psp.gipaw)
+        @test isnothing(file.paw)
+        @test isnothing(file.gipaw)
     end
 
     @testset "Si.pbe-n-rrkjus_psl.1.0.0.upf" begin
-        psp = load_psp_file("./data/upf2/Si.pbe-n-rrkjus_psl.1.0.0.upf")
+        filename = "Si.pbe-n-rrkjus_psl.1.0.0.upf"
+        file = load_psp_file(upf2_filepaths[filename])
 
-        header = psp.header
+        header = file.header
         @test header.generated == "Generated using \"atomic\" code by A. Dal Corso  v.5.1"
         @test header.author == "ADC"
         @test header.date == "10Oct2014"
@@ -212,9 +214,9 @@
         @test header.number_of_wfc == 2
         @test header.number_of_proj == 6
 
-        mesh = psp.mesh
-        @test length(mesh.r) == psp.header.mesh_size
-        @test length(mesh.rab) == psp.header.mesh_size
+        mesh = file.mesh
+        @test length(mesh.r) == file.header.mesh_size
+        @test length(mesh.rab) == file.header.mesh_size
         @test mesh.r[5] == 6.847393954957285E-005
         @test mesh.rab[5] == 8.559242443696606E-007
         @test mesh.mesh == 1141
@@ -223,16 +225,16 @@
         @test mesh.rmax == 1.000000000000000E+002
         @test mesh.zmesh == 1.400000000000000E+001
 
-        @test length(psp.nlcc) == psp.header.mesh_size
-        @test psp.nlcc[5] == 1.538616848020000E+000
+        @test length(file.nlcc) == file.header.mesh_size
+        @test file.nlcc[5] == 1.538616848020000E+000
 
-        @test length(psp.local_) == psp.header.mesh_size
-        @test psp.local_[5] == -8.438188853780485E+000
+        @test length(file.local_) == file.header.mesh_size
+        @test file.local_[5] == -8.438188853780485E+000
 
-        nonlocal = psp.nonlocal
+        nonlocal = file.nonlocal
 
-        betas = psp.nonlocal.betas
-        @test length(betas) == psp.header.number_of_proj
+        betas = file.nonlocal.betas
+        @test length(betas) == file.header.number_of_proj
         for (i, beta) in enumerate(betas)
             @test beta.index == i
             @test length(beta.beta) == beta.cutoff_radius_index
@@ -297,7 +299,7 @@
         qijls = augmentation.qijls
 
         for (i, qijl) in enumerate(qijls)
-            @test length(qijl.qijl) == psp.header.mesh_size
+            @test length(qijl.qijl) == file.header.mesh_size
         end
 
         @test qijls[1].first_index == 1
@@ -318,9 +320,9 @@
         @test qijls[34].angular_momentum == 4
         @test qijls[34].qijl[5] == 7.271904089448543E-026
 
-        pswfc = psp.pswfc
-        @test length(pswfc) == psp.header.number_of_wfc
-        for (i, chi) in enumerate(psp.pswfc)
+        pswfc = file.pswfc
+        @test length(pswfc) == file.header.number_of_wfc
+        for (i, chi) in enumerate(file.pswfc)
             @test chi.index == i
         end
 
@@ -342,20 +344,21 @@
         @test pswfc[2].ultrasoft_cutoff_radius == 1.800000000000000E+000
         @test pswfc[2].chi[5] == 2.067383051207364E-009
 
-        @test isnothing(psp.full_wfc)
+        @test isnothing(file.full_wfc)
 
-        @test length(psp.rhoatom) == psp.header.mesh_size
-        @test psp.rhoatom[5] == 6.986543942450972E-009
+        @test length(file.rhoatom) == file.header.mesh_size
+        @test file.rhoatom[5] == 6.986543942450972E-009
 
-        @test isnothing(psp.spin_orb)
-        @test isnothing(psp.paw)
-        @test isnothing(psp.gipaw)
+        @test isnothing(file.spin_orb)
+        @test isnothing(file.paw)
+        @test isnothing(file.gipaw)
     end
 
     @testset "Al.pbe-n-kjpaw_psl.1.0.0.upf" begin
-        psp = load_psp_file("./data/upf2/Al.pbe-n-kjpaw_psl.1.0.0.upf")
+        filename = "Al.pbe-n-kjpaw_psl.1.0.0.upf"
+        file = load_psp_file(upf2_filepaths[filename])
 
-        header = psp.header
+        header = file.header
         @test header.generated == "Generated using \"atomic\" code by A. Dal Corso  v.5.1"
         @test header.author == "ADC"
         @test header.date == "10Oct2014"
@@ -383,9 +386,9 @@
         @test header.number_of_wfc == 2
         @test header.number_of_proj == 6
 
-        mesh = psp.mesh
-        @test length(mesh.r) == psp.header.mesh_size
-        @test length(mesh.rab) == psp.header.mesh_size
+        mesh = file.mesh
+        @test length(mesh.r) == file.header.mesh_size
+        @test length(mesh.rab) == file.header.mesh_size
         @test mesh.r[5] == 7.374116566877076E-005
         @test mesh.rab[5] == 9.217645708596345E-007
         @test mesh.mesh == 1135
@@ -394,16 +397,16 @@
         @test mesh.rmax == 1.000000000000000E+002
         @test mesh.zmesh == 1.300000000000000E+001
 
-        @test length(psp.nlcc) == psp.header.mesh_size
-        @test psp.nlcc[5] == 2.656001002192721E-001
+        @test length(file.nlcc) == file.header.mesh_size
+        @test file.nlcc[5] == 2.656001002192721E-001
 
-        @test length(psp.local_) == psp.header.mesh_size
-        @test psp.local_[5] == -6.296496837141098E+000
+        @test length(file.local_) == file.header.mesh_size
+        @test file.local_[5] == -6.296496837141098E+000
 
-        nonlocal = psp.nonlocal
+        nonlocal = file.nonlocal
 
-        betas = psp.nonlocal.betas
-        @test length(betas) == psp.header.number_of_proj
+        betas = file.nonlocal.betas
+        @test length(betas) == file.header.number_of_proj
         for (i, beta) in enumerate(betas)
             @test beta.index == i
             @test length(beta.beta) == beta.cutoff_radius_index
@@ -475,7 +478,7 @@
         qijls = augmentation.qijls
 
         for (i, qijl) in enumerate(qijls)
-            @test length(qijl.qijl) == psp.header.mesh_size
+            @test length(qijl.qijl) == file.header.mesh_size
         end
 
         @test qijls[1].first_index == 1
@@ -496,9 +499,9 @@
         @test qijls[34].angular_momentum == 4
         @test qijls[34].qijl[5] == 6.608621564156752E-026
 
-        pswfc = psp.pswfc
-        @test length(pswfc) == psp.header.number_of_wfc
-        for (i, chi) in enumerate(psp.pswfc)
+        pswfc = file.pswfc
+        @test length(pswfc) == file.header.number_of_wfc
+        for (i, chi) in enumerate(file.pswfc)
             @test chi.index == i
         end
 
@@ -520,7 +523,7 @@
         @test pswfc[2].ultrasoft_cutoff_radius == 2.000000000000000E+000
         @test pswfc[2].chi[5] == 1.330682509144020E-009
 
-        full_wfc = psp.full_wfc
+        full_wfc = file.full_wfc
 
         @assert length(full_wfc.aewfcs) == 6
         for (i, aewfc) in enumerate(full_wfc.aewfcs)
@@ -556,30 +559,30 @@
         @test full_wfc.pswfcs[6].l == 2
         @test full_wfc.pswfcs[6].wfc[5] == 1.794811387770046E-013
 
-        @test length(psp.rhoatom) == psp.header.mesh_size
-        @test psp.rhoatom[5] == 4.550846706828015E-009
+        @test length(file.rhoatom) == file.header.mesh_size
+        @test file.rhoatom[5] == 4.550846706828015E-009
 
-        @test isnothing(psp.spin_orb)
+        @test isnothing(file.spin_orb)
 
-        paw = psp.paw
+        paw = file.paw
         @test paw.paw_data_format == 2
         @test paw.core_energy == -4.461427815823291E+002
 
         @test length(paw.occupations) == 6
         @test paw.occupations[3] == 1.000000000000000E+000
 
-        @test length(paw.ae_nlcc) == psp.header.mesh_size
+        @test length(paw.ae_nlcc) == file.header.mesh_size
         @test paw.ae_nlcc[5] == 1.490091617040069E+003
 
-        @test length(paw.ae_vloc) == psp.header.mesh_size
+        @test length(paw.ae_vloc) == file.header.mesh_size
         @test paw.ae_vloc[5] == -3.524982145519007E+005
 
-        gipaw = psp.gipaw
+        gipaw = file.gipaw
         @test gipaw.gipaw_data_format == 2
 
         @test length(gipaw.core_orbitals) == 3
         for (i, core_orbital) in enumerate(gipaw.core_orbitals)
-            @test length(core_orbital.core_orbital) == psp.header.mesh_size
+            @test length(core_orbital.core_orbital) == file.header.mesh_size
             @test core_orbital.index == i
         end
 
@@ -599,10 +602,11 @@
         @test gipaw.core_orbitals[3].core_orbital[5] == 7.103427686008862E-007
     end
 
-    @testset "he-q2.upf" begin
-        psp = load_psp_file("./data/upf2/he-q2.upf")
+    @testset "He.pbe-hgh.UPF" begin
+        filename = "He.pbe-hgh.UPF"
+        file = load_psp_file(upf2_filepaths[filename])
 
-        header = psp.header
+        header = file.header
         @test header.generated == "Generated in analytical, separable form"
         @test header.author == "Goedecker/Hartwigsen/Hutter/Teter"
         @test header.date == "Phys.Rev.B58, 3641 (1998); B54, 1703 (1996)"
@@ -631,9 +635,9 @@
         @test header.number_of_wfc == 1
         @test header.number_of_proj == 0
 
-        mesh = psp.mesh
-        @test length(mesh.r) == psp.header.mesh_size
-        @test length(mesh.rab) == psp.header.mesh_size
+        mesh = file.mesh
+        @test length(mesh.r) == file.header.mesh_size
+        @test length(mesh.rab) == file.header.mesh_size
         @test mesh.r[5] == 4.793175768470099E-004
         @test mesh.rab[5] == 5.991469710587625E-006
         @test mesh.mesh == 985
@@ -642,23 +646,23 @@
         @test mesh.rmax == 1.001684049873959E+002
         @test mesh.zmesh == 2.000000000000000E+000
 
-        @test isnothing(psp.nlcc)
+        @test isnothing(file.nlcc)
 
-        @test length(psp.local_) == psp.header.mesh_size
-        @test psp.local_[5] == -3.420189165663822E+001
+        @test length(file.local_) == file.header.mesh_size
+        @test file.local_[5] == -3.420189165663822E+001
 
-        nonlocal = psp.nonlocal
+        nonlocal = file.nonlocal
 
-        betas = psp.nonlocal.betas
-        @test length(betas) == psp.header.number_of_proj
+        betas = file.nonlocal.betas
+        @test length(betas) == file.header.number_of_proj
 
         @test size(nonlocal.dij) == (0, 0)
 
         @test isnothing(nonlocal.augmentation)
 
-        pswfc = psp.pswfc
-        @test length(pswfc) == psp.header.number_of_wfc
-        for (i, chi) in enumerate(psp.pswfc)
+        pswfc = file.pswfc
+        @test length(pswfc) == file.header.number_of_wfc
+        for (i, chi) in enumerate(file.pswfc)
             @test chi.index == i
         end
 
@@ -671,13 +675,13 @@
         @test pswfc[1].ultrasoft_cutoff_radius == 6.154897413020295E-001
         @test pswfc[1].chi[5] == 1.831401620367775E-003
 
-        @test isnothing(psp.full_wfc)
+        @test isnothing(file.full_wfc)
 
-        @test length(psp.rhoatom) == psp.header.mesh_size
-        @test psp.rhoatom[5] == 6.708063790171425E-006
+        @test length(file.rhoatom) == file.header.mesh_size
+        @test file.rhoatom[5] == 6.708063790171425E-006
 
-        @test isnothing(psp.spin_orb)
-        @test isnothing(psp.paw)
-        @test isnothing(psp.gipaw)
+        @test isnothing(file.spin_orb)
+        @test isnothing(file.paw)
+        @test isnothing(file.gipaw)
     end
 end

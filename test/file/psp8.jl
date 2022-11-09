@@ -1,7 +1,7 @@
 @testset "PSP8" begin
     @testset "Internal data consistency" begin
-        for (root, dirs, files) in walkdir("./data/psp8/"), file in files
-            file = load_psp_file(joinpath(root, file))
+        for filepath in values(psp8_filepaths)
+            file = load_psp_file(filepath)
 
             @test format(file) == "PSP8"
 
@@ -53,8 +53,9 @@
         end
     end
 
-    @testset "H_nc-sr-04_pbe_standard.psp8" begin
-        file = load_psp_file("./data/psp8/H_nc-sr-04_pbe_standard.psp8")
+    @testset "H.psp8" begin
+        filename = "H.psp8"
+        file = load_psp_file(psp8_filepaths[filename])
 
         @test file.header.zatom == 1.0000
         @test file.header.zion == 1.0000
@@ -79,8 +80,9 @@
         @test file.v_local[5] == -3.1387511173374E+00
     end
 
-    @testset "Ti_nc-fr-04_pbesol_standard.psp8" begin
-        file = load_psp_file("./data/psp8/Ti_nc-fr-04_pbesol_standard.psp8")
+    @testset "Ti.psp8" begin
+        filename = "Ti.psp8"
+        file = load_psp_file(psp8_filepaths[filename])
 
         @test file.header.zatom == 22.0000
         @test file.header.zion == 12.0000
@@ -115,8 +117,9 @@
         @test file.projectors_so[1 + 1][4][5] == -6.2709563805074E-03
     end
 
-    @testset "Zn_nc-sr-04_pbesol_stringent.psp8" begin
-        file = load_psp_file("./data/psp8/Zn_nc-sr-04_pbesol_stringent.psp8")
+    @testset "Zn.psp8" begin
+        filename = "Zn.psp8"
+        file = load_psp_file(psp8_filepaths[filename])
 
         @test file.header.zatom == 30.0000
         @test file.header.zion == 20.0000

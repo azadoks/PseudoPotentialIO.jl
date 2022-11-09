@@ -1,19 +1,12 @@
 @testset "UPF" begin
-    include("upf1.jl")
-    include("upf2.jl")
-
-    # upf1_root, _, upf1_files = first(walkdir("./data/upf1/"))
-    # upf2_root, _, upf2_files = first(walkdir("./data/upf2/"))
-    # files = [map(file -> joinpath(upf1_root, file), upf1_files)...,
-    #          map(file -> joinpath(upf2_root, file), upf2_files)...]
-    pseudo_family_dirs = [artifact"gbrv_pbe_1-5_upf", artifact"hgh_lda_upf",
-                          artifact"sg15_2022-02-06_upf",
-                          artifact"sssp_pbe_efficiency_1-1-2_upf"]
+    pseudo_family_dirs = [artifact"gbrv_pbe_1.5_upf", artifact"hgh_lda_upf",
+                          artifact"sg15_2022.02.06_upf",
+                          artifact"sssp_pbe_efficiency_1.1.2_upf"]
     pseudo_files = []
     for dir in pseudo_family_dirs
         (_, _, files) = first(walkdir(dir))
         for file in files
-            if file[1] != '.'
+            if file[1] != '.'  # Hack to avoid hidden files
                 push!(pseudo_files, joinpath(dir, file),)
             end
         end

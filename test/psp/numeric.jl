@@ -1,9 +1,14 @@
 @testset "Numeric" begin
-    paths = ("psp8/H_nc-sr-04_pbe_standard.psp8",
-             "psp8/Zn_nc-sr-04_pbesol_stringent.psp8")
+    filepaths = [
+        values(psp8_filepahts)...,
+        values(upf1_filepaths)...,
+        upf2_filepaths["Mg.upf"],
+        upf2_filepaths["He.pbe-hgh.UPF"],
+        upf2_filepaths["Si.pbe-n-rrkjus_psl.1.0.0.upf"]
+    ]
 
-    @testset for path in paths
-        psp = NumericPsP(PsPFile("./data/$(path)"))
+    @testset for filepath in filepaths
+        psp = load_psp(filepath)
 
         @testset "Local potential Fourier agrees with real" begin
             itp = interpolate((psp.r,), psp.Vloc, (Gridded(Linear()),))

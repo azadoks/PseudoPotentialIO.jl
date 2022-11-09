@@ -4,8 +4,8 @@ import PseudoPotentialIO: trapezoid, simpson
 
 @testset "common" begin
     @testset "guess_mesh_type" begin
-        @testset "[linear] Mg_nc-fr-04_pbesol_stringent.upf" begin
-            psp = load_psp_file("./data/upf2/Mg_nc-fr-04_pbesol_stringent.upf")
+        @testset "[linear] Mg.upf" begin
+            psp = load_psp_file(upf2_filepaths["Mg.upf"])
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "linear"
             @test a_guess ≈ 0.01
@@ -13,7 +13,7 @@ import PseudoPotentialIO: trapezoid, simpson
         end
 
         @testset "[logarithmic type 1] Al.pbe-n-kjpaw_psl.1.0.0.upf" begin
-            psp = load_psp_file("./data/upf2/Al.pbe-n-kjpaw_psl.1.0.0.upf")
+            psp = load_psp_file(upf2_filepaths["Al.pbe-n-kjpaw_psl.1.0.0.upf"])
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "log_1"
             @test a_guess ≈ psp.mesh.dx
@@ -21,7 +21,7 @@ import PseudoPotentialIO: trapezoid, simpson
         end
 
         @testset "[logarithmic type 1] he-q2.upf" begin
-            psp = load_psp_file("./data/upf2/he-q2.upf")
+            psp = load_psp_file(upf2_filepaths["He.pbe-hgh.UPF"])
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "log_1"
             @test a_guess ≈ psp.mesh.dx
