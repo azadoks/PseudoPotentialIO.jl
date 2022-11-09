@@ -24,8 +24,8 @@
         end
     end
 
-    @testset "ag_lda_v1.4.uspp.F.upf" begin
-        filename = "ag_lda_v1.4.uspp.F.upf"
+    @testset "ag_lda_v1.4.uspp.F.UPF" begin
+        filename = "ag_lda_v1.4.uspp.F.UPF"
         file = load_psp_file(upf1_filepaths[filename])
 
         header = file.header
@@ -196,8 +196,8 @@
         @test isnothing(file.gipaw)
     end
 
-    @testset "B_pbe_v1.01.uspp.F.upf" begin
-        filename = "B_pbe_v1.01.uspp.F.upf"
+    @testset "B_pbe_v1.01.uspp.F.UPF" begin
+        filename = "B_pbe_v1.01.uspp.F.UPF"
         file = load_psp_file(upf1_filepaths[filename])
 
         header = file.header
@@ -364,8 +364,8 @@
         @test isnothing(file.gipaw)
     end
 
-    @testset "si_pbesol_v1.uspp.F.upf" begin
-        filename = "si_pbesol_v1.uspp.F.upf"
+    @testset "si_pbesol_v1.uspp.F.UPF" begin
+        filename = "si_pbesol_v1.uspp.F.UPF"
         file = load_psp_file(upf1_filepaths[filename])
 
         header = file.header
@@ -536,8 +536,8 @@
         @test isnothing(file.gipaw)
     end
 
-    @testset "mg_pbe_v1.4.uspp.F.upf" begin
-        filename = "mg_pbe_v1.4.uspp.F.upf"
+    @testset "mg_pbe_v1.4.uspp.F.UPF" begin
+        filename = "mg_pbe_v1.4.uspp.F.UPF"
         file = load_psp_file(upf1_filepaths[filename])
 
         header = file.header

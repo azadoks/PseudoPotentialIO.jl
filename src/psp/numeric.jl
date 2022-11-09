@@ -2,9 +2,7 @@
 Abstract type representing numeric pseudopotentials.
 
 All quantities must be in atomic units without prefactors like `r` or `4π`.
-Quantities on the mesh should be stored as nested vectors with angular momentum
-as the first index.
-Vectors indexed by angular momentum should be `OffsetArray`s with indices starting
+Vectors indexed by angular momentum should be `OffsetVector`s with indices starting
 at zero.
 
 Required fields:

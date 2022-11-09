@@ -182,8 +182,8 @@
         @test isnothing(file.gipaw)
     end
 
-    @testset "Si.pbe-n-rrkjus_psl.1.0.0.upf" begin
-        filename = "Si.pbe-n-rrkjus_psl.1.0.0.upf"
+    @testset "Si.pbe-n-rrkjus_psl.1.0.0.UPF" begin
+        filename = "Si.pbe-n-rrkjus_psl.1.0.0.UPF"
         file = load_psp_file(upf2_filepaths[filename])
 
         header = file.header
@@ -354,8 +354,8 @@
         @test isnothing(file.gipaw)
     end
 
-    @testset "Al.pbe-n-kjpaw_psl.1.0.0.upf" begin
-        filename = "Al.pbe-n-kjpaw_psl.1.0.0.upf"
+    @testset "Al.pbe-n-kjpaw_psl.1.0.0.UPF" begin
+        filename = "Al.pbe-n-kjpaw_psl.1.0.0.UPF"
         file = load_psp_file(upf2_filepaths[filename])
 
         header = file.header

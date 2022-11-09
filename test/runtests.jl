@@ -7,6 +7,8 @@ using SpecialFunctions
 using Interpolations
 using QuadGK
 
+import PseudoPotentialIO: fast_sphericalbesselj0, fast_sphericalbesselj
+
 Random.seed!(0)
 
 TAGS = ARGS
@@ -57,7 +59,7 @@ include("fixtures.jl")
         include("psp/analytical.jl")
     end
 
-    if any(in.(("all", "psp", "upf_hgh"), Ref(TAGS)))
+    if any(in.(("all", "psp", "analytical", "upf_hgh"), Ref(TAGS)))
         include("psp/upf_hgh.jl")
     end
 end

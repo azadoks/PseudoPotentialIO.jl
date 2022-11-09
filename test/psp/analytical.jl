@@ -11,12 +11,15 @@
         end
     end
 
+    filepaths = filepaths[randperm(length(filepaths))][1:10]
+
     function local_potential_integral(psp::AnalyticalPsP, q::T, r::T)::T where {T<:Real}
         return 4π * r * fast_sphericalbesselj0(q * r) *
                (r * local_potential_real(psp, r) + valence_charge(psp))
     end
 
-    function projector_integral(psp::AnalyticalPsP, l::Int, n::Int, q::T, r::T)::T where {T<:Real}
+    function projector_integral(psp::AnalyticalPsP, l::Int, n::Int, q::T,
+                                r::T)::T where {T<:Real}
         return 4π * r^2 * fast_sphericalbesselj(l, q * r) * projector_real(psp, l, n, r)
     end
 

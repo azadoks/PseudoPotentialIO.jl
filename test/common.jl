@@ -12,15 +12,15 @@ import PseudoPotentialIO: trapezoid, simpson
             @test b_guess ≈ -0.01
         end
 
-        @testset "[logarithmic type 1] Al.pbe-n-kjpaw_psl.1.0.0.upf" begin
-            psp = load_psp_file(upf2_filepaths["Al.pbe-n-kjpaw_psl.1.0.0.upf"])
+        @testset "[logarithmic type 1] Al.pbe-n-kjpaw_psl.1.0.0.UPF" begin
+            psp = load_psp_file(upf2_filepaths["Al.pbe-n-kjpaw_psl.1.0.0.UPF"])
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "log_1"
             @test a_guess ≈ psp.mesh.dx
             @test b_guess ≈ exp(psp.mesh.xmin) / psp.mesh.zmesh
         end
 
-        @testset "[logarithmic type 1] he-q2.upf" begin
+        @testset "[logarithmic type 1] He.pbe-hgh.UPF" begin
             psp = load_psp_file(upf2_filepaths["He.pbe-hgh.UPF"])
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "log_1"

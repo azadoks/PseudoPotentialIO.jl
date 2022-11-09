@@ -1,11 +1,11 @@
 @testset "Ultrasoft" begin
     @testset "From UPF" begin
-        @testset "B_pbe_v1.01.uspp.F.upf" begin
-            file = load_psp_file(upf1_filepaths["B_pbe_v1.01.uspp.F.upf"])
+        @testset "B_pbe_v1.01.uspp.F.UPF" begin
+            file = load_psp_file(upf1_filepaths["B_pbe_v1.01.uspp.F.UPF"])
             @test isa(load_psp(file), UltrasoftPsP)
         end
-        @testset "Si.pbe-n-rrkjus_psl.1.0.0.upf" begin
-            file = load_psp_file(upf2_filepaths["Si.pbe-n-rrkjus_psl.1.0.0.upf"])
+        @testset "Si.pbe-n-rrkjus_psl.1.0.0.UPF" begin
+            file = load_psp_file(upf2_filepaths["Si.pbe-n-rrkjus_psl.1.0.0.UPF"])
             @test isa(load_psp(file), UltrasoftPsP)
         end
         @testset "Dy.GGA-PBE-paw-v1.0.UPF" begin
