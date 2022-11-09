@@ -4,10 +4,12 @@ authors = ["Austin Zadoks"]
 version = "0.1.1"
 
 [deps]
+Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
+LazyArtifacts = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 PeriodicTable = "7b2266bf-644c-5ea3-82d8-af4bbd25a884"

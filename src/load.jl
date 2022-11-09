@@ -7,7 +7,6 @@ function load_psp_file(path::AbstractString)
     error("Unsupported file extension $(ext)")
 end
 
-
 function load_psp(path::AbstractString)
     file = load_psp_file(path)
     return load_psp(file)

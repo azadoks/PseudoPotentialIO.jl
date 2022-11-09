@@ -173,7 +173,14 @@ end
 
 function upf2_parse_beta(node::EzXML.Node)
     # Metadata
-    index = get_attr(Int, node, "index")
+    name = nodename(node)
+    index = get_attr(String, node, "index")
+    if (index == "*") | isnothing(index)
+        # If two digits, will be written as "*"
+        index = parse(Int, split(name, ".")[2])
+    else
+        index = parse(Int, index)
+    end
     angular_momentum = get_attr(Int, node, "angular_momentum")
     cutoff_radius_index = get_attr(Int, node, "cutoff_radius_index")
     cutoff_radius = get_attr(Float64, node, "cutoff_radius")
@@ -353,6 +360,7 @@ function upf2_parse_psp(doc::EzXML.Document)
     #* PP_PSWFC
     pswfc_node = findfirst("PP_PSWFC", root_node)
     pswfc = [upf2_parse_chi(n) for n in eachnode(pswfc_node) if occursin("PP_CHI.", nodename(n))]
+    pswfc = isempty(pswfc) ? nothing : pswfc  # Some files have an empy section
     #* PP_FULL_WFC
     if isnothing(findfirst("PP_FULL_WFC", root_node))
         full_wfc = nothing

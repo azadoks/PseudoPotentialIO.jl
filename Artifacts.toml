@@ -1,0 +1,143 @@
+[gbrv_lda_1-5_upf]
+git-tree-sha1 = "6c04b2e97c315e0baa1570d2a8d9b2c18e5933a2"
+lazy = true
+
+    [[gbrv_lda_1-5_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/gbrv_lda_1.5_upf.tar.gz"
+        sha256 = "dd046832397333d76def074a52d64080db59d20ca5b40a71e192c98d1152f873"
+
+[gbrv_pbe_1-5_upf]
+git-tree-sha1 = "47d766bfb7388085f7d8e2d6cacc34002b10b15f"
+lazy = true
+
+    [[gbrv_pbe_1-5_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/gbrv_pbe_1.5_upf.tar.gz"
+        sha256 = "37022a2b780b062cabf35a81bb5e9a6f186fdd0bedffe457264577afc9a458e3"
+
+[gbrv_pbesol_1-5_upf]
+git-tree-sha1 = "d15cf50899f02b78c5cc447bd47503623b05e80c"
+lazy = true
+
+    [[gbrv_pbesol_1-5_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/gbrv_pbesol_1.5_upf.tar.gz"
+        sha256 = "c2b336e3400bca8b5cfeafb2ed3a5a602790c60f74b1b8d82aef7e15e13baf35"
+
+[hgh_lda_hgh]
+git-tree-sha1 = "8b15443d40af7e3a84f4e781330e67f307edbf16"
+lazy = true
+
+    [[hgh_lda_hgh.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/hgh_lda_hgh.tar.gz"
+        sha256 = "da5a77773f3146d0f8bf771596ae8719d11203a5708a13e495eff127d0f5363b"
+
+[hgh_lda_upf]
+git-tree-sha1 = "2ee02145aae92460f9a1cb51951c19fd577924ef"
+lazy = true
+
+    [[hgh_lda_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/hgh_lda_upf.tar.gz"
+        sha256 = "4fc44e52994156126d0deb019cbf265ec082e70d6faa4ba728ce18c477871dba"
+
+[hgh_pbe_hgh]
+git-tree-sha1 = "be1b7c68c0d444fb29c3560ab3272eb0c3498534"
+lazy = true
+
+    [[hgh_pbe_hgh.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/hgh_pbe_hgh.tar.gz"
+        sha256 = "ccc923a3eac8b2579921d93636ec879f7b3cd7293375017ec310de7990d41aad"
+
+[hgh_pbe_upf]
+git-tree-sha1 = "277efb8616e49b14d24db310e156a47cbf90d15f"
+lazy = true
+
+    [[hgh_pbe_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/hgh_pbe_upf.tar.gz"
+        sha256 = "792dfa9a5485145ff53e9bbc2cd7f0e623b1b6a76cf833fa7e9a477293956125"
+
+[pd_nc_sr_lda_standard_0-4-1_upf]
+git-tree-sha1 = "1ea71a84cf375286564538a9cab789991f4bf1f4"
+lazy = true
+
+    [[pd_nc_sr_lda_standard_0-4-1_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/pd_nc_sr_lda_standard_0.4.1_upf.tar.gz"
+        sha256 = "d02b6af3ca790b919db7d43e958da133331c48a8e8b943d22529e67e4bb40023"
+
+[pd_nc_sr_lda_standard_04_upf]
+git-tree-sha1 = "1ea71a84cf375286564538a9cab789991f4bf1f4"
+lazy = true
+
+    [[pd_nc_sr_lda_standard_04_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/pd_nc_sr_lda_standard_04_upf.tar.gz"
+        sha256 = "60958f050aa53aa38902c00ecf87236bb24b862b5e30f922186627c6d821fbeb"
+
+[pd_nc_sr_pbe_standard_0-4-1_upf]
+git-tree-sha1 = "897b9d17527039dd86ca882603c3af2ea0c0aada"
+lazy = true
+
+    [[pd_nc_sr_pbe_standard_0-4-1_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/pd_nc_sr_pbe_standard_0.4.1_upf.tar.gz"
+        sha256 = "6e6db9eac2d6a09be29a2fdafeea7d5bbdfcb06070827e0f1bc2ba510ae0a836"
+
+[pd_nc_sr_pbe_standard_04_upf]
+git-tree-sha1 = "897b9d17527039dd86ca882603c3af2ea0c0aada"
+lazy = true
+
+    [[pd_nc_sr_pbe_standard_04_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/pd_nc_sr_pbe_standard_04_upf.tar.gz"
+        sha256 = "ede0600dd431779fcb99cd1cc59e461711cad3790dc868b09521c6c22513a4c2"
+
+[pd_nc_sr_pbesol_standard_0-4-1_upf]
+git-tree-sha1 = "50b6dcfea7b4dd781c03df5fea3cc406e3320cde"
+lazy = true
+
+    [[pd_nc_sr_pbesol_standard_0-4-1_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/pd_nc_sr_pbesol_standard_0.4.1_upf.tar.gz"
+        sha256 = "42df254b1c355e235e0270f41f9c693efff2bcd6cfacd8e5d207d7de5f79cf0c"
+
+[pd_paw_pbe_standard_1-1_xml]
+git-tree-sha1 = "dab9fd41accf1a946429dc4852d468bebf66b0c5"
+lazy = true
+
+    [[pd_paw_pbe_standard_1-1_xml.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/pd_paw_pbe_standard_1.1_xml.tar.gz"
+        sha256 = "756561648522dbd5f712a3076bc300791202d7e688da22147ac700be8099287d"
+
+[sg15_2022-02-06_upf]
+git-tree-sha1 = "4b579e665bf7375f52fe30ecdf18448a9d1b6711"
+lazy = true
+
+    [[sg15_2022-02-06_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/sg15_2022.02.06_upf.tar.gz"
+        sha256 = "e806c5ff7c286c33d9d977fa7fd81932f6f9f89000b6b2c8c05b2349890929fb"
+
+[sssp_pbe_efficiency_1-1-2_upf]
+git-tree-sha1 = "dca26c0b03b33efb8aa8d6e0cb1e267ab20aac07"
+lazy = true
+
+    [[sssp_pbe_efficiency_1-1-2_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/sssp_pbe_efficiency_1.1.2_upf.tar.gz"
+        sha256 = "cd1a2f8b312543e86c5025a008aa9833b0cc267d905e4f6b787c50c3fae02138"
+
+[sssp_pbe_precision_1-1-2_upf]
+git-tree-sha1 = "e0c4a68005e9fd03277c58a0a9f1664b0967bff8"
+lazy = true
+
+    [[sssp_pbe_precision_1-1-2_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/sssp_pbe_precision_1.1.2_upf.tar.gz"
+        sha256 = "d85591978fdde314cd88ac060b88527b96992fbafa082b017a37bc08c0096ef6"
+
+[sssp_pbesol_efficiency_1-1-2_upf]
+git-tree-sha1 = "08cbbe875b898b295e94ef3103531c6dc8b8072c"
+lazy = true
+
+    [[sssp_pbesol_efficiency_1-1-2_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/sssp_pbesol_efficiency_1.1.2_upf.tar.gz"
+        sha256 = "923cc30b48153c0e03df9ac6514280161c855d51ce1fe88a10e4c99b671db36e"
+
+[sssp_pbesol_precision_1-1-2_upf]
+git-tree-sha1 = "fe18f5020bdf103c11467bfacd32059c821b052f"
+lazy = true
+
+    [[sssp_pbesol_precision_1-1-2_upf.download]]
+        url = "https://github.com/JuliaMolSim/PseudoLibrary/raw/main/artifacts/sssp_pbesol_precision_1.1.2_upf.tar.gz"
+        sha256 = "654cc1acc62ca540021cb01c504253a4ec2bf9314dd1f6ae9960bcd86988f083"

@@ -8,6 +8,10 @@ struct HghPsP{T} <: AnalyticalPsP
     D::Vector{Matrix{T}}
 end
 
+function HghPsP(file::HghFile)
+    return HghPsp(118.0, file.zion, file.lmax, file.rloc, file.cloc, file.rp, file.h)
+end
+
 function valence_charge(psp::HghPsP{T})::T where {T}
     return psp.Zval
 end

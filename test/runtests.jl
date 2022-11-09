@@ -1,5 +1,6 @@
 using Test
 using PseudoPotentialIO
+using LazyArtifacts
 using Random
 using PeriodicTable
 using SpecialFunctions

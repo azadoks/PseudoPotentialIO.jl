@@ -1,7 +1,9 @@
 module PseudoPotentialIO
+using Artifacts
 using DocStringExtensions
 using EzXML
 using Interpolations
+using LazyArtifacts
 using LinearAlgebra
 using OffsetArrays
 using Polynomials
