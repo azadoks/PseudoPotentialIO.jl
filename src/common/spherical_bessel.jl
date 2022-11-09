@@ -23,6 +23,6 @@ https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions and wit
     error("The case l = $l is not implemented")
 end
 
-@fastmath @inline function fast_sphericalbesselj0(x::T)::T where {T}
+@inline @fastmath function fast_sphericalbesselj0(x::T)::T where {T}
     return iszero(x) ? one(T) : sin(x) / x
 end

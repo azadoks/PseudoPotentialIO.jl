@@ -98,7 +98,7 @@ function valence_charge_density_fourier(psp::NumericPsP, q::T)::T where {T<:Real
     return 4π * trapezoid(f, psp.dr)
 end
 
-function pseudo_orbital(psp::NumericPsP, l::Int, n::Int, q::T)::T where {T<:Real}
+function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int, q::T)::T where {T<:Real}
     r = @view psp.r[1:psp.ϕ̃_ircut[l][n]]
     f = @. r^2 * fast_sphericalbesselj(l, q * r) * psp.ϕ̃[l][n]
     return 4π * trapezoid(f, psp.dr)

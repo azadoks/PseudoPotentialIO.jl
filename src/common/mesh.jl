@@ -3,7 +3,7 @@ $(SIGNATURES)
 
 Compute the value of a linear mesh `a * i + b` at index `i`.
 """
-linear_mesh(i::Int, a::T, b::T) where {T<:Real} = a * i + b
+@inline linear_mesh(i::Int, a::T, b::T) where {T<:Real} = a * i + b
 
 """
 $(SIGNATURES)
@@ -11,8 +11,8 @@ $(SIGNATURES)
 Compute the value of a logarithmic mesh `b * exp(a * (i - 1))` at index `i`.
 NB: for UPF pseudopotentials `a = dx`, `b = e^{xmin} / zmesh`.
 """
-logarithmic_mesh1(i::Int, a::T, b::T) where {T<:Real} = b * exp(a * (i - 1))
-function logarithmic_mesh1(i::Int, xmin::T, dx::T, z::T) where {T<:Real}
+@inline logarithmic_mesh1(i::Int, a::T, b::T) where {T<:Real} = b * exp(a * (i - 1))
+@inline function logarithmic_mesh1(i::Int, xmin::T, dx::T, z::T) where {T<:Real}
     return exp(xmin) * exp((i - 1) * dx) / z
 end
 
@@ -22,8 +22,8 @@ $(SIGNATURES)
 Compute the value of a logarithmic mesh `b * (exp(a * (i - 1)) - 1)` at index `i`.
 NB: for UPF pseudopotentials `a = dx`, `b = e^{xmin} / zmesh`.
 """
-logarithmic_mesh2(i::Int, a::T, b::T) where {T<:Real} = b * (exp((i - 1) * a) - 1)
-function logarithmic_mesh2(i::Int, xmin::T, dx::T, z::T) where {T<:Real}
+@inline logarithmic_mesh2(i::Int, a::T, b::T) where {T<:Real} = b * (exp((i - 1) * a) - 1)
+@inline function logarithmic_mesh2(i::Int, xmin::T, dx::T, z::T) where {T<:Real}
     return exp(xmin) * (exp((i - 1) * dx) - 1) / z
 end
 
