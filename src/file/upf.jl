@@ -1,25 +1,3 @@
-function get_upf_version(io::IO)::Int
-    pos = position(io)
-    seek(io, 0)
-    line = readline(io)
-    seek(io, pos)
-    if occursin("<PP_INFO>", line)
-        # Old UPF files start with the `<PP_INFO>` section
-        return 1
-    elseif occursin("UPF version=\"2.0.1\"", line)
-        # New UPF files with schema are in XML and start with a version tag
-        return 2
-    else
-        error("Unknown UPF version")
-    end
-end
-
-function get_upf_version(path::AbstractString)::Int
-    open(path, "r") do io
-        return get_upf_version(io)
-    end
-end
-
 """
 $TYPEDEF
 
@@ -27,7 +5,7 @@ $(TYPEDFIELDS)
 
 UPF `<PP_HEADER>`
 """
-struct UpfHeader
+struct UpfHeader <: PsPFile
     "Generation code"
     generated::Union{Nothing,String}
     author::Union{Nothing,String}
@@ -359,7 +337,7 @@ $(TYPEDFIELDS)
 
 UPF pseudopotential
 """
-struct UpfPsP <: PseudoPotentialIO.AbstractPsP
+struct UpfFile <: PsPFile
     "UPF format version"
     version::String
     "Optional general information about the pseudopotential, often generation input"
@@ -388,14 +366,14 @@ struct UpfPsP <: PseudoPotentialIO.AbstractPsP
     gipaw::Union{Nothing,UpfGipaw}
 end
 
-function UpfPsP(path::AbstractString)
+function UpfFile(path::AbstractString)
     open(path, "r") do io
-        return UpfPsP(io)
+        return UpfFile(io)
     end
 end
 
-function UpfPsP(io::IO)
-    version = get_upf_version(io)
+function UpfFile(io::IO)
+    version = _get_upf_version(io)
     if version == 1
         return upf1_parse_psp(io)
     end
@@ -409,107 +387,43 @@ function UpfPsP(io::IO)
     end
 end
 
-function element(psp::UpfPsP)::PeriodicTable.Element
-    return PeriodicTable.elements[Symbol(psp.header.element)]
-end
-max_angular_momentum(psp::UpfPsP)::Int = psp.header.l_max
-n_projector_radials(psp::UpfPsP, l::Integer)::Int = count(beta -> beta.angular_momentum == l,
-                                           psp.nonlocal.betas)
-n_pseudo_orbitals(psp::UpfPsP)::Int = psp.header.number_of_wfc
-valence_charge(psp::UpfPsP)::Float64 = psp.header.z_valence
-is_paw(psp::UpfPsP)::Bool = psp.header.is_paw
-is_ultrasoft(psp::UpfPsP)::Bool = psp.header.is_ultrasoft
-is_norm_conserving(psp::UpfPsP)::Bool = psp.header.pseudo_type == "NC"
-is_coulomb(psp::UpfPsP)::Bool = psp.header.is_coulomb
-has_spin_orbit(psp::UpfPsP)::Bool = psp.header.has_so
-has_nlcc(psp::UpfPsP)::Bool = psp.header.core_correction
-relativistic_treatment(psp::UpfPsP)::Symbol = Symbol(psp.header.relativistic)
-format_name(psp::UpfPsP)::String = "UPF v$(psp.version)"
-
-function get_projector_radial(psp::UpfPsP, l, n)::UpfBeta
-    projectors_l = filter(beta -> beta.angular_momentum == l, psp.nonlocal.betas)
-    return projectors_l[n]
+function _get_upf_version(io::IO)::Int
+    pos = position(io)
+    seek(io, 0)
+    line = readline(io)
+    seek(io, pos)
+    if occursin("<PP_INFO>", line)
+        # Old UPF files start with the `<PP_INFO>` section
+        return 1
+    elseif occursin("UPF version=\"2.0.1\"", line)
+        # New UPF files with schema are in XML and start with a version tag
+        return 2
+    else
+        error("Unknown UPF version")
+    end
 end
 
-function get_pseudo_orbital_radial(psp::UpfPsP, l)::UpfChi
-    orbitals = filter(orbital -> orbital.l == l, psp.pswfc)
-    @assert length(orbital) == 1
-    return first(orbitals)
+function _get_upf_version(path::AbstractString)::Int
+    open(path, "r") do io
+        return _get_upf_version(io)
+    end
 end
 
-function e_kb(psp::UpfPsP, li, ni, lj, nj)::Float64
-    projector_li_ni = get_projector_radial(psp, li, ni)
-    index_li_ni = projector_li_ni.index
-    projector_lj_nj = get_projector_radial(psp, lj, nj)
-    index_lj_nj = projector_lj_nj.index
-    return psp.nonlocal.dij[index_li_ni, index_lj_nj]
+format(file::UpfFile)::String = "UPF v$(file.version)"
+function element(file::UpfFile)::PeriodicTable.Element
+    return PeriodicTable.elements[Symbol(file.header.element)]
 end
-
-function e_kb(psp::UpfPsP, l, n)::Float64
-    projector_l_n = get_projector_radial(psp, l, n)
-    index_l_n = projector_l_n.index
-    return psp.nonlocal.dij[index_l_n, index_l_n]
+function formalism(file::UpfFile)::Symbol
+    file.header.pseudo_type == "PAW" && return :paw
+    file.header.pseudo_type in ("US", "USPP") && return :ultrasoft
+    file.header.pseudo_type == "NC" && return :norm_conserving
+    file.header.pseudo_type == "1/r" && return :coulomb
+    file.header.pseudo_type == "SL" && return :semilocal
 end
-
-function local_potential_real(psp::UpfPsP, r::T)::T where {T<:Real}
-    interpolator = linear_interpolation((psp.mesh.r,), psp.local_)
-    return interpolator(r)
-end
-
-function local_potential_fourier(psp::UpfPsP, q::T)::T where {T<:Real}
-    v_corr_fourier = local_potential_correction_fourier(psp, q)
-    integrand = psp.mesh.r .* sphericalbesselj_fast.(0, q .* psp.mesh.r) .*
-                   (psp.mesh.r .* psp.local_ .- valence_charge(psp))
-    return 4T(π) * trapezoid(integrand, psp.mesh.rab) + v_corr_fourier
-end
-
-#TODO this will create NaNs for linear meshes that start at r=0
-function projector_radial_real(psp::UpfPsP, l, n, r::T)::T where {T<:Real}
-    projector = get_projector_radial(psp, l, n)
-    interpolator = linear_interpolation((psp.mesh.r,), projector.beta)
-    return interpolator(r) / r
-end
-
-function projector_radial_fourier(psp::UpfPsP, l, n, q::T)::T where {T<:Real}
-    projector = get_projector_radial(psp, l, n)
-    integrand = @. psp.mesh.r * sphericalbesselj_fast(l, q * psp.mesh.r) * projector
-    return 4T(π) * trapezoid(integrand, psp.mesh.rab)
-end
-
-function pseudo_energy_correction(psp::UpfPsP)::Float64
-    v_local_corrected = psp.local_ - local_potential_correction_real.(psp, psp.mesh.r)
-    return 4π * trapezoid(v_local_corrected, psp.mesh.rab)
-end
-
-function core_charge_density_real(psp::UpfPsP, r::T)::T where {T<:Real}
-    interpolator = linear_interpolation((psp.mesh.r,), psp.nlcc)
-    return interpolator(r)
-end
-
-function core_charge_density_fourier(psp::UpfPsP, q::T)::T where {T<:Real}
-    integrand = @. psp.mesh.r^2 * sphericalbesselj_fast(0, q * psp.mesh.r) * psp.nlcc
-    return 4T(π) * trapezoid(integrand, psp.mesh.rab)
-end
-
-#TODO this will create NaNs for linear meshes that start at r=0
-function valence_charge_density_real(psp::UpfPsP, r::T)::T where {T<:Real}
-    interpolator = linear_interpolation((psp.rhoatom,), psp.rhoatom)
-    return interpolator(r) / (4T(π) * r^2)
-end
-
-function valence_charge_density_fourier(psp::UpfPsP, q::T)::T where {T<:Real}
-    integrand = @. sphericalbesselj_fast(0, q * psp.mesh.r) * psp.rhoatom
-    return trapezoid(integrand, psp.mesh.rab)
-end
-
-function pseudo_orbital_radial_real(psp::UpfPsP, l, r::T)::T where {T<:Real}
-    orbital = get_pseudo_orbital_radial(psp, l)
-    interpolator = linear_interpolation((psp.rhoatom,), orbital.chi)
-    return interpolator(r)
-end
-
-function pseudo_orbital_radial_fourier(psp::UpfPsP, l, q::T)::T where {T<:Real}
-    orbital = get_pseudo_orbital_radial(psp, l)
-    @. integrand = psp.mesh.r^2 * sphericalbesselj_fast(0, q * psp.mesh.r) * orbital
-    return 4T(π) * trapezoid(integrand, psp.mesh.rab)
-end
+relativistic_treatment(file::UpfFile)::Symbol = has_spin_orbit(file) ? :scalar : :full
+has_spin_orbit(file::UpfFile)::Bool = file.header.has_so
+has_nlcc(file::UpfFile)::Bool = file.header.core_correction
+valence_charge(file::UpfFile)::Float64 = file.header.z_valence
+max_angular_momentum(file::UpfFile)::Int = file.header.l_max
+n_projectors(file::UpfFile)::Int = file.header.number_of_proj
+n_pseudo_orbitals(file::UpfFile)::Int = file.header.number_of_wfc

@@ -66,7 +66,7 @@ Returns the spherical Bessel function of the first kind j_l(x). Consistent with
 https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions and with
 `SpecialFunctions.sphericalbesselj`. Specialized for integer `0 <= l <= 5`.
 """
-@fastmath function sphericalbesselj_fast(l::Integer, x::T)::T where {T}
+@fastmath function fast_sphericalbesselj(l::Integer, x::T)::T where {T}
     if l == 0
         iszero(x) && return one(T)
         return sin(x) / x
@@ -82,6 +82,10 @@ https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions and wit
         return (sin(x) * (945 - 420x^2 + 15x^4) + cos(x) * (-945x + 105x^3 - x^5)) / x^6
     
     error("The case l = $l is not implemented")
+end
+
+@fastmath @inline function fast_sphericalbesselj0(x::T)::T where {T}
+    return iszero(x) ? one(T) : sin(x) / x
 end
 
 """

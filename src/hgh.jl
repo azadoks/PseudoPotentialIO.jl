@@ -88,10 +88,10 @@ function element(psp::HghPsP)::PeriodicTable.Element
     end
     return element
 end
-l_max(psp::HghPsP)::Int = psp.lmax
-n_proj_radial(psp::HghPsP, l::Integer)::Int = length(psp.h[l+1])
-n_pseudo_wfc(::HghPsP)::Int = 0
-z_valence(psp::HghPsP)::Float64 = sum(psp.zion)
+max_angular_momentum(psp::HghPsP)::Int = psp.lmax
+n_projector_radials(psp::HghPsP, l::Integer)::Int = length(psp.h[l+1])
+n_pseudo_orbitals(::HghPsP)::Int = 0
+valence_charge(psp::HghPsP)::Float64 = sum(psp.zion)
 is_paw(::HghPsP)::Bool = false
 is_ultrasoft(::HghPsP)::Bool = false
 is_norm_conserving(::HghPsP)::Bool = true
@@ -99,7 +99,7 @@ is_coulomb(::HghPsP)::Bool = false
 has_spin_orbit(::HghPsP)::Bool = false
 has_nlcc(::HghPsP)::Bool = false
 relativistic_treatment(::HghPsP)::Symbol = :scalar
-format(::HghPsP)::String = "HGH"
+format_name(::HghPsP)::String = "HGH"
 
 @doc raw"""
 The local potential of a HGH pseudopotentials in reciprocal space
@@ -109,7 +109,7 @@ is a polynomial of at most degree 8. This function returns `Q`.
 """
 @inline function psp_local_polynomial(psp::HghPsP, t=Polynomial([0., 1.]))
     rloc::T = psp.rloc
-    Zion::T = z_valence(psp)
+    Zion::T = valence_charge(psp)
 
     # The polynomial prefactor P(t) (as used inside the { ... } brackets of equation
     # (5) of the HGH98 paper)
@@ -122,7 +122,7 @@ is a polynomial of at most degree 8. This function returns `Q`.
 end
 
 # [GTH98] (6) except they do it with plane waves normalized by 1/sqrt(Ω).
-function v_local_fourier(psp::HghPsP, q::T) where {T <: Real}
+function local_potential_fourier(psp::HghPsP, q::T) where {T <: Real}
     t = q * psp.rloc
     psp_local_polynomial(psp, t) * exp(-t^2 / 2) / t^2
 end
@@ -143,12 +143,12 @@ end
 
 
 # [GTH98] (1)
-function v_local_real(psp::HghPsP, r::T) where {T <: Real}
-    r == 0 && return v_local_real(psp, eps(T)) # quick hack for the division by zero below
+function local_potential_real(psp::HghPsP, r::T) where {T <: Real}
+    r == 0 && return local_potential_real(psp, eps(T)) # quick hack for the division by zero below
     cloc = psp.cloc
     rr = r / psp.rloc
     convert(T,
-        - z_valence(psp) / r * erf(rr / sqrt(T(2)))
+        - valence_charge(psp) / r * erf(rr / sqrt(T(2)))
         + exp(-rr^2 / 2) * (cloc[1] + cloc[2] * rr^2 + cloc[3] * rr^4 + cloc[4] * rr^6)
     )
 end
@@ -218,7 +218,7 @@ function pseudo_energy_correction(psp::HghPsP)
     # of the Coulomb potential (-Z/G^2 in Fourier space) and the pseudopotential
     # i.e. -4πZ/(ΔG)^2 -  eval_psp_local_fourier(psp, ΔG) for ΔG → 0. This is:
     cloc_coeffs = T[1, 3, 15, 105]
-    difference_DC = (z_valence(psp) * psp.rloc^2 / 2
+    difference_DC = (valence_charge(psp) * psp.rloc^2 / 2
                      + sqrt(π/2) * psp.rloc^3 * sum(cloc_coeffs .* psp.cloc))
 
     # Multiply by number of electrons and 4π (spherical Hankel prefactor)

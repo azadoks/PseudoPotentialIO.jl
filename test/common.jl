@@ -1,9 +1,11 @@
-import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2,
-                          guess_mesh_type, sphericalbesselj_fast, trapezoid, simpson
+import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
+import PseudoPotentialIO: guess_mesh_type, fast_sphericalbesselj, fast_sphericalbesselj0
+import PseudoPotentialIO: trapezoid, simpson
+
 @testset "common" begin
     @testset "guess_mesh_type" begin
         @testset "[linear] Mg_nc-fr-04_pbesol_stringent.upf" begin
-            psp = UpfPsP("upf2/Mg_nc-fr-04_pbesol_stringent.upf")
+            psp = load_psp_file("./data/upf2/Mg_nc-fr-04_pbesol_stringent.upf")
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "linear"
             @test a_guess ≈ 0.01
@@ -11,7 +13,7 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2,
         end
 
         @testset "[logarithmic type 1] Al.pbe-n-kjpaw_psl.1.0.0.upf" begin
-            psp = UpfPsP("upf2/Al.pbe-n-kjpaw_psl.1.0.0.upf")
+            psp = load_psp_file("./data/upf2/Al.pbe-n-kjpaw_psl.1.0.0.upf")
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "log_1"
             @test a_guess ≈ psp.mesh.dx
@@ -19,7 +21,7 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2,
         end
 
         @testset "[logarithmic type 1] he-q2.upf" begin
-            psp = UpfPsP("upf2/he-q2.upf")
+            psp = load_psp_file("./data/upf2/he-q2.upf")
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "log_1"
             @test a_guess ≈ psp.mesh.dx
@@ -27,7 +29,7 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2,
         end
 
         @testset "[logarithmic type 2] constructed" begin
-            #TODO: find a log_2 type mesh example
+            #TODO: find a log_2 type mesh example file
             i = 1:1000
             a = 0.0125  # dx
             b = exp(-7.0) / 0.66  # exp(xmin) / zmesh
@@ -41,18 +43,23 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2,
         end
     end
 
-    @testset "sphericalbesselj_fast" begin
+    @testset "fast_sphericalbesselj" begin
+        for x in (rand(100) .* 100)
+            @test sphericalbesselj(0, x) ≈ fast_sphericalbesselj0(x) atol = 1e-8
+        end
+
         for l in 0:5
             for x in (rand(100) .* 100)
-                @test sphericalbesselj(l, x) ≈ sphericalbesselj_fast(l, x) atol = 1e-8
+                @test sphericalbesselj(l, x) ≈ fast_sphericalbesselj(l, x) atol = 1e-8
             end
         end
         for l in 6:10
-            @test_throws "The case l = $l is not implemented" sphericalbesselj_fast(l, 1.0)
-            @test sphericalbesselj_fast(l, 0.0) == 0.0
+            @test_throws "The case l = $l is not implemented" fast_sphericalbesselj(l, 1.0)
+            @test fast_sphericalbesselj(l, 0.0) == 0.0
         end
     end
 
+    #TODO: move quadrature tests to separate file; fix them
     # f(x) = exp(-x) * sin(x)
     # @testset "trapezoid" begin
     #     @testset "linear mesh" begin

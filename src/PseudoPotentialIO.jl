@@ -1,49 +1,90 @@
 module PseudoPotentialIO
-
-using EzXML
 using DocStringExtensions
-using Printf
+using EzXML
 using Interpolations
-using Statistics
 using LinearAlgebra
+using LoopVectorization
+using OffsetArrays
+using Polynomials
+using Printf
+using SpecialFunctions
+using Statistics
+
+import Base.Broadcast.broadcastable
 import PeriodicTable
 
-include("common.jl")
-
-export AbstractPsP
+## File I/O
+export PsPFile
 export format
 export element
-export l_max
-export n_proj_radial
-export n_proj
-export n_pseudo_wfc
-export z_valence
-export is_paw
-export is_ultrasoft
-export is_norm_conserving
-export is_coulomb
 export formalism
-export has_spin_orbit
 export relativistic_treatment
+export has_spin_orbit
 export has_nlcc
-export e_kb
-export v_local_real
-export v_local_correction_real
-export v_local_correction_fourier
-export v_local_fourier
+export valence_charge
+export max_angular_momentum
+export n_projectors
+export n_pseudo_orbitals
+include("file/file.jl")
+
+export UpfFile
+include("file/upf.jl")
+include("file/upf1.jl")
+include("file/upf2.jl")
+
+export Psp8File
+include("file/psp8.jl")
+
+export HghFile
+include("file/hgh.jl")
+
+## Pseudopotential datastructures and interface
+export AbstractPsP
+export element
+export formalism
+export relativistic_treatment
+export has_spin_orbit
+export has_nlcc
+export valence_charge
+export max_angular_momentum
+export n_projectors
+export n_pseudo_orbitals
+export local_potential_real
+export local_potential_fourier
+export pseudo_energy_correction
 export projector_real
 export projector_fourier
-export pseudo_energy_correction
-include("interface.jl")
+export projector_coupling
+export core_charge_density_real
+export core_charge_density_fourier
+export valence_charge_density_real
+export valence_charge_density_fourier
+export pseudo_orbital_radial_real
+export pseudo_orbital_radial_fourier
+include("psp/psp.jl")
 
-export UpfPsP
-include("upf.jl")
-include("upf1.jl")
-include("upf2.jl")
+export NumericPsP
+include("psp/numeric.jl")
 
-export Psp8PsP
-include("psp8.jl")
+export NormConservingPsP
+include("psp/norm_conserving.jl")
+
+export UltrasoftPsP
+include("psp/ultrasoft.jl")
+
+export AnalyticalPsP
+include("psp/analytical.jl")
 
 export HghPsP
-include("hgh.jl")
+include("psp/hgh.jl")
+
+## Core functions
+export load_psp_file
+export load_psp
+include("load.jl")
+
+## Miscellaneous
+include("common/mesh.jl")
+include("common/quadrature.jl")
+include("common/spherical_bessel.jl")
 end

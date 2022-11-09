@@ -1,7 +1,7 @@
 @testset "UPF v2.0.1" begin
     @testset "Internal data consistency" begin
-        for (root, dirs, files) in walkdir("./upf2/"), file in files
-            psp = UpfPsP(joinpath(root, file))
+        for (root, dirs, files) in walkdir("./data/upf2/"), file in files
+            psp = load_psp_file(joinpath(root, file))
 
             @test format(psp) == "UPF v2.0.1"
 
@@ -21,7 +21,7 @@
     end
 
     @testset "Mg_nc-fr-04_pbesol_stringent.upf" begin
-        psp = UpfPsP("upf2/Mg_nc-fr-04_pbesol_stringent.upf")
+        psp = load_psp_file("./data/upf2/Mg_nc-fr-04_pbesol_stringent.upf")
 
         header = psp.header
         @test header.generated == "Generated using ONCVPSP code by D. R. Hamann"
@@ -182,7 +182,7 @@
     end
 
     @testset "Si.pbe-n-rrkjus_psl.1.0.0.upf" begin
-        psp = UpfPsP("upf2/Si.pbe-n-rrkjus_psl.1.0.0.upf")
+        psp = load_psp_file("./data/upf2/Si.pbe-n-rrkjus_psl.1.0.0.upf")
 
         header = psp.header
         @test header.generated == "Generated using \"atomic\" code by A. Dal Corso  v.5.1"
@@ -353,7 +353,7 @@
     end
 
     @testset "Al.pbe-n-kjpaw_psl.1.0.0.upf" begin
-        psp = UpfPsP("upf2/Al.pbe-n-kjpaw_psl.1.0.0.upf")
+        psp = load_psp_file("./data/upf2/Al.pbe-n-kjpaw_psl.1.0.0.upf")
 
         header = psp.header
         @test header.generated == "Generated using \"atomic\" code by A. Dal Corso  v.5.1"
@@ -600,7 +600,7 @@
     end
 
     @testset "he-q2.upf" begin
-        psp = UpfPsP("upf2/he-q2.upf")
+        psp = load_psp_file("./data/upf2/he-q2.upf")
 
         header = psp.header
         @test header.generated == "Generated in analytical, separable form"

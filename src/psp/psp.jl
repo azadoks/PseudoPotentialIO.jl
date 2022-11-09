@@ -1,15 +1,6 @@
-import Base.Broadcast.broadcastable
-
 abstract type AbstractPsP end
 
 Base.Broadcast.broadcastable(psp::AbstractPsP) = Ref(psp)
-
-"""
-$(SIGNATURES)
-
-Pseudopotential file format.
-"""
-function format_name(psp::AbstractPsP) end
 
 """
 $(SIGNATURES)
@@ -31,7 +22,7 @@ $(SIGNATURES)
 Number of radial parts of the Kleinman-Bylander projectors `Rl(r)` at a given angular
 momentum.
 """
-function n_projector_radials(psp::AbstractPsP, l) end
+function n_projectors(psp::AbstractPsP, l) end
 
 """
 $(SIGNATURES)
@@ -39,25 +30,8 @@ $(SIGNATURES)
 Number of radial parts of the Kleinman-Bylander projectors at all angular momenta up
 to the maximum angular momentum channel.
 """
-function n_projector_radials(psp::AbstractPsP)
-    return sum(l -> n_projector_radials(psp, l), 0:max_angular_momentum(psp); init=0)
-end
-
-"""
-$(SIGNATURES)
-
-Number of Kleinman-Bylander projectors `R(r) * Ylm(R)` at angular momentum `l`.
-"""
-n_projectors(psp::AbstractPsP, l) = n_projector_radials(psp, l) * (2l + 1)
-
-"""
-$(SIGNATURES)
-
-Number of Kleinman-Bylander projectors `R(r) * Ylm(R)` at angular momenta `l` up to the
-maximum angular momentum channel.
-"""
 function n_projectors(psp::AbstractPsP)
-    return sum(n_projectors(psp, l), 0:max_angular_momentum(psp); init=0)
+    return sum(l -> n_projector_radials(psp, l), 0:max_angular_momentum(psp); init=0)
 end
 
 """
@@ -65,28 +39,13 @@ $(SIGNATURES)
 
 Number of radial parts of the pseudo-atomic wavefunctions with angular momentum `l`.
 """
-function n_pseudo_orbital_radials(psp::AbstractPsP, l) end
+function n_pseudo_orbitals(psp::AbstractPsP, l) end
 
 """
 $(SIGNATURES)
 
 Number pseudo-atomic wavefunctions `R(r) * Ylm(R)` at angular momenta `l` up to the maximum
 angular momentum channel.
-"""
-function n_pseudo_orbital_radials(psp::AbstractPsP)
-    return sum(n_pseudo_orbital_radials(psp, l), 0:max_angular_momentum(psp); init=0)
-end
-
-"""
-Number of pseudo-atomic wavefunctions `R(r) * Ylm(R)` at angular momentum `l`.
-"""
-n_pseudo_orbitals(psp::AbstractPsP, l) = n_pseudo_orbital_radials(psp, l) * (2l + 1)
-
-"""
-$(SIGNATURES)
-
-Number of pseudo-atomic wavefunctions `R(r) * Ylm(R)` at angular momenta `l` up to the
-maximum angular momentum channel.
 """
 function n_pseudo_orbitals(psp::AbstractPsP)
     return sum(n_pseudo_orbitals(psp, l), 0:max_angular_momentum(psp); init=0)

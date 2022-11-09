@@ -1,7 +1,3 @@
-function parse_fortran(::Type{T}, x::AbstractString) where {T<:Real}
-    return parse(T, replace(lowercase(x), "d" => "e"))
-end
-
 """
 $TYPEDEF
 
@@ -51,7 +47,7 @@ $(TYPEDFIELDS)
 
 PSP8 pseudopotential
 """
-struct Psp8PsP <: PseudoPotentialIO.AbstractPsP
+struct Psp8File <: PsPFile
     "Various pseudopotential metadata"
     header::Psp8Header
     "Radial grid"
@@ -83,8 +79,8 @@ function psp8_parse_header(io::IO)
     title = readline(io)
     # line 2
     s = split(readline(io))
-    zatom = parse_fortran(Float64, s[1])
-    zion = parse_fortran(Float64, s[2])
+    zatom = _parse_fortran(Float64, s[1])
+    zion = _parse_fortran(Float64, s[2])
     pspd = parse(Int, s[3])
     # line 3
     s = split(readline(io))
@@ -97,9 +93,9 @@ function psp8_parse_header(io::IO)
     @assert pspcod == 8
     # line 4
     s = split(readline(io))
-    rchrg = parse_fortran(Float64, s[1])
-    fchrg = parse_fortran(Float64, s[2])
-    qchrg = parse_fortran(Float64, s[3])
+    rchrg = _parse_fortran(Float64, s[1])
+    fchrg = _parse_fortran(Float64, s[2])
+    qchrg = _parse_fortran(Float64, s[3])
     # line 5
     s = split(readline(io))
     nproj = [parse(Int, s[l + 1]) for l in 0:lmax]
@@ -125,15 +121,15 @@ function psp8_parse_projector_block(io, nproj, mmax)
     header_line = split(readline(io))
     l = parse(Int, header_line[1])
     nproj_l = nproj[l + 1]
-    ekb = [parse_fortran(Float64, header_line[i + 1]) for i in 1:nproj_l]
+    ekb = [_parse_fortran(Float64, header_line[i + 1]) for i in 1:nproj_l]
 
     rgrid = Vector{Float64}(undef, mmax)
     projectors = [Vector{Float64}(undef, mmax) for _ in 1:(nproj_l)]
     for i in 1:mmax
         s = split(readline(io))
-        rgrid[i] = parse_fortran(Float64, s[2])
+        rgrid[i] = _parse_fortran(Float64, s[2])
         for j in 1:nproj_l
-            projectors[j][i] = parse_fortran(Float64, s[2 + j])
+            projectors[j][i] = _parse_fortran(Float64, s[2 + j])
         end
     end
 
@@ -148,8 +144,8 @@ function psp8_parse_v_local(io, mmax)
     v_local = Vector{Float64}(undef, mmax)
     for i in 1:mmax
         s = split(readline(io))
-        rgrid[i] = parse_fortran(Float64, s[2])
-        v_local[i] = parse_fortran(Float64, s[3])
+        rgrid[i] = _parse_fortran(Float64, s[2])
+        v_local[i] = _parse_fortran(Float64, s[3])
     end
 
     return (; l, rgrid, v_local)
@@ -214,18 +210,18 @@ function psp8_parse_nlcc(io, mmax)
     d4_rhoc_dr4 = Vector{Float64}(undef, mmax)
     for i in 1:mmax
         s = split(readline(io))
-        radial_grid[i] = parse_fortran(Float64, s[2])
+        radial_grid[i] = _parse_fortran(Float64, s[2])
         # These include the 4π factor
-        rhoc[i] = parse_fortran(Float64, s[3])
-        d_rhoc_dr[i] = parse_fortran(Float64, s[4])
-        d2_rhoc_dr2[i] = parse_fortran(Float64, s[5])
-        d3_rhoc_dr3[i] = parse_fortran(Float64, s[6])
-        d4_rhoc_dr4[i] = parse_fortran(Float64, s[7])
+        rhoc[i] = _parse_fortran(Float64, s[3])
+        d_rhoc_dr[i] = _parse_fortran(Float64, s[4])
+        d2_rhoc_dr2[i] = _parse_fortran(Float64, s[5])
+        d3_rhoc_dr3[i] = _parse_fortran(Float64, s[6])
+        d4_rhoc_dr4[i] = _parse_fortran(Float64, s[7])
     end
     return (; rhoc, d_rhoc_dr, d2_rhoc_dr2, d3_rhoc_dr3, d4_rhoc_dr4)
 end
 
-function Psp8PsP(io::IO)
+function Psp8File(io::IO)
     header = psp8_parse_header(io)
     main_blocks = psp8_parse_main_blocks(io, header.mmax, header.nproj, header.lmax,
                                          header.lloc)
@@ -244,81 +240,31 @@ function Psp8PsP(io::IO)
         nlcc = (rhoc=nothing, d_rhoc_dr=nothing, d2_rhoc_dr2=nothing, d3_rhoc_dr3=nothing,
                 d4_rhoc_dr4=nothing)
     end
-    return Psp8PsP(header, main_blocks.rgrid, main_blocks.v_local, main_blocks.projectors,
+    return Psp8File(header, main_blocks.rgrid, main_blocks.v_local, main_blocks.projectors,
                    main_blocks.ekb, spin_orbit.projectors, spin_orbit.ekb,
                    nlcc.rhoc, nlcc.d_rhoc_dr, nlcc.d2_rhoc_dr2, nlcc.d3_rhoc_dr3,
                    nlcc.d4_rhoc_dr4)
 end
 
-function Psp8PsP(path::AbstractString)
+function Psp8File(path::AbstractString)
     open(path, "r") do io
-        return Psp8PsP(io)
+        return Psp8File(io)
     end
 end
 
-function element(psp::Psp8PsP)::PeriodicTable.Element
-    return PeriodicTable.elements[round(Int, psp.header.zatom)]
-end
-max_angular_momentum(psp::Psp8PsP)::Int = psp.header.lmax
-n_projector_radials(psp::Psp8PsP, l::Integer)::Int = psp.header.nproj[l + 1]
-n_pseudo_orbitals(::Psp8PsP)::Int = 0
-valence_charge(psp::Psp8PsP)::Float64 = psp.header.zion
-is_paw(::Psp8PsP)::Bool = false
-is_ultrasoft(::Psp8PsP)::Bool = false
-is_norm_conserving(::Psp8PsP)::Bool = true
-is_coulomb(::Psp8PsP)::Bool = false
-has_spin_orbit(psp::Psp8PsP)::Bool = psp.header.extension_switch in (2, 3)
-has_nlcc(psp::Psp8PsP)::Bool = psp.header.fchrg > 0
-relativistic_treatment(psp::Psp8PsP)::Symbol = has_spin_orbit(psp) ? :full : :scalar
-formalism(::Psp8PsP)::Symbol = :norm_conserving
-format_name(::Psp8PsP) = "PSP v8"
-dr(psp::Psp8PsP) = mean(diff(psp.rgrid))
-
-function get_projector_radial(psp::Psp8PsP, l::Integer, n::Integer)::Vector{Float64}
-    return psp.projectors[l + 1][n]
+function _parse_fortran(::Type{T}, x::AbstractString) where {T<:Real}
+    return parse(T, replace(lowercase(x), "d" => "e"))
 end
 
-function e_kb(psp::Psp8PsP, l::Integer, n::Integer)::Vector{Float64}
-    return psp.ekb[l][n]
+format(::Psp8File)::String = "PSP8"
+function element(file::Psp8File)::PeriodicTable.Element
+    return PeriodicTable.elements[Int(file.header.zatom)]
 end
-
-function local_potential_real(psp::Psp8PsP, r::T)::T where {T<:Real}
-    interpolator = linear_interpolation((psp.rgrid,), psp.v_local)
-    return interpolator(r)
-end
-
-function local_potential_fourier(psp::Psp8PsP, q::T)::T where {T<:Real}
-    v_corr_fourier = local_potential_correction_fourier(psp, q)
-    @. integrand = psp.rgrid^2 * sphericalbesselj_fast(0, q * psp.rgrid) *
-                   (psp.v_local - local_potential_correction_real(psp, psp.rgrid))
-    return 4T(π) * simpson(integrand, dr(psp)) + v_corr_fourier
-end
-
-function projector_radial_real(psp::Psp8PsP, l::Integer, n::Integer,
-                               r::T)::T where {T<:Real}
-    projector = get_projector_radial(psp, l, n)
-    interpolator = linear_interpolation((psp.rgrid,), projector)
-    return interpolator(r)
-end
-
-function projector_radial_fourier(psp::Psp8PsP, l::Integer, n::Integer,
-                                  q::T)::T where {T<:Real}
-    projector = get_projector_radial(psp, l, n)
-    @. integrand = psp.rgrid^2 * sphericalbesselj_fast(l, q * psp.rgrid) * projector
-    return 4T(π) * trapezoid(integrand, dr(psp))
-end
-
-function pseudo_energy_correction(psp::Psp8PsP)::Float64
-    v_local_corrected = psp.v_local - local_potential_correction_real.(psp, psp.rgrid)
-    return 4Float64(π) * trapezoid(v_local_corrected, dr(psp))
-end
-
-function core_charge_density_real(psp::Psp8PsP, r::T)::T where {T<:Real}
-    interpolator = linear_interpolation((psp.rgrid,), psp.rhoc)
-    return interpolator(r)
-end
-
-function core_charge_density_fourier(psp::Psp8PsP, q::T)::T where {T<:Real}
-    @. integrand = psp.rgrid^2 * sphericalbesselj_fast(0, q * psp.rgrid) * psp.rhoc
-    return trapezoid(integrand, dr(psp))
-end
+formalism(::Psp8File)::Symbol = :norm_conserving
+relativistic_treatment(file::Psp8File)::Symbol = has_spin_orbit(file) ? :scalar : :full
+has_spin_orbit(file::Psp8File)::Bool = file.header.extension_switch in (2, 3)
+has_nlcc(file::Psp8File)::Bool = file.header.fchrg > 0
+valence_charge(file::Psp8File)::Float64 = file.header.zion
+max_angular_momentum(file::Psp8File)::Int = file.header.lmax
+n_projectors(file::Psp8File)::Int = sum(file.header.nproj)
+n_pseudo_orbitals(::Psp8File)::Int = 0

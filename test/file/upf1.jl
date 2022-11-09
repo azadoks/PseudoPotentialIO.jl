@@ -1,7 +1,7 @@
 @testset "UPF v1.old" begin
     @testset "Internal data consistency" begin
-        for (root, dirs, files) in walkdir("./upf1/"), file in files
-            psp = UpfPsP(joinpath(root, file))
+        for (root, dirs, files) in walkdir("./data/upf1/"), file in files
+            psp = load_psp_file(joinpath(root, file))
 
             @test format(psp) == "UPF v1.old"
 
@@ -25,7 +25,7 @@
     end
 
     @testset "ag_lda_v1.4.uspp.F.upf" begin
-        psp = UpfPsP("upf1/ag_lda_v1.4.uspp.F.upf")
+        psp = load_psp_file("./data/upf1/ag_lda_v1.4.uspp.F.upf")
 
         header = psp.header
         @test isnothing(header.generated)
@@ -196,7 +196,7 @@
     end
 
     @testset "B_pbe_v1.01.uspp.F.upf" begin
-        psp = UpfPsP("upf1/B_pbe_v1.01.uspp.F.upf")
+        psp = load_psp_file("./data/upf1/B_pbe_v1.01.uspp.F.upf")
 
         header = psp.header
         @test isnothing(header.generated)
@@ -363,7 +363,7 @@
     end
 
     @testset "si_pbesol_v1.uspp.F.upf" begin
-        psp = UpfPsP("upf1/si_pbesol_v1.uspp.F.upf")
+        psp = load_psp_file("./data/upf1/si_pbesol_v1.uspp.F.upf")
 
         header = psp.header
         @test isnothing(header.generated)
@@ -534,7 +534,7 @@
     end
 
     @testset "mg_pbe_v1.4.uspp.F.upf" begin
-        psp = UpfPsP("upf1/mg_pbe_v1.4.uspp.F.upf")
+        psp = load_psp_file("./data/upf1/mg_pbe_v1.4.uspp.F.upf")
 
         header = psp.header
         @test isnothing(header.generated)
