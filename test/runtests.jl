@@ -27,11 +27,11 @@ include("fixtures.jl")
         include("file/upf.jl")
     end
 
-    if any(in.(("all", "file", "upf1"), Ref(TAGS)))
+    if any(in.(("all", "file", "upf", "upf1"), Ref(TAGS)))
         include("file/upf1.jl")
     end
 
-    if any(in.(("all", "file", "upf2"), Ref(TAGS)))
+    if any(in.(("all", "file", "upf", "upf2"), Ref(TAGS)))
         include("file/upf2.jl")
     end
 

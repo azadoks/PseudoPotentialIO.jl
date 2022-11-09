@@ -12,10 +12,16 @@
                 @test isnothing(augmentation.multipoles)
 
                 if augmentation.nqf > 0
-                    @test !isnothing(augmentation.qfcoeff)
-                    #TODO @test length(augmentation.qfcoeff) ==
+                    @test !isnothing(augmentation.qfcoefs)
+                    @test length(augmentation.qfcoefs) ==
+                          (file.header.number_of_proj * (file.header.number_of_proj + 1) /
+                           2)
+                    for qfcoef in augmentation.qfcoefs
+                        @test length(qfcoef.qfcoef) ==
+                              augmentation.nqf * (2file.header.l_max + 1)
+                    end
                 else
-                    @test isnothing(augmentation.qfcoeff)
+                    @test isnothing(augmentation.qfcoefs)
                 end
 
                 @test !isnothing(augmentation.rinner)
@@ -132,9 +138,9 @@
         @test augmentation.q[1, 2] == augmentation.q[2, 1] == 2.26500592008E-01
         @test augmentation.q[6, 6] == 1.84734674885E+00
 
-        @test length(augmentation.qfcoeff) == 21
-        @test augmentation.qfcoeff[1][5] == -3.73585933729E+00
-        @test augmentation.qfcoeff[2][5] == 1.37859649853E+00
+        @test length(augmentation.qfcoefs) == 21
+        @test augmentation.qfcoefs[1].qfcoef[5] == -3.73585933729E+00
+        @test augmentation.qfcoefs[2].qfcoef[5] == 1.37859649853E+00
 
         @test all(r -> r == 1.30000000000E+00, augmentation.rinner)
 
@@ -307,22 +313,22 @@
         for qij in augmentation.qijs
             @test length(qij.qij) == file.header.mesh_size
         end
-        @test length(augmentation.qfcoeff) == 10
+        @test length(augmentation.qfcoefs) == 10
 
         @test augmentation.qijs[1].first_index == 1
         @test augmentation.qijs[1].second_index == 1
         @test augmentation.qijs[1].qij[5] == -1.94859515081E-09
-        @test augmentation.qfcoeff[1][5] == -7.21237350451E+01
+        @test augmentation.qfcoefs[1].qfcoef[5] == -7.21237350451E+01
 
         @test augmentation.qijs[2].first_index == 1
         @test augmentation.qijs[2].second_index == 2
         @test augmentation.qijs[2].qij[5] == -1.53409489684E-09
-        @test augmentation.qfcoeff[2][5] == -5.60931726792E+01
+        @test augmentation.qfcoefs[2].qfcoef[5] == -5.60931726792E+01
 
         @test augmentation.qijs[10].first_index == 4
         @test augmentation.qijs[10].second_index == 4
         @test augmentation.qijs[10].qij[5] == 1.57362794452E-08
-        @test augmentation.qfcoeff[10][5] == 7.28024914160E+02
+        @test augmentation.qfcoefs[10].qfcoef[5] == 7.28024914160E+02
 
         @test isnothing(augmentation.qijls)
         @test isnothing(augmentation.nqlc)
@@ -479,22 +485,22 @@
         for qij in augmentation.qijs
             @test length(qij.qij) == file.header.mesh_size
         end
-        @test length(augmentation.qfcoeff) == 21
-
+        @test length(augmentation.qfcoefs) == 21
+        
         @test augmentation.qijs[1].first_index == 1
         @test augmentation.qijs[1].second_index == 1
         @test augmentation.qijs[1].qij[5] == 2.30032305636E-12
-        @test augmentation.qfcoeff[1][5] == -2.28802388683E+02
+        @test augmentation.qfcoefs[1].qfcoef[5] == -2.28802388683E+02
 
         @test augmentation.qijs[2].first_index == 1
         @test augmentation.qijs[2].second_index == 2
         @test augmentation.qijs[2].qij[5] == 1.69389615913E-10
-        @test augmentation.qfcoeff[2][5] == -7.09913657883E+01
+        @test augmentation.qfcoefs[2].qfcoef[5] == -7.09913657883E+01
 
         @test augmentation.qijs[21].first_index == 6
         @test augmentation.qijs[21].second_index == 6
         @test augmentation.qijs[21].qij[5] == 5.14863218160E-12
-        @test augmentation.qfcoeff[21][5] == 1.02352656213E+02
+        @test augmentation.qfcoefs[21].qfcoef[5] == 1.02352656213E+02
 
         @test isnothing(augmentation.qijls)
         @test isnothing(augmentation.nqlc)
@@ -657,22 +663,22 @@
         for qij in augmentation.qijs
             @test length(qij.qij) == file.header.mesh_size
         end
-        @test length(augmentation.qfcoeff) == 28
+        @test length(augmentation.qfcoefs) == 28
 
         @test augmentation.qijs[1].first_index == 1
         @test augmentation.qijs[1].second_index == 1
         @test augmentation.qijs[1].qij[5] == 2.32704360102E-14
-        @test augmentation.qfcoeff[1][5] == 3.43676888927E+02
+        @test augmentation.qfcoefs[1].qfcoef[5] == 3.43676888927E+02
 
         @test augmentation.qijs[2].first_index == 1
         @test augmentation.qijs[2].second_index == 2
         @test augmentation.qijs[2].qij[5] == -1.08277556385E-14
-        @test augmentation.qfcoeff[2][5] == -1.10516062036E+02
+        @test augmentation.qfcoefs[2].qfcoef[5] == -1.10516062036E+02
 
         @test augmentation.qijs[28].first_index == 7
         @test augmentation.qijs[28].second_index == 7
         @test augmentation.qijs[28].qij[5] == -4.33337772184E-16
-        @test augmentation.qfcoeff[28][5] == -5.52962873366E+01
+        @test augmentation.qfcoefs[28].qfcoef[5] == -5.52962873366E+01
 
         @test isnothing(augmentation.qijls)
         @test isnothing(augmentation.nqlc)

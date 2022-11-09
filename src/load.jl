@@ -10,15 +10,12 @@ function load_psp_file(path::AbstractString)
     error("Unsupported file extension $(ext)")
 end
 
-function load_psp(path::AbstractString)
-    file = load_psp_file(path)
-    return load_psp(file)
-end
-
 function load_psp(file::PsPFile)
     formalism(file) == :norm_conserving && return NormConservingPsP(file)
     formalism(file) == :ultrasoft && return UltrasoftPsP(file)
     error("Unsupported formalism $(formalism(file))")
 end
-
 load_psp(file::HghFile) = HghPsP(file)
+
+load_psp(path::AbstractString) = return load_psp(load_psp_file(path))
+load_psp(dir::AbstractString, filename::AbstractString) = load_psp(joinpath(dir, filename))

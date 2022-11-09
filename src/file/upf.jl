@@ -109,6 +109,13 @@ struct UpfQijl
     is_null::Union{Nothing,Bool}
 end
 
+struct UpfQfcoef
+    qfcoef::Vector{Float64}
+    angular_momentum::Union{Nothing,Int}
+    first_index::Union{Nothing,Int}
+    second_index::Union{Nothing,Int}
+end
+
 """
 $TYPEDEF
 
@@ -127,7 +134,7 @@ struct UpfAugmentation
     multipoles::Union{Nothing,Vector{Float64}}
     """Coefficients used to perform a Taylor expansion of the augmentation functions at
     small radii (NB: compulsory if `nqf > 0`, ignored otherwise)"""
-    qfcoeff::Union{Nothing,Vector{Vector{Float64}}}
+    qfcoefs::Union{Nothing,Vector{UpfQfcoef}}
     rinner::Union{Nothing,Vector{Float64}}
     "If `q_with_l` is false, the augmentation functions for `i,j in 1:number_of_proj`"
     qijs::Union{Nothing,Vector{UpfQij}}

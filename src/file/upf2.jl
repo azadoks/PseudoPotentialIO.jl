@@ -131,29 +131,30 @@ function upf2_parse_augmentation(node::EzXML.Node)
         multipoles = parse.(Float64, split(strip(nodecontent(multipoles_node))))
     end
 
-    qfcoeff_node = findfirst("PP_QFCOEFF", node)
-    if isnothing(qfcoeff_node)
-        qfcoeff = nothing
+    qfcoef_node = findfirst("PP_QFCOEF", node)
+    if isnothing(qfcoef_node)
+        qfcoefs = nothing
     else
-        qfcoeff = parse.(Float64, split(strip(nodecontent(qfcoeff_node))))
+        error("Cannot parse UPF v2.0.1 with PP_QFCOEF")
+        # qfcoefs = parse.(Float64, split(strip(nodecontent(qfcoef_node))))
     end
 
     rinner_node = findfirst("PP_RINNER", node)
     if isnothing(rinner_node)
         rinner = nothing
     else
-        rinner = parse.(Float64, split(strip(nodecontent(rinner_node))))
+        error("Cannot parse UPF v2.0.1 with PP_RINNER")
+        # rinner = parse.(Float64, split(strip(nodecontent(rinner_node))))
     end
 
-    # qij_nodes = filter(node -> occursin("PP_QIJ.", nodename(node)), eachnode(node))
     qij_nodes = [n for n in eachnode(node) if occursin("PP_QIJ.", nodename(n))]
     if isempty(qij_nodes)
         qijs = nothing
     else
-        qijs = upf2_parse_qij.(qij_nodes)
+        error("Cannot parse UPF v2.0.1 with PP_QIJ.i.j")
+        # qijs = upf2_parse_qij.(qij_nodes)
     end
 
-    # qijl_nodes = filter(node -> occursin("PP_QIJL.", nodename(node)), eachnode(node))
     qijl_nodes = [n for n in eachnode(node) if occursin("PP_QIJL.", nodename(n))]
     if isempty(qijl_nodes)
         qijls = nothing
@@ -163,7 +164,7 @@ function upf2_parse_augmentation(node::EzXML.Node)
 
     @assert !isnothing(qijs) | !isnothing(qijls)
 
-    return UpfAugmentation(q, multipoles, qfcoeff, rinner, qijs, qijls, q_with_l, nqf, nqlc,
+    return UpfAugmentation(q, multipoles, qfcoefs, rinner, qijs, qijls, q_with_l, nqf, nqlc,
                            shape, iraug, raug, l_max_aug, augmentation_epsilon, cutoff_r,
                            cutoff_r_index)
 end
@@ -194,14 +195,12 @@ function upf2_parse_beta(node::EzXML.Node)
 end
 
 function upf2_parse_nonlocal(node::EzXML.Node)
-    # beta_nodes = filter(node -> occursin("PP_BETA.", nodename(node)), eachnode(node))
     beta_nodes = [n for n in eachnode(node) if occursin("PP_BETA.", nodename(n))]
     betas = upf2_parse_beta.(beta_nodes)
 
     dij_node = findfirst("PP_DIJ", node)
-    # dij_size = get_attr(Int, dij_node, "size")
-    dij_vector = parse.(Float64, split(strip(nodecontent(dij_node))))
-    dij = reshape(dij_vector, length(betas), length(betas))
+    dij = parse.(Float64, split(strip(nodecontent(dij_node))))
+    dij = reshape(dij, length(betas), length(betas))
 
     augmentation_node = findfirst("PP_AUGMENTATION", node)
     if isnothing(augmentation_node)

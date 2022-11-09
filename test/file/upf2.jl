@@ -9,7 +9,6 @@
             if psp.header.is_ultrasoft | psp.header.is_paw
                 augmentation = psp.nonlocal.augmentation
 
-                @test isnothing(augmentation.qfcoeff)
                 @test isnothing(augmentation.rinner)
 
                 if psp.header.is_paw

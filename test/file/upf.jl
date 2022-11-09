@@ -14,95 +14,100 @@
 
     @testset "Internal data consistency" begin
         @testset "$filepath" for filepath in filepaths
-            psp = load_psp_file(filepath)
+            file = load_psp_file(filepath)
 
-            @test haskey(PeriodicTable.elements, Symbol(psp.header.element))
-            z_atom = PeriodicTable.elements[Symbol(psp.header.element)].number
-            @test psp.header.z_valence <= z_atom
+            @test haskey(PeriodicTable.elements, Symbol(file.header.element))
+            z_atom = PeriodicTable.elements[Symbol(file.header.element)].number
+            @test file.header.z_valence <= z_atom
 
-            if psp.header.pseudo_type == "PAW"
-                @test psp.header.is_paw
-                @test psp.header.is_ultrasoft
-                @test !psp.header.is_coulomb
-            elseif psp.header.pseudo_type in ("US", "USPP")
-                @test psp.header.is_ultrasoft
-                @test !any((psp.header.is_paw, psp.header.is_coulomb))
-            elseif psp.header.pseudo_type == "1/r"
-                @test psp.header.is_coulomb
-                @test !any((psp.header.is_paw, psp.header.is_ultrasoft))
+            if file.header.pseudo_type == "PAW"
+                @test file.header.is_paw
+                @test file.header.is_ultrasoft
+                @test !file.header.is_coulomb
+            elseif file.header.pseudo_type in ("US", "USPP")
+                @test file.header.is_ultrasoft
+                @test !any((file.header.is_paw, file.header.is_coulomb))
+            elseif file.header.pseudo_type == "1/r"
+                @test file.header.is_coulomb
+                @test !any((file.header.is_paw, file.header.is_ultrasoft))
             else
-                @test psp.header.pseudo_type in ("NC", "SL")
+                @test file.header.pseudo_type in ("NC", "SL")
             end
 
-            if psp.header.is_ultrasoft | psp.header.is_paw
-                @test !isnothing(psp.nonlocal.augmentation)
-                augmentation = psp.nonlocal.augmentation
+            if file.header.is_ultrasoft | file.header.is_paw
+                @test !isnothing(file.nonlocal.augmentation)
+                augmentation = file.nonlocal.augmentation
 
-                @test size(augmentation.q) == (psp.header.number_of_proj,
-                                               psp.header.number_of_proj)
+                @test size(augmentation.q) == (file.header.number_of_proj,
+                                               file.header.number_of_proj)
 
                 if augmentation.q_with_l
                     @test isnothing(augmentation.qijs)
                     @test !isnothing(augmentation.qijls)
-                    #TODO @test (length(augmentation.qijls) ==
+                    nqijl = 0
+                    for i in 1:file.header.number_of_proj, j in i:file.header.number_of_proj
+                        li = file.nonlocal.betas[i].angular_momentum
+                        lj = file.nonlocal.betas[j].angular_momentum
+                        for l in abs(li - lj):2:(li + lj)
+                            nqijl += 1
+                        end
+                    end
+                    @test length(augmentation.qijls) == nqijl
                 else
                     @test !isnothing(augmentation.qijs)
                     @test isnothing(augmentation.qijls)
-                    n_proj = psp.header.number_of_proj
                     @test (length(augmentation.qijs) ==
-                           psp.header.number_of_proj
-                           *
-                           (psp.header.number_of_proj + 1) / 2)
+                           file.header.number_of_proj * (file.header.number_of_proj + 1) / 2)
                 end
             else
-                @test isnothing(psp.nonlocal.augmentation)
+                @test isnothing(file.nonlocal.augmentation)
             end
-            if psp.header.is_coulomb
+            if file.header.is_coulomb
                 #? What else should be missing in this case?
-                @test isnothing(psp.local_)
+                @test isnothing(file.local_)
             else
-                @test !isnothing(psp.local_)
-                @test length(psp.local_) == psp.header.mesh_size
+                @test !isnothing(file.local_)
+                @test length(file.local_) == file.header.mesh_size
             end
 
-            if psp.header.core_correction
-                @test !isnothing(psp.nlcc)
-                @test length(psp.nlcc) == psp.header.mesh_size
+            if file.header.core_correction
+                @test !isnothing(file.nlcc)
+                @test length(file.nlcc) == file.header.mesh_size
             end
 
-            if psp.header.has_so
-                @test !isnothing(psp.spin_orb)
-                @test length(psp.spin_orb.relbetas) == psp.header.number_of_proj
-                @test length(psp.spin_orb.relwfcs) == psp.header.number_of_wfc
+            if file.header.has_so
+                @test !isnothing(file.spin_orb)
+                @test length(file.spin_orb.relbetas) == file.header.number_of_proj
+                @test length(file.spin_orb.relwfcs) == file.header.number_of_wfc
             end
 
-            if psp.header.has_gipaw
-                @test !isnothing(psp.gipaw)
+            if file.header.has_gipaw
+                @test !isnothing(file.gipaw)
                 #TODO check the contents
             else
-                @test isnothing(psp.gipaw)
+                @test isnothing(file.gipaw)
             end
 
-            if psp.header.number_of_wfc > 0
-                @test length(psp.pswfc) == psp.header.number_of_wfc
+            if file.header.number_of_wfc > 0
+                @test length(file.pswfc) == file.header.number_of_wfc
             else
-                @test isnothing(psp.pswfc)
+                @test isnothing(file.pswfc)
             end
 
-            if psp.header.has_wfc
-                @test !isnothing(psp.full_wfc)
+            if file.header.has_wfc
+                @test !isnothing(file.full_wfc)
                 #TODO check contents
             else
-                @test isnothing(psp.full_wfc)
+                @test isnothing(file.full_wfc)
             end
 
-            @test (length(psp.mesh.r) == length(psp.mesh.rab) == psp.header.mesh_size)
-            if !isnothing(psp.mesh.mesh)
-                @test psp.mesh.mesh == psp.header.mesh_size
+            @test (length(file.mesh.r) == length(file.mesh.rab) == file.header.mesh_size)
+            if !isnothing(file.mesh.mesh)
+                @test file.mesh.mesh == file.header.mesh_size
             end
 
-            @test length(psp.nonlocal.betas) == psp.header.number_of_proj
-            for beta in psp.nonlocal.betas
+            @test length(file.nonlocal.betas) == file.header.number_of_proj
+            for beta in file.nonlocal.betas
                 @test length(beta.beta) == beta.cutoff_radius_index
             end
         end

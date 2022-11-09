@@ -212,7 +212,7 @@ function upf1_parse_augmentation(io::IO, mesh_size::Int, number_of_proj::Int, l_
 
     q = zeros(Float64, number_of_proj, number_of_proj)
     qijs = UpfQij[]
-    qfcoeff = Vector{Float64}[]
+    qfcoefs = UpfQfcoef[]
 
     for i in 1:number_of_proj, _ in i:number_of_proj
         s = split(readline(io))
@@ -224,7 +224,7 @@ function upf1_parse_augmentation(io::IO, mesh_size::Int, number_of_proj::Int, l_
         qij = read_mesh_data(Float64, io, mesh_size)
 
         read_until(io, "<PP_QFCOEF>")
-        qfcoeff_ij = read_mesh_data(Float64, io, nqf * (2l_max + 1))
+        qfcoef = read_mesh_data(Float64, io, nqf * (2l_max + 1))
         read_until(io, "</PP_QFCOEF>")
 
         is_null = nothing
@@ -233,7 +233,7 @@ function upf1_parse_augmentation(io::IO, mesh_size::Int, number_of_proj::Int, l_
         q[first_index, second_index] = Q_int
         q[second_index, first_index] = Q_int
         push!(qijs, UpfQij(qij, first_index, second_index, composite_index, is_null))
-        push!(qfcoeff, qfcoeff_ij)
+        push!(qfcoefs, UpfQfcoef(qfcoef, first_index, second_index, composite_index))
     end
 
     multipoles = nothing
@@ -248,7 +248,7 @@ function upf1_parse_augmentation(io::IO, mesh_size::Int, number_of_proj::Int, l_
     cutoff_r = nothing
     cutoff_r_index = nothing
 
-    augmentation = UpfAugmentation(q, multipoles, qfcoeff, rinner, qijs, qijls, q_with_l,
+    augmentation = UpfAugmentation(q, multipoles, qfcoefs, rinner, qijs, qijls, q_with_l,
                                    nqf, nqlc, shape, iraug, raug, l_max_aug,
                                    augmentation_epsilon, cutoff_r, cutoff_r_index)
     seek(io, pos)

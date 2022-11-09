@@ -52,7 +52,6 @@ function _upf_construct_us_internal(upf::UpfFile)
     q = OffsetVector(map(i -> collect(q_upf[(cum_nβ[i] + 1):cum_nβ[i + 1],
                                             (cum_nβ[i] + 1):cum_nβ[i + 1]]),
                          1:(length(cum_nβ) - 1)), 0:nc.lmax)
-    #TODO: reconstruct Q(r) for r < rinner for UPF v1.old
     if upf.nonlocal.augmentation.q_with_l
         Q = OffsetVector([Matrix{Vector{Float64}}(undef, sum(nβ), sum(nβ)) for l in 0:nc.lmax], 0:nc.lmax)
         for l in 0:nc.lmax
@@ -61,11 +60,44 @@ function _upf_construct_us_internal(upf::UpfFile)
                 Q[l][Q_upf.first_index, Q_upf.second_index] = Q_upf.qijl
             end
         end
-    else
-        Q = OffsetVector([Matrix{Vector{Float64}}(undef, sum(nβ), sum(nβ)) for l in 0:0], 0:0)
-        for Q_upf in upf.nonlocal.augmentation.qijs
-            Q[0][Q_upf.first_index, Q_upf.second_index] = Q_upf.qij
+    elseif upf.nonlocal.augmentation.nqf > 0
+        #TODO reconstruct Q(r) for r < rinner for UPF v1.old
+        #TODO not sure if this is right
+        r = upf.mesh.r
+        nqf = upf.nonlocal.augmentation.nqf
+        nqlc = 2upf.header.l_max + 1
+
+        Q = OffsetVector([Matrix{Vector{Float64}}(undef, sum(nβ), sum(nβ)) for l in 0:2nc.lmax], 0:2nc.lmax)
+        for l in 0:2nc.lmax, i in 1:sum(nβ), j in 1:sum(nβ)
+            Q[l][i,j] = zeros(length(upf.mesh.r))
         end
+        for (Q_upf, Qfcoef_upf) in zip(upf.nonlocal.augmentation.qijs, upf.nonlocal.augmentation.qfcoefs)
+            qij = copy(Q_upf.qij)
+            qfcoef = reshape(Qfcoef_upf.qfcoef, nqf, nqlc)
+            rinner = upf.nonlocal.augmentation.rinner
+
+            i = Q_upf.first_index
+            j = Q_upf.second_index
+
+            li = upf.nonlocal.betas[i].angular_momentum
+            lj = upf.nonlocal.betas[j].angular_momentum
+
+            for l in abs(li - lj):2:(li + lj)
+                for ir in eachindex(r)
+                    if r[ir] < rinner[l + 1]
+                        qij[ir] = qfcoef[1,l + 1]
+                        for n in 2:nqf
+                            qij[ir] += qfcoef[n, l + 1] * r[ir]^(2n)
+                        end
+                        qij[ir] *= r[ir]^(l + 2)
+                    end
+                end
+                Q[l][Q_upf.first_index, Q_upf.second_index] = qij
+                Q[l][Q_upf.second_index, Q_upf.first_index] = qij
+            end
+        end
+    else
+        error("q_with_l = false and nqf == 0, unsure what to do...")
     end
     return UltrasoftPsP{Float64}(nc.Ztot, nc.Zval, nc.lmax, nc.r, nc.dr, nc.Vloc, nc.β,
                                  nc.β_ircut, nc.D, nc.ϕ̃, nc.ϕ̃_ircut, Q, q, nc.ρcore, nc.ρval)
