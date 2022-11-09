@@ -102,5 +102,5 @@ has_spin_orbit(::HghFile)::Bool = false
 has_nlcc(::HghFile)::Bool = false
 valence_charge(psp::HghFile)::Float64 = sum(psp.zion)
 max_angular_momentum(psp::HghFile)::Int = psp.lmax
-n_projectors(psp::HghFile)::Int = sum(length, psp.h)
+n_projectors(psp::HghFile)::Int = sum(map(l -> size(psp.h[l + 1]), 0:psp.lmax))
 n_pseudo_orbitals(::HghFile)::Int = 0

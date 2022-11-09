@@ -34,10 +34,10 @@ function NormConservingPsP(upf::UpfFile)
     if (upf.header.relativistic == "full") | upf.header.has_so | (!isnothing(upf.spin_orb))
         error("Fully relativistic pseudos are not supported")
     end
-    return _construct_nc_internal(upf)
+    return _upf_construct_nc_internal(upf)
 end
 
-function _construct_nc_internal(upf::UpfFile)
+function _upf_construct_nc_internal(upf::UpfFile)
     # There are two possible units schemes for the projectors and coupling coefficients:
     # β [Ry Bohr^{-1/2}]  D [Ry^{-1}]
     # β [Bohr^{-1/2}]     D [Ry]
@@ -194,11 +194,17 @@ function NormConservingPsP(psp8::Psp8File)
     r = psp8.rgrid
     dr = mean(diff(r))
     Vloc = psp8.v_local
-    #TODO find β ircut, cut off β
-    β = OffsetVector(map(l -> map(i -> psp8.projectors[l + 1][i],
-                                  eachindex(psp8.projectors[l + 1])), 0:lmax), 0:lmax)
-    β_ircut = OffsetVector(map(l -> map(i -> length(β[l][i]), eachindex(β[l])), 0:lmax),
-                           0:lmax)
+    
+    β = map(0:lmax) do l
+        map(eachindex(psp8.projectors[l + 1])) do i
+            proj = psp8.projectors[l + 1][i]
+            ircut = findfirst(i -> mean(abs.(proj[i:end])) < 1e-12, eachindex(proj))
+            isnothing(ircut) ? proj : proj[1:ircut]
+        end
+    end
+    β = OffsetVector(β, 0:lmax)
+
+    β_ircut = OffsetVector(map(l -> length.(β[l]), 0:lmax), 0:lmax)
     D = OffsetVector(map(l -> diagm(psp8.ekb[l + 1]), 0:lmax), 0:lmax)
     ϕ̃ = nothing
     ϕ̃_ircut = nothing

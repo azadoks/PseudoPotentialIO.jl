@@ -38,11 +38,11 @@ function UltrasoftPsP(upf::UpfFile)
     if (upf.header.relativistic == "full") | upf.header.has_so | (!isnothing(upf.spin_orb))
         error("Fully relativistic pseudos are not supported")
     end
-    return _construct_us_internal(upf)
+    return _upf_construct_us_internal(upf)
 end
 
-function _construct_us_internal(upf::UpfFile)
-    nc = _construct_nc_internal(upf)
+function _upf_construct_us_internal(upf::UpfFile)
+    nc = _upf_construct_nc_internal(upf)
     # Number of projectors at each angular momentum
     nβ = OffsetVector(length.(nc.β), 0:nc.lmax)
     # Find the first/last indices in upf.nonlocal.dij for each angular momentum so the 

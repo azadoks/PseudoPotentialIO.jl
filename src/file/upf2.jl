@@ -1,7 +1,7 @@
-parse_bool(s::AbstractString) = occursin("T", uppercase(s)) ? true : false
-parse_bool(s::Char) = uppercase(s) == 'T' ? true : false
+parse_bool(s::AbstractString)::Bool = occursin("T", uppercase(s)) ? true : false
+parse_bool(s::Char)::Bool = uppercase(s) == 'T' ? true : false
 
-function get_attr(::Type{T}, node::EzXML.Node, key; default=nothing) where {T<:Number}
+function get_attr(::Type{T}, node::EzXML.Node, key; default=nothing)::Union{Nothing,T} where {T<:Number}
     if haskey(node, key)
         value = strip(node[key])
         value = replace(uppercase(value), "D" => "E")
@@ -13,11 +13,11 @@ function get_attr(::Type{T}, node::EzXML.Node, key; default=nothing) where {T<:N
 end
 
 function get_attr(::Type{T}, node::EzXML.Node, key;
-                  default=nothing) where {T<:AbstractString}
+                  default=nothing)::Union{Nothing,T} where {T<:AbstractString}
     return haskey(node, key) ? T(strip(node[key])) : default
 end
 
-function get_attr(::Type{Bool}, node::EzXML.Node, key; default=nothing)
+function get_attr(::Type{Bool}, node::EzXML.Node, key; default=nothing)::Union{Nothing,Bool}
     return haskey(node, key) ? parse_bool(strip(node[key])) : default
 end
     

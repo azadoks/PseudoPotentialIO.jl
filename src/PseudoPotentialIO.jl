@@ -60,8 +60,8 @@ export core_charge_density_real
 export core_charge_density_fourier
 export valence_charge_density_real
 export valence_charge_density_fourier
-export pseudo_orbital_radial_real
-export pseudo_orbital_radial_fourier
+export pseudo_orbital_real
+export pseudo_orbital_fourier
 include("psp/psp.jl")
 
 export NumericPsP

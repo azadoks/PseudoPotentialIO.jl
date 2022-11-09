@@ -4,8 +4,8 @@ struct HghPsP{T} <: AnalyticalPsP
     lmax::Int
     rloc::T
     cloc::Vector{T}
-    rnl::Vector{T}
-    D::Vector{Matrix{T}}
+    rnl::OffsetVector{T,Vector{T}}
+    D::OffsetVector{Matrix{T},Vector{Matrix{T}}}
 end
 
 function HghPsP(file::HghFile)
@@ -20,8 +20,11 @@ function HghPsP(file::HghFile)
         cloc = [cloc; zeros(Float64, n_extra)]
     end
 
-    return HghPsP(Zatom, sum(Float64.(file.zion)), Int(file.lmax), file.rloc, cloc, file.rp,
-                  file.h)
+    rnl = OffsetVector(file.rp, 0:file.lmax)
+    D = OffsetVector(file.h, 0:file.lmax)
+
+    return HghPsP{Float64}(Zatom, sum(Float64.(file.zion)), file.lmax, file.rloc, cloc,
+                           rnl, D)
 end
 
 @doc raw"""
@@ -82,10 +85,11 @@ can be brought to the form ``Q(t) exp(-t^2 / 2)`` where ``t = r_l q``
 and `Q` is a polynomial. This function returns `Q`.
 """
 # @inline function projector_polynomial_fourier(psp::HghPsP, l, n, t=Polynomial([0.0, 1.0]))
-@inline function projector_polynomial_fourier(psp::HghPsP, l::Int, n::Int, x::T)::T where {T<:Real}
+@inline function projector_polynomial_fourier(psp::HghPsP, l::Int, n::Int,
+                                              x::T)::T where {T<:Real}
     @assert 0 <= l <= length(psp.rnl) - 1
     @assert n > 0
-    rnl = psp.rnl[l + 1]
+    rnl = psp.rnl[l]
     common = 4π^(5 / 4) * sqrt(2^(l + 1) * rnl^3)
 
     # Note: In the (l == 0 && i == 2) case the HGH paper has an error.
@@ -112,23 +116,23 @@ end
 # `eval_psp_projector_fourier(psp, q)` is a strictly decreasing function.
 # """
 # function qcut_psp_projector(psp::HghPsP{T}, l::Int, n::Int)::T where {T}
-#     Q = projector_polynomial_fourier(psp, l, n)  # polynomial in q * rnl[l + 1]
+#     Q = projector_polynomial_fourier(psp, l, n)  # polynomial in q * rnl[l]
 
 #     # Find the roots of the derivative polynomial:
 #     res = roots(derivative(Q) - Polynomial([0, 1]) * Q)
 #     res = T[r for r in res if abs(imag(r)) < 100eps(T)]
-#     return maximum(res; init=zero(T)) / psp.rnl[l + 1]
+#     return maximum(res; init=zero(T)) / psp.rnl[l]
 # end
 
 # [HGH98] (7-15) except they do it with plane waves normalized by 1/sqrt(Ω).
 function projector_fourier(psp::HghPsP, l::Int, n::Int, q::T)::T where {T<:Real}
-    x::T = q * psp.rnl[l + 1]
+    x::T = q * psp.rnl[l]
     return projector_polynomial_fourier(psp, l, n, x) * exp(-x^2 / 2)
 end
 
 # [HGH98] (3)
 function projector_real(psp::HghPsP, l::Int, n::Int, r::T)::T where {T<:Real}
-    rnl = T(psp.rnl[l + 1])
+    rnl = T(psp.rnl[l])
     ired = (4n - 1) / T(2)
     return sqrt(T(2)) * r^(l + 2(n - 1)) * exp(-r^2 / 2rnl^2) / rnl^(l + ired) /
            sqrt(gamma(l + ired))
@@ -154,8 +158,6 @@ relativistic_treatment(::HghPsP)::Symbol = :scalar
 valence_charge(psp::HghPsP)::Float64 = psp.Zval
 has_nlcc(::HghPsP)::Bool = false
 max_angular_momentum(psp::HghPsP)::Int = psp.lmax
-n_projectors(psp::HghPsP)::Int = sum([size(psp.D[l + 1], 1) for l in 0:(psp.lmax)])
 n_pseudo_orbitals(::HghPsP)::Int = 0
-n_projectors(psp::HghPsP)::Int = sum(length, psp.rnl)
-n_projectors(psp::HghPsP, l::Int)::Int = length(psp.rnl[l + 1])
-max_angular_momentum(psp::HghPsP)::Int = psp.lmax
+n_projectors(psp::HghPsP, l::Int)::Int = size(psp.D[l], 1)
+n_projectors(psp::HghPsP)::Int = sum(n_projectors, 0:psp.lmax)
