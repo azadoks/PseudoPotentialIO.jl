@@ -1,20 +1,20 @@
 @testset "UPF" begin
-    pseudo_family_dirs = [artifact"gbrv_pbe_1.5_upf", artifact"hgh_lda_upf",
-                          artifact"sg15_2022.02.06_upf",
-                          artifact"sssp_pbe_efficiency_1.1.2_upf"]
-    pseudo_files = []
-    for dir in pseudo_family_dirs
+    dirs = [artifact"gbrv_pbe_1.5_upf", artifact"hgh_lda_upf",
+            artifact"sg15_2022.02.06_upf", artifact"sssp_pbe_efficiency_1.1.2_upf"]
+
+    filepaths = []
+    for dir in dirs
         (_, _, files) = first(walkdir(dir))
         for file in files
             if file[1] != '.'  # Hack to avoid hidden files
-                push!(pseudo_files, joinpath(dir, file),)
+                push!(filepaths, joinpath(dir, file))
             end
         end
     end
 
     @testset "Internal data consistency" begin
-        @testset "$file" for file in pseudo_files
-            psp = load_psp_file(file)
+        @testset "$filepath" for filepath in filepaths
+            psp = load_psp_file(filepath)
 
             @test haskey(PeriodicTable.elements, Symbol(psp.header.element))
             z_atom = PeriodicTable.elements[Symbol(psp.header.element)].number

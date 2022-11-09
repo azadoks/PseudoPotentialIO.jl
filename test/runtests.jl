@@ -41,6 +41,10 @@ include("fixtures.jl")
         include("file/hgh.jl")
     end
 
+    if any(in.(("all", "psp", "numeric"), Ref(TAGS)))
+        include("psp/numeric.jl")
+    end
+
     if any(in.(("all", "psp", "numeric", "norm_conserving"), Ref(TAGS)))
         include("psp/norm_conserving.jl")
     end
@@ -49,7 +53,11 @@ include("fixtures.jl")
         include("psp/ultrasoft.jl")
     end
 
-    if any(in.(("all", "psp", "analytical", "hgh"), Ref(TAGS)))
-        include("psp/hgh.jl")
+    if any(in.(("all", "psp", "analytical"), Ref(TAGS)))
+        include("psp/analytical.jl")
+    end
+
+    if any(in.(("all", "psp", "upf_hgh"), Ref(TAGS)))
+        include("psp/upf_hgh.jl")
     end
 end
