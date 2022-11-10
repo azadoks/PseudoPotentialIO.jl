@@ -76,6 +76,7 @@ function _upf_construct_us_internal(upf::UpfFile)
     elseif upf.nonlocal.augmentation.nqf > 0
         #TODO check correctness
         r = upf.mesh.r
+        r2 = upf.mesh.^2
         nqf = upf.nonlocal.augmentation.nqf
         nqlc = 2upf.header.l_max + 1
 
@@ -105,24 +106,16 @@ function _upf_construct_us_internal(upf::UpfFile)
                 #     if r[ir] < rinner[l + 1]
                 #         qij[ir] = qfcoef[1, l + 1]
                 #         for n in 2:nqf
-                #             qij[ir] += qfcoef[n, l + 1] * r[ir]^(2n)
+                #             qij[ir] += qfcoef[n, l + 1] * r[ir]^(2 * (n-1))
                 #         end
                 #         qij[ir] *= r[ir]^(l + 2)
                 #     end
                 # end
 
-                #TODO not sure why this isn't equivalent
-                # poly = Polynomial(qfcoef[:, l + 1])
-                # qij[1:ircut] = r[1:ircut].^(l + 2) .* poly.(r[1:ircut].^2)
-
                 qij = copy(Q_upf.qij)
                 ircut = findfirst(i -> r[i] > rinner[l + 1], eachindex(r)) - 1
-
-                qij[1:ircut] .= qfcoef[1, l + 1]
-                for n in 2:nqf
-                    qij[1:ircut] .+= qfcoef[n, l + 1] .* r[1:ircut] .^ (2n)
-                end
-                qij[1:ircut] .*= r[1:ircut] .^ (l + 2)
+                poly = Polynomial(qfcoef[:, l + 1])
+                qij[1:ircut] = r[1:ircut].^(l + 2) .* poly.(r2[1:ircut])
 
                 Q[l][Q_upf.first_index, Q_upf.second_index] = qij
                 Q[l][Q_upf.second_index, Q_upf.first_index] = qij
