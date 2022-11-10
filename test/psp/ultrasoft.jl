@@ -10,11 +10,11 @@
         end
         @testset "Dy.GGA-PBE-paw-v1.0.UPF" begin
             file = load_psp_file(upf2_filepaths["Dy.GGA-PBE-paw-v1.0.UPF"])
-            @test_throws "Provided `UpfFile` is not an ultra" UltrasoftPsP(file)
+            @test_throws ErrorException("Provided `UpfFile` is not an ultrasoft pseudo") UltrasoftPsP(file)
         end
         @testset "Mg_nc-fr-04_pbesol_stringent.upf" begin
             file = load_psp_file(upf2_filepaths["Mg.upf"])
-            @test_throws "Provided `UpfFile` is not an ultra" UltrasoftPsP(file)
+            @test_throws ErrorException("Provided `UpfFile` is not an ultrasoft pseudo") UltrasoftPsP(file)
         end
     end
 end

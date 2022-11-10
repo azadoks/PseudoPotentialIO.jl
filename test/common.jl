@@ -54,7 +54,7 @@ import PseudoPotentialIO: trapezoid, simpson
             end
         end
         for l in 6:10
-            @test_throws "The case l = $l is not implemented" fast_sphericalbesselj(l, 1.0)
+            @test_throws ErrorException("The case l = $l is not implemented") fast_sphericalbesselj(l, 1.0)
             @test fast_sphericalbesselj(l, 0.0) == 0.0
         end
     end
