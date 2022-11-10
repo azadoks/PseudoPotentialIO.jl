@@ -257,14 +257,15 @@ function _parse_fortran(::Type{T}, x::AbstractString) where {T<:Real}
 end
 
 format(::Psp8File)::String = "PSP8"
-function element(file::Psp8File)::PeriodicTable.Element
-    return PeriodicTable.elements[Int(file.header.zatom)]
+function element(file::Psp8File)::String
+    return PeriodicTable.elements[Int(file.header.zatom)].symbol
 end
-formalism(::Psp8File)::Symbol = :norm_conserving
-relativistic_treatment(file::Psp8File)::Symbol = has_spin_orbit(file) ? :scalar : :full
 has_spin_orbit(file::Psp8File)::Bool = file.header.extension_switch in (2, 3)
 has_nlcc(file::Psp8File)::Bool = file.header.fchrg > 0
+is_norm_conserving(file::Psp8File)::Bool = true
+is_ultrasoft(file::Psp8File)::Bool = false
+is_paw(file::Psp8File)::Bool = false
 valence_charge(file::Psp8File)::Float64 = file.header.zion
 max_angular_momentum(file::Psp8File)::Int = file.header.lmax
-n_projectors(file::Psp8File)::Int = sum(file.header.nproj)
-n_pseudo_orbitals(::Psp8File)::Int = 0
+n_projectors(file::Psp8File, l::Int)::Int = file.header.nproj[l + 1]
+n_pseudo_orbitals(::Psp8File, l::Int)::Int = 0

@@ -417,20 +417,17 @@ function _get_upf_version(path::AbstractString)::Int
 end
 
 format(file::UpfFile)::String = "UPF v$(file.version)"
-function element(file::UpfFile)::PeriodicTable.Element
-    return PeriodicTable.elements[Symbol(file.header.element)]
-end
-function formalism(file::UpfFile)::Symbol
-    file.header.pseudo_type == "PAW" && return :paw
-    file.header.pseudo_type in ("US", "USPP") && return :ultrasoft
-    file.header.pseudo_type == "NC" && return :norm_conserving
-    file.header.pseudo_type == "1/r" && return :coulomb
-    file.header.pseudo_type == "SL" && return :semilocal
-end
-relativistic_treatment(file::UpfFile)::Symbol = has_spin_orbit(file) ? :scalar : :full
+element(file::UpfFile)::String = file.header.element
+is_norm_conserving(file::UpfFile)::Bool = file.header.pseudo_type == "NC"
+is_ultrasoft(file::UpfFile)::Bool = file.header.pseudo_type in ("US", "USPP")
+is_paw(file::UpfFile)::Bool = file.header.pseudo_type == "PAW"
 has_spin_orbit(file::UpfFile)::Bool = file.header.has_so
 has_nlcc(file::UpfFile)::Bool = file.header.core_correction
 valence_charge(file::UpfFile)::Float64 = file.header.z_valence
 max_angular_momentum(file::UpfFile)::Int = file.header.l_max
-n_projectors(file::UpfFile)::Int = file.header.number_of_proj
-n_pseudo_orbitals(file::UpfFile)::Int = file.header.number_of_wfc
+function n_projectors(file::UpfFile, l::Int)::Int
+    return count(beta -> beta.angular_momentum == l, file.nonlocal.betas)
+end
+function n_pseudo_orbitals(file::UpfFile, l::Int)::Int
+    return file.header.number_of_wfc == 0 ? 0 : count(chi -> chi.l == l, file.pswfc.pswfcs)
+end

@@ -1,18 +1,19 @@
 struct HghPsP{T} <: AnalyticalPsP
-    Zatom::T
+    "Valence charge"
     Zval::T
+    "Maximum angular momentum"
     lmax::Int
+    "Radial cutoff for the local part of the pseudopotential"
     rloc::T
+    "Polynomial coefficience of the local part of the pseudopotential"
     cloc::Vector{T}
+    "Radial cutoffs for the nonlocal projectors rnl[l]"
     rnl::OffsetVector{T,Vector{T}}
+    "Nonlocal projector coupling coefficients D[l][n,m]"
     D::OffsetVector{Matrix{T},Vector{Matrix{T}}}
 end
 
 function HghPsP(file::HghFile)
-    symbol = split(file.title)[1]
-    element = get(PeriodicTable.elements, Symbol(symbol), PeriodicTable.elements[:Og])
-    Zatom = Float64(element.number)
-
     cloc = file.cloc
     length(cloc) <= 4 || error("length(cloc) > 4 not supported.")
     if length(cloc) < 4
@@ -23,17 +24,32 @@ function HghPsP(file::HghFile)
     rnl = OffsetVector(file.rp, 0:file.lmax)
     D = OffsetVector(file.h, 0:file.lmax)
 
-    return HghPsP{Float64}(Zatom, sum(Float64.(file.zion)), file.lmax, file.rloc, cloc,
+    return HghPsP{Float64}(sum(Float64.(file.zion)), file.lmax, file.rloc, cloc,
                            rnl, D)
 end
+
+function element(psp::HghPsP)::String
+
+end
+
+has_spin_orbit(::HghPsP)::Bool = false
+has_nlcc(::HghPsP)::Bool = false
+is_norm_conserving(::HghPsP)::Bool = true
+is_ultrasoft(::HghPsP)::Bool = true
+is_paw(::HghPsP)::Bool = true
+valence_charge(psp::HghPsP)::Float64 = psp.Zval
+max_angular_momentum(psp::HghPsP)::Int = psp.lmax
+n_projectors(psp::HghPsP, l::Int)::Int = size(psp.D[l], 1)
+n_pseudo_orbitals(::HghPsP)::Int = 0
+
+projector_coupling(psp::HghPsP, l::Int)::Matrix{Float64} = psp.D[l]
 
 @doc raw"""
 The local potential of a HGH pseudopotentials in reciprocal space
 can be brought to the form ``Q(t) / (t^2 exp(t^2 / 2))``
-where ``t = r_\text{loc} q`` and `Q`
+where ``x = r_\text{loc} q`` and `Q`
 is a polynomial of at most degree 8. This function returns `Q`.
 """
-# @inline function local_potential_polynomial_fourier(psp::HghPsP, x=Polynomial([0.0, 1.0]))
 @inline function local_potential_polynomial_fourier(psp::HghPsP, x::T)::T where {T<:Real}
     rloc = psp.rloc
     Zval = psp.Zval
@@ -54,19 +70,6 @@ function local_potential_fourier(psp::HghPsP, q::T)::T where {T<:Real}
     return local_potential_polynomial_fourier(psp, x) * exp(-x^2 / 2) / x^2
 end
 
-# @doc raw"""
-# Estimate an upper bound for the argument `q` after which
-# `abs(local_potential_fourier(psp, q))` is a strictly decreasing function.
-# """
-# function qcut_psp_local(psp::HghPsP{T})::T where {T<:Real}
-#     Q = local_potential_polynomial_fourier(psp)  # polynomial in t = q * rloc
-
-#     # Find the roots of the derivative polynomial:
-#     res = roots(Polynomial([0, 1]) * derivative(Q) - Polynomial([2, 0, 1]) * Q)
-#     res = T[r for r in res if abs(imag(r)) < 100eps(T)]
-#     return maximum(res; init=zero(T)) / psp.rloc
-# end
-
 # [GTH98] (1)
 function local_potential_real(psp::HghPsP, r::T)::T where {T<:Real}
     r == 0 && return local_potential_real(psp, eps(T)) # quick hack for the division by zero below
@@ -84,7 +87,6 @@ The nonlocal projectors of a HGH pseudopotentials in reciprocal space
 can be brought to the form ``Q(t) exp(-t^2 / 2)`` where ``t = r_l q``
 and `Q` is a polynomial. This function returns `Q`.
 """
-# @inline function projector_polynomial_fourier(psp::HghPsP, l, n, t=Polynomial([0.0, 1.0]))
 @inline function projector_polynomial_fourier(psp::HghPsP, l::Int, n::Int,
                                               x::T)::T where {T<:Real}
     @assert 0 <= l <= length(psp.rnl) - 1
@@ -110,19 +112,6 @@ and `Q` is a polynomial. This function returns `Q`.
 
     return error("Not implemented for l=$l and i=$n")
 end
-
-# @doc raw"""
-# Estimate an upper bound for the argument `q` after which
-# `eval_psp_projector_fourier(psp, q)` is a strictly decreasing function.
-# """
-# function qcut_psp_projector(psp::HghPsP{T}, l::Int, n::Int)::T where {T}
-#     Q = projector_polynomial_fourier(psp, l, n)  # polynomial in q * rnl[l]
-
-#     # Find the roots of the derivative polynomial:
-#     res = roots(derivative(Q) - Polynomial([0, 1]) * Q)
-#     res = T[r for r in res if abs(imag(r)) < 100eps(T)]
-#     return maximum(res; init=zero(T)) / psp.rnl[l]
-# end
 
 # [HGH98] (7-15) except they do it with plane waves normalized by 1/sqrt(Ω).
 function projector_fourier(psp::HghPsP, l::Int, n::Int, q::T)::T where {T<:Real}
@@ -151,13 +140,3 @@ function pseudo_energy_correction(psp::HghPsP{T})::T where {T<:Real}
     # to get energy per unit cell
     return 4π * difference_DC
 end
-
-formalism(::HghPsP)::Symbol = :norm_conserving
-element(psp::HghPsP)::PeriodicTable.Element = PeriodicTable.elements[Int(psp.Zatom)]
-relativistic_treatment(::HghPsP)::Symbol = :scalar
-valence_charge(psp::HghPsP)::Float64 = psp.Zval
-has_nlcc(::HghPsP)::Bool = false
-max_angular_momentum(psp::HghPsP)::Int = psp.lmax
-n_pseudo_orbitals(::HghPsP)::Int = 0
-n_projectors(psp::HghPsP, l::Int)::Int = size(psp.D[l], 1)
-n_projectors(psp::HghPsP)::Int = sum(n_projectors, 0:psp.lmax)

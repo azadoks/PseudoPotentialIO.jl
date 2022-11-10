@@ -214,4 +214,4 @@ function NormConservingPsP(psp8::Psp8File)
                                       ϕ̃_ircut, ρcore, ρval)
 end
 
-formalism(::NormConservingPsP)::Symbol = :norm_conserving
+is_norm_conserving(::NormConservingPsP)::Bool = true

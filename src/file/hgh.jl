@@ -87,20 +87,18 @@ HghFile(path::AbstractString) = HghFile(readlines(path))
 HghFile(io::IO) = HghFile(readlines(io))
 
 format(::HghFile)::String = "HGH"
-function element(psp::HghFile)::PeriodicTable.Element
-    try
-        symbol = split(psp.title)[1]
-        element = PeriodicTable.elements[Symbol(symbol)]
-    catch
-        element = "??"
-    end
-    return element
+function element(psp::HghFile)::String
+    title = split(psp.title)
+    isempty(title) && return "??"
+    symbol = title[1]
+    return haskey(PeriodicTable.elements, Symbol(symbol)) ? symbol : "??"
 end
-formalism(::HghFile)::Symbol = :norm_conserving
-relativistic_treatment(::HghFile)::Symbol = :scalar
 has_spin_orbit(::HghFile)::Bool = false
 has_nlcc(::HghFile)::Bool = false
+is_norm_conserving(::HghFile)::Bool = true
+is_ultrasoft(::HghFile)::Bool = false
+is_paw(::HghFile)::Bool = false
 valence_charge(psp::HghFile)::Float64 = sum(psp.zion)
 max_angular_momentum(psp::HghFile)::Int = psp.lmax
-n_projectors(psp::HghFile)::Int = sum(map(l -> size(psp.h[l + 1]), 0:psp.lmax))
-n_pseudo_orbitals(::HghFile)::Int = 0
+n_projectors(psp::HghFile, l::Int)::Int = size(psp.h[l + 1])
+n_pseudo_orbitals(::HghFile, l)::Int = 0

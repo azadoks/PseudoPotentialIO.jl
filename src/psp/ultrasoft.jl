@@ -44,7 +44,7 @@ end
 function _upf_construct_us_internal(upf::UpfFile)
     nc = _upf_construct_nc_internal(upf)
     # Number of projectors at each angular momentum
-    nβ = OffsetVector(length.(nc.β), 0:nc.lmax)
+    nβ = OffsetVector(length.(nc.β), 0:(nc.lmax))
     # Find the first/last indices in upf.nonlocal.dij for each angular momentum so the 
     # sub-arrays q[l][n,m] can be extracted
     cum_nβ = [0, cumsum(nβ)...]
@@ -62,6 +62,7 @@ function _upf_construct_us_internal(upf::UpfFile)
                           for l in 0:(2upf.header.l_max)], 0:(2upf.header.l_max))
         for l in 0:(2upf.header.l_max), i in 1:(upf.header.number_of_proj),
             j in 1:(upf.header.number_of_proj)
+
             Q[l][i, j] = zeros(length(upf.mesh.r))
         end
         for l in 0:(2upf.header.l_max)
@@ -83,6 +84,7 @@ function _upf_construct_us_internal(upf::UpfFile)
                           for l in 0:(2upf.header.l_max)], 0:(2upf.header.l_max))
         for l in 0:(2upf.header.l_max), i in 1:(upf.header.number_of_proj),
             j in 1:(upf.header.number_of_proj)
+
             Q[l][i, j] = zeros(length(upf.mesh.r))
         end
         for (Q_upf, Qfcoef_upf) in
@@ -109,18 +111,18 @@ function _upf_construct_us_internal(upf::UpfFile)
                 #     end
                 # end
 
+                #TODO not sure why this isn't equivalent
+                # poly = Polynomial(qfcoef[:, l + 1])
+                # qij[1:ircut] = r[1:ircut].^(l + 2) .* poly.(r[1:ircut].^2)
+
                 qij = copy(Q_upf.qij)
                 ircut = findfirst(i -> r[i] > rinner[l + 1], eachindex(r)) - 1
 
                 qij[1:ircut] .= qfcoef[1, l + 1]
                 for n in 2:nqf
-                    qij[1:ircut] .+= qfcoef[n, l + 1] .* r[1:ircut].^(2n)
+                    qij[1:ircut] .+= qfcoef[n, l + 1] .* r[1:ircut] .^ (2n)
                 end
-                qij[1:ircut] .*= r[1:ircut].^(l + 2)
-
-                #TODO not sure why this isn't working
-                # poly = Polynomial(qfcoef[:, l + 1])
-                # qij[1:ircut] = r[1:ircut].^(l + 2) .* poly.(r[1:ircut].^2)
+                qij[1:ircut] .*= r[1:ircut] .^ (l + 2)
 
                 Q[l][Q_upf.first_index, Q_upf.second_index] = qij
                 Q[l][Q_upf.second_index, Q_upf.first_index] = qij
@@ -134,7 +136,9 @@ function _upf_construct_us_internal(upf::UpfFile)
                                  nc.ρval)
 end
 
-formalism(::UltrasoftPsP)::Symbol = :ultrasoft
+is_ultrasoft(::UltrasoftPsP)::Bool = true
+
+#TODO test the augmentation functions
 
 function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int)::Matrix{T} where {T<:Real}
     return psp.q[l]
@@ -149,7 +153,23 @@ function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int,
     return psp.q[l][n, m]
 end
 
-function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, q::T)::T where {T<:Real}
-    f = @. psp.r^2 * fast_sphericalbesselj0(q * r) * psp.Q[l][n]
+function augmentation_real(psp::UltrasoftPsP, l::Int, n::Int, m::Int,
+                           r::T)::T where {T<:Real}
+    return interpolate((psp.r,), psp.Q[l][n, m], (Gridded(Linear()),))(r)
+end
+
+function augmentation_real(psp::UltrasoftPsP, l::Int, n::Int, m::Int,
+                           R::AbstractVector{T})::T where {T<:Real}
+    return augmentation_real(psp, l, n, m, norm(R))
+end
+
+function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int,
+                              q::T)::T where {T<:Real}
+    f = @. psp.r^2 * fast_sphericalbesselj0(q * r) * psp.Q[l][n, m]
     return 4π * trapezoid(f, psp.dr)
+end
+
+function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int,
+                              K::AbstractVector{T})::T where {T<:Real}
+    return augmentation_fourier(psp, l, n, m, norm(K))
 end

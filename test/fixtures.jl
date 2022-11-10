@@ -1,3 +1,8 @@
+families = (artifact"gbrv_lda_1.5_upf", artifact"sssp_pbe_precision_1.1.2_upf",
+            artifact"hgh_lda_hgh", artifact"hgh_pbe_upf",
+            artifact"pd_nc_sr_pbe_standard_0.4.1_psp8",
+            artifact"pd_nc_fr_pbesol_standard_0.4_psp8", artifact"sg15_2022.02.06_upf")
+
 upf1_filepaths = Dict("ag_lda_v1.4.uspp.F.UPF" => artifact"gbrv_lda_1.5_upf",
                       "B_pbe_v1.01.uspp.F.UPF" => artifact"sssp_pbe_precision_1.1.2_upf",
                       "si_pbesol_v1.uspp.F.UPF" => artifact"gbrv_pbesol_1.5_upf",
@@ -23,7 +28,6 @@ psp8_filepaths = Dict(key => joinpath(value, key) for (key, value) in psp8_filep
 hgh_filepaths = Dict("c-q4.hgh" => artifact"hgh_lda_hgh",
                      "ni-q18.hgh" => artifact"hgh_lda_hgh")
 hgh_filepaths = Dict(key => joinpath(value, key) for (key, value) in hgh_filepaths)
-
 
 upf2_hgh_pairs = [("H.pbe-hgh.UPF", "h-q1.hgh"),
                   ("He.pbe-hgh.UPF", "he-q2.hgh"),
@@ -69,4 +73,4 @@ upf2_hgh_pairs = [("H.pbe-hgh.UPF", "h-q1.hgh"),
                   ("At.pbe-hgh.UPF", "at-q7.hgh"),
                   ("Rn.pbe-hgh.UPF", "rn-q8.hgh")]
 upf2_hgh_pairs = [(joinpath(artifact"hgh_pbe_upf", pair[1]),
-                  joinpath(artifact"hgh_pbe_hgh", pair[2])) for pair in upf2_hgh_pairs]
+                   joinpath(artifact"hgh_pbe_hgh", pair[2])) for pair in upf2_hgh_pairs]

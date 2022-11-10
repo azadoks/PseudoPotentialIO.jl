@@ -1,7 +1,39 @@
+@doc raw"""
+Abstract type representing a pseudopotential file.
+
+The structure of the data should closely mirror the format of the file, and the values
+of quantities should be exactly those found in the file.
+
+Required methods:
+
+```julia
+# A short string listing the file format (e.g. `"PSP8"`)
+function format(file::PsPFile)::AbstractString end
+# The symbol of the element for which the file contains a pseudopotential (e.g. `"Ag"`)
+function elemental_symbol(file::PsPFile)::AbstractString end
+# The maximum angular momentum channel contained in the file
+function max_angular_momentum(file::PsPFile)::Integer end
+# The number of non-local projectors for angular momentum `l` contained in the file
+function n_projectors(file::PsPFile, l::Integer)::Integer end
+# The number of pseudo-atomic orbitals for angular momentum `l` contained in the file
+function n_pseudo_orbitals(file::PsPFile, l::Integer)::Integer end
+# The pseudo-atomic valence charge
+function valence_charge(file::PsPFile)::Real end
+# Whether the file contains a norm-conserving pseudopotential
+function is_norm_conserving(file::PsPFile)::Bool end
+# Whether the file contains an ultrasoft pseudopotential
+function is_ultrasoft(file::PsPFile)::Bool end
+# Whether the file contains a projector-augmented wave pseudopotential
+function is_paw(file::PsPFile)::Bool end
+# Whether the file contains a pseudopotential supporting spin-orbit coupled calculations
+function has_spin_orbit(file::PsPFile)::Bool end
+# Whether the file contains a pseudopotential supporting non-linear core corrections
+function has_nlcc(file::PsPFile)::Bool end
+```
+"""
 abstract type PsPFile end
 
-Base.Broadcast.broadcastable(file::PsPFile) = Ref(file)
-
+#!!! Required functions !!!#
 """
 $(SIGNATURES)
 
@@ -12,9 +44,9 @@ function format(file::PsPFile) end
 """
 $(SIGNATURES)
 
-Element which the pseudopotential was constructed to reproduce.
+Short symbol of the element which the pseudopotential was constructed to reproduce.
 """
-function element(file::PsPFile)::PeriodicTable.Element end
+function elemental_symbol(file::PsPFile) end
 
 """
 $(SIGNATURES)
@@ -34,29 +66,9 @@ function n_projectors(file::PsPFile, l) end
 """
 $(SIGNATURES)
 
-Number of radial parts of the Kleinman-Bylander projectors at all angular momenta up
-to the maximum angular momentum channel.
-"""
-function n_projectors(file::PsPFile)
-    return sum(l -> n_projector_radials(file, l), 0:max_angular_momentum(file); init=0)
-end
-
-"""
-$(SIGNATURES)
-
 Number of radial parts of the pseudo-atomic wavefunctions with angular momentum `l`.
 """
 function n_pseudo_orbitals(file::PsPFile, l) end
-
-"""
-$(SIGNATURES)
-
-Number pseudo-atomic wavefunctions `R(r) * Ylm(R)` at angular momenta `l` up to the maximum
-angular momentum channel.
-"""
-function n_pseudo_orbitals(file::PsPFile)
-    return sum(n_pseudo_orbitals(file, l), 0:max_angular_momentum(file); init=0)
-end
 
 """
 $(SIGNATURES)
@@ -68,9 +80,9 @@ function valence_charge(file::PsPFile) end
 """
 $(SIGNATURES)
 
-Whether the pseudopotential is of the plane-augmented wave kind.
+Whether the pseudopotential is of the norm-conserving kind.
 """
-function is_paw(file::PsPFile) end
+function is_norm_conserving(file::PsPFile) end
 
 """
 $(SIGNATURES)
@@ -82,31 +94,9 @@ function is_ultrasoft(file::PsPFile) end
 """
 $(SIGNATURES)
 
-Whether the pseudopotential is of the norm-conserving kind.
+Whether the pseudopotential is of the plane-augmented wave kind.
 """
-function is_norm_conserving(file::PsPFile) end
-
-"""
-$(SIGNATURES)
-
-Whether the pseudopotential is of the Coulombic kind.
-"""
-function is_coulomb(file::PsPFile) end
-
-"""
-$(SIGNATURES)
-
-Formalism of the pseudopotential (norm-conserving, ultrasoft, projector-augmented wave,
-or Coulomb).
-"""
-function formalism(file::PsPFile)::Symbol
-    # The order here matters because some v2.0.1 PAW pseudos have both
-    # is_paw and is_ultrasoft
-    is_paw(file) && return :paw
-    is_ultrasoft(file) && return :ultrasoft
-    is_norm_conserving(file) && return :norm_conserving
-    is_coulomb(file) && return :coulomb
-end
+function is_paw(file::PsPFile) end
 
 """
 $(SIGNATURES)
@@ -118,6 +108,27 @@ function has_spin_orbit(file::PsPFile) end
 """
 $(SIGNATURES)
 
+Whether the pseudopotential contains non-linear core correction data (model core charge
+density).
+"""
+function has_nlcc(file::PsPFile) end
+
+#!!! Convenience functions !!!#
+"""
+$(SIGNATURES)
+
+Formalism of the pseudopotential (norm-conserving, ultrasoft, projector-augmented wave,
+or Coulomb).
+"""
+function formalism(file::PsPFile)::Symbol
+    is_paw(file) && return :paw
+    is_ultrasoft(file) && return :ultrasoft
+    is_norm_conserving(file) && return :norm_conserving
+end
+
+"""
+$(SIGNATURES)
+
 Type of relativistic treatment (fully relativistic or scalar-relativistic).
 """
 relativistic_treatment(file::PsPFile)::Symbol = has_spin_orbit(file) ? :full : :scalar
@@ -125,10 +136,24 @@ relativistic_treatment(file::PsPFile)::Symbol = has_spin_orbit(file) ? :full : :
 """
 $(SIGNATURES)
 
-Whether the pseudopotential contains non-linear core correction data (model core charge
-density).
+Number of radial parts of the Kleinman-Bylander nonlocal projectors at all angular momenta
+up to the maximum angular momentum channel.
 """
-function has_nlcc(file::PsPFile) end
+function n_projectors(file::PsPFile)
+    return sum(l -> n_projector_radials(file, l), 0:max_angular_momentum(file); init=0)
+end
+
+"""
+$(SIGNATURES)
+
+Number pseudo-atomic wavefunctions at all angular momenta up to the maximum angular momentum
+channel.
+"""
+function n_pseudo_orbitals(file::PsPFile)
+    return sum(n_pseudo_orbitals(file, l), 0:max_angular_momentum(file); init=0)
+end
+
+Base.Broadcast.broadcastable(file::PsPFile) = Ref(file)
 
 function Base.show(io::IO, file::PsPFile)
     typename = string(typeof(file))
@@ -140,7 +165,7 @@ end
 function Base.show(io::IO, ::MIME"text/plain", file::PsPFile)
     println(io, typeof(file))
     @printf "%032s: %s\n" "formalism" formalism(file)
-    @printf "%032s: %s\n" "element" element(file).symbol
+    @printf "%032s: %s\n" "element" element(file)
     @printf "%032s: %f\n" "valence charge" valence_charge(file)
     @printf "%032s: %s\n" "relativistic treatment" relativistic_treatment(file)
     @printf "%032s: %s\n" "non-linear core correction" has_nlcc(file)
