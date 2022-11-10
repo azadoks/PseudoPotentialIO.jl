@@ -247,11 +247,9 @@ function upf2_parse_relbeta(node::EzXML.Node)
 end
 
 function upf2_parse_spin_orb(node::EzXML.Node)
-    # relwfc_nodes = filter(node -> occursin("PP_RELWFC.", nodename(node)), eachnode(node))
     relwfc_nodes = [n for n in eachnode(node) if occursin("PP_RELWFC.", nodename(n))]
     relwfcs = upf2_parse_relwfc.(relwfc_nodes)
 
-    # relbeta_nodes = filter(node -> occursin("PP_RELBETA.", nodename(node)), eachnode(nodes))
     relbeta_nodes = [n for n in eachnode(node) if occursin("PP_RELBETA.", nodename(n))]
     relbetas = upf2_parse_relbeta.(relbeta_nodes)
 
@@ -271,11 +269,9 @@ function upf2_parse_wfc(node::EzXML.Node)
 end
 
 function upf2_parse_full_wfc(node::EzXML.Node)
-    # aewfc_nodes = filter(node -> occursin("PP_AEWFC", nodename(node)), eachnode(node))
     aewfc_nodes = [n for n in eachnode(node) if occursin("PP_AEWFC", nodename(n))]
     aewfcs = upf2_parse_wfc.(aewfc_nodes)
 
-    # pswfc_nodes = filter(node -> occursin("PP_PSWFC", nodename(node)), eachnode(node))
     pswfc_nodes = [n for n in eachnode(node) if occursin("PP_PSWFC", nodename(n))]
     pswfcs = upf2_parse_wfc.(pswfc_nodes)
 
@@ -296,11 +292,9 @@ function upf2_parse_paw(node::EzXML.Node)
     ae_vloc_node = findfirst("PP_AE_VLOC", node)
     ae_vloc = parse.(Float64, split(strip(nodecontent(ae_vloc_node))))
 
-    # aewfc_nodes = filter(node -> occursin("PP_AEWFC", nodename(node)), eachnode(node))
     aewfc_nodes = [n for n in eachnode(node) if occursin("PP_AEWFC", nodename(n))]
     aewfcs = upf2_parse_wfc.(aewfc_nodes)
 
-    # pswfc_nodes = filter(node -> occursin("PP_PSWFC", nodename(node)), eachnode(node))
     pswfc_nodes = [n for n in eachnode(node) if occursin("PP_PSWFC", nodename(n))]
     pswfcs = upf2_parse_wfc.(pswfc_nodes)
 
@@ -321,8 +315,6 @@ end
 function upf2_parse_gipaw(node::EzXML.Node)
     gipaw_data_format = get_attr(Int, node, "gipaw_data_format")
     core_orbitals_node = findfirst("PP_GIPAW_CORE_ORBITALS", node)
-    # core_orbital_nodes = filter(node -> occursin("PP_GIPAW_CORE_ORBITAL.", nodename(node)),
-    #                             eachnode(core_orbitals_node))
     core_orbital_nodes = [n for n in eachnode(core_orbitals_node)
                           if occursin("PP_GIPAW_CORE_ORBITAL.", nodename(n))]
     core_orbitals = upf2_parse_gipaw_core_orbital.(core_orbital_nodes)

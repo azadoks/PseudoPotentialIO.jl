@@ -22,7 +22,7 @@ struct UltrasoftPsP{T} <: NumericPsP{T}
     "Cutoff indices for nonlocal projectors"
     ϕ̃_ircut::OffsetVector{Vector{Int},Vector{Vector{Int}}}
     "Augmentation charge density functions Q[l][n,m] on the radial mesh"
-    Q::OffsetVector{Matrix{Vector{T}}, Vector{Matrix{Vector{T}}}}
+    Q::OffsetVector{Matrix{Vector{T}},Vector{Matrix{Vector{T}}}}
     "Augmentation charges q[l][n,m]"
     q::OffsetVector{Matrix{T},Vector{Matrix{T}}}
     "Model core charge density for non-linear core correction on the radial mesh"
@@ -51,28 +51,42 @@ function _upf_construct_us_internal(upf::UpfFile)
     q_upf = upf.nonlocal.augmentation.q
     q = OffsetVector(map(i -> collect(q_upf[(cum_nβ[i] + 1):cum_nβ[i + 1],
                                             (cum_nβ[i] + 1):cum_nβ[i + 1]]),
-                         1:(length(cum_nβ) - 1)), 0:nc.lmax)
+                         1:(length(cum_nβ) - 1)), 0:(nc.lmax))
+    # Wrangle the agumentation functions. For UPF v2.0.1, they are given with indeices
+    # i ∈ 1:nβ, j ∈ 1:nβ, l ∈ 0:2lmax. In the old format, they are given only at i and j
+    # with additional coefficients for a polynomial expansion within a cutoff radius
+    # These are used to reconstruct the full Qijl. 
     if upf.nonlocal.augmentation.q_with_l
-        Q = OffsetVector([Matrix{Vector{Float64}}(undef, sum(nβ), sum(nβ)) for l in 0:nc.lmax], 0:nc.lmax)
-        for l in 0:nc.lmax
-            Q_upf_l = filter(qijl -> qijl.angular_momentum == l, upf.nonlocal.augmentation.qijls)
+        Q = OffsetVector([Matrix{Vector{Float64}}(undef, upf.header.number_of_proj,
+                                                  upf.header.number_of_proj)
+                          for l in 0:(2upf.header.l_max)], 0:(2upf.header.l_max))
+        for l in 0:(2upf.header.l_max), i in 1:(upf.header.number_of_proj),
+            j in 1:(upf.header.number_of_proj)
+            Q[l][i, j] = zeros(length(upf.mesh.r))
+        end
+        for l in 0:(2upf.header.l_max)
+            Q_upf_l = filter(qijl -> qijl.angular_momentum == l,
+                             upf.nonlocal.augmentation.qijls)
             for Q_upf in Q_upf_l
                 Q[l][Q_upf.first_index, Q_upf.second_index] = Q_upf.qijl
+                Q[l][Q_upf.second_index, Q_upf.first_index] = Q_upf.qijl
             end
         end
     elseif upf.nonlocal.augmentation.nqf > 0
-        #TODO reconstruct Q(r) for r < rinner for UPF v1.old
-        #TODO not sure if this is right
+        #TODO check correctness
         r = upf.mesh.r
         nqf = upf.nonlocal.augmentation.nqf
         nqlc = 2upf.header.l_max + 1
 
-        Q = OffsetVector([Matrix{Vector{Float64}}(undef, sum(nβ), sum(nβ)) for l in 0:2nc.lmax], 0:2nc.lmax)
-        for l in 0:2nc.lmax, i in 1:sum(nβ), j in 1:sum(nβ)
-            Q[l][i,j] = zeros(length(upf.mesh.r))
+        Q = OffsetVector([Matrix{Vector{Float64}}(undef, upf.header.number_of_proj,
+                                                  upf.header.number_of_proj)
+                          for l in 0:(2upf.header.l_max)], 0:(2upf.header.l_max))
+        for l in 0:(2upf.header.l_max), i in 1:(upf.header.number_of_proj),
+            j in 1:(upf.header.number_of_proj)
+            Q[l][i, j] = zeros(length(upf.mesh.r))
         end
-        for (Q_upf, Qfcoef_upf) in zip(upf.nonlocal.augmentation.qijs, upf.nonlocal.augmentation.qfcoefs)
-            qij = copy(Q_upf.qij)
+        for (Q_upf, Qfcoef_upf) in
+            zip(upf.nonlocal.augmentation.qijs, upf.nonlocal.augmentation.qfcoefs)
             qfcoef = reshape(Qfcoef_upf.qfcoef, nqf, nqlc)
             rinner = upf.nonlocal.augmentation.rinner
 
@@ -83,15 +97,31 @@ function _upf_construct_us_internal(upf::UpfFile)
             lj = upf.nonlocal.betas[j].angular_momentum
 
             for l in abs(li - lj):2:(li + lj)
-                for ir in eachindex(r)
-                    if r[ir] < rinner[l + 1]
-                        qij[ir] = qfcoef[1,l + 1]
-                        for n in 2:nqf
-                            qij[ir] += qfcoef[n, l + 1] * r[ir]^(2n)
-                        end
-                        qij[ir] *= r[ir]^(l + 2)
-                    end
+                #* Reference implementation
+                # qij = copy(Q_upf.qij)
+                # for ir in eachindex(r) 
+                #     if r[ir] < rinner[l + 1]
+                #         qij[ir] = qfcoef[1, l + 1]
+                #         for n in 2:nqf
+                #             qij[ir] += qfcoef[n, l + 1] * r[ir]^(2n)
+                #         end
+                #         qij[ir] *= r[ir]^(l + 2)
+                #     end
+                # end
+
+                qij = copy(Q_upf.qij)
+                ircut = findfirst(i -> r[i] > rinner[l + 1], eachindex(r)) - 1
+
+                qij[1:ircut] .= qfcoef[1, l + 1]
+                for n in 2:nqf
+                    qij[1:ircut] .+= qfcoef[n, l + 1] .* r[1:ircut].^(2n)
                 end
+                qij[1:ircut] .*= r[1:ircut].^(l + 2)
+
+                #TODO not sure why this isn't working
+                # poly = Polynomial(qfcoef[:, l + 1])
+                # qij[1:ircut] = r[1:ircut].^(l + 2) .* poly.(r[1:ircut].^2)
+
                 Q[l][Q_upf.first_index, Q_upf.second_index] = qij
                 Q[l][Q_upf.second_index, Q_upf.first_index] = qij
             end
@@ -100,7 +130,8 @@ function _upf_construct_us_internal(upf::UpfFile)
         error("q_with_l = false and nqf == 0, unsure what to do...")
     end
     return UltrasoftPsP{Float64}(nc.Ztot, nc.Zval, nc.lmax, nc.r, nc.dr, nc.Vloc, nc.β,
-                                 nc.β_ircut, nc.D, nc.ϕ̃, nc.ϕ̃_ircut, Q, q, nc.ρcore, nc.ρval)
+                                 nc.β_ircut, nc.D, nc.ϕ̃, nc.ϕ̃_ircut, Q, q, nc.ρcore,
+                                 nc.ρval)
 end
 
 formalism(::UltrasoftPsP)::Symbol = :ultrasoft
@@ -113,7 +144,8 @@ function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int)::T where {T
     return psp.q[l][n, n]
 end
 
-function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int, m::Int)::T where {T<:Real}
+function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int,
+                               m::Int)::T where {T<:Real}
     return psp.q[l][n, m]
 end
 
