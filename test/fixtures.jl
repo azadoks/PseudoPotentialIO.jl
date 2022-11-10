@@ -20,6 +20,11 @@ psp8_filepaths = Dict("H.psp8" => artifact"pd_nc_sr_pbe_standard_0.4.1_psp8",
                       "Zn.psp8" => artifact"pd_nc_sr_pbesol_stringent_0.4.1_psp8")
 psp8_filepaths = Dict(key => joinpath(value, key) for (key, value) in psp8_filepaths)
 
+hgh_filepaths = Dict("c-q4.hgh" => artifact"hgh_lda_hgh",
+                     "ni-q18.hgh" => artifact"hgh_lda_hgh")
+hgh_filepaths = Dict(key => joinpath(value, key) for (key, value) in hgh_filepaths)
+
+
 upf2_hgh_pairs = [("H.pbe-hgh.UPF", "h-q1.hgh"),
                   ("He.pbe-hgh.UPF", "he-q2.hgh"),
                   ("B.pbe-hgh.UPF", "b-q3.hgh"),
