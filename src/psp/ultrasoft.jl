@@ -90,6 +90,7 @@ function _upf_construct_us_internal(upf::UpfFile)
         end
         for (Q_upf, Qfcoef_upf) in
             zip(upf.nonlocal.augmentation.qijs, upf.nonlocal.augmentation.qfcoefs)
+            # It's not worth the effort to make these offset zero-indexed for l.
             qfcoef = reshape(Qfcoef_upf.qfcoef, nqf, nqlc)
             rinner = upf.nonlocal.augmentation.rinner
 
@@ -100,18 +101,6 @@ function _upf_construct_us_internal(upf::UpfFile)
             lj = upf.nonlocal.betas[j].angular_momentum
 
             for l in abs(li - lj):2:(li + lj)
-                #* Reference implementation
-                # qij = copy(Q_upf.qij)
-                # for ir in eachindex(r) 
-                #     if r[ir] < rinner[l + 1]
-                #         qij[ir] = qfcoef[1, l + 1]
-                #         for n in 2:nqf
-                #             qij[ir] += qfcoef[n, l + 1] * r[ir]^(2 * (n-1))
-                #         end
-                #         qij[ir] *= r[ir]^(l + 2)
-                #     end
-                # end
-
                 qij = copy(Q_upf.qij)
                 ircut = findfirst(i -> r[i] > rinner[l + 1], eachindex(r)) - 1
                 poly = Polynomial(qfcoef[:, l + 1])
