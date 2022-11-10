@@ -1,4 +1,5 @@
 struct HghPsP{T} <: AnalyticalPsP
+    Zatom::Union{Nothing,T}
     "Valence charge"
     Zval::T
     "Maximum angular momentum"
@@ -14,6 +15,8 @@ struct HghPsP{T} <: AnalyticalPsP
 end
 
 function HghPsP(file::HghFile)
+    el = element(file)
+    Zatom = isnothing(el) ? nothing : PeriodicTable.elements[Symbol(el)].number
     cloc = file.cloc
     length(cloc) <= 4 || error("length(cloc) > 4 not supported.")
     if length(cloc) < 4
@@ -24,23 +27,20 @@ function HghPsP(file::HghFile)
     rnl = OffsetVector(file.rp, 0:file.lmax)
     D = OffsetVector(file.h, 0:file.lmax)
 
-    return HghPsP{Float64}(sum(Float64.(file.zion)), file.lmax, file.rloc, cloc,
+    return HghPsP{Float64}(Zatom, sum(Float64.(file.zion)), file.lmax, file.rloc, cloc,
                            rnl, D)
 end
 
-function element(psp::HghPsP)::String
-
-end
-
+element(psp::HghPsP)::String = PeriodicTable.elements[Int(psp.Zatom)].symbol
 has_spin_orbit(::HghPsP)::Bool = false
 has_nlcc(::HghPsP)::Bool = false
 is_norm_conserving(::HghPsP)::Bool = true
-is_ultrasoft(::HghPsP)::Bool = true
-is_paw(::HghPsP)::Bool = true
+is_ultrasoft(::HghPsP)::Bool = false
+is_paw(::HghPsP)::Bool = false
 valence_charge(psp::HghPsP)::Float64 = psp.Zval
 max_angular_momentum(psp::HghPsP)::Int = psp.lmax
 n_projectors(psp::HghPsP, l::Int)::Int = size(psp.D[l], 1)
-n_pseudo_orbitals(::HghPsP)::Int = 0
+n_pseudo_orbitals(::HghPsP, l::Int)::Int = 0
 
 projector_coupling(psp::HghPsP, l::Int)::Matrix{Float64} = psp.D[l]
 

@@ -55,7 +55,7 @@ end
 max_angular_momentum(psp::NumericPsP)::Int = psp.lmax
 n_projectors(psp::NumericPsP, l::Int)::Int = length(psp.β[l])
 n_pseudo_orbitals(psp::NumericPsP, l::Int)::Int = isnothing(psp.ϕ̃) ? 0 : length(psp.ϕ̃[l])
-valence_charge(psp::NumericPsP{T})::T = psp.Zval
+valence_charge(psp::NumericPsP) = psp.Zval
 has_spin_orbit(::NumericPsP)::Bool = false  # This is a current limitation
 has_nlcc(psp::NumericPsP)::Bool = !isnothing(psp.ρcore)
 
@@ -63,28 +63,29 @@ function projector_coupling(psp::NumericPsP{T}, l::Int)::Matrix{T} where {T<:Rea
     return psp.D[l]
 end
 
-#TODO test the *_real functions
-#TODO test `nothing` cases
+function local_potential_real(psp::NumericPsP, r::T)::T where {T<:Real}
+    return extrapolate(interpolate((psp.r,), psp.Vloc, (Gridded(Linear()),)), Flat())(r)
+end
 
 function projector_real(psp::NumericPsP, l::Int, n::Int, r::T)::T where {T<:Real}
-    return interpolate((psp.r,), psp.β[l][n], (Gridded(Linear()),))(r)
+    return extrapolate(interpolate((psp.r[1:psp.β_ircut[l][n]],), psp.β[l][n], (Gridded(Linear()),)), Flat())(r)
 end
 
 function pseudo_orbital_real(psp::NumericPsP, l::Int, n::Int,
                              r::T)::Union{Nothing,T} where {T<:Real}
     isnothing(psp.ϕ̃) && return nothing
-    return interpolate((psp.r,), psp.ϕ̃[l][n], (Gridded(Linear()),))(r)
+    return extrapolate(interpolate((psp.r[1:psp.ϕ̃_ircut[l][n]],), psp.ϕ̃[l][n], (Gridded(Linear()),)), Flat())(r)
 end
 
 function valence_charge_density_real(psp::NumericPsP,
                                      r::T)::Union{Nothing,T} where {T<:Real}
     isnothing(psp.ρval) && return nothing
-    return interpolate((psp.r,), psp.ρval, (Gridded(Linear()),))(r)
+    return extrapolate(interpolate((psp.r,), psp.ρval, (Gridded(Linear()),)), Flat())(r)
 end
 
 function core_charge_density_real(psp::NumericPsP, r::T)::Union{Nothing,T} where {T<:Real}
     !has_nlcc(psp) && return nothing
-    return interpolate((psp.r,), psp.ρcore, (Gridded(Linear()),))(r)
+    return extrapolate(interpolate((psp.r,), psp.ρcore, (Gridded(Linear()),)), Flat())(r)
 end
 
 function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}

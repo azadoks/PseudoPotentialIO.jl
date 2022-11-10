@@ -429,5 +429,5 @@ function n_projectors(file::UpfFile, l::Int)::Int
     return count(beta -> beta.angular_momentum == l, file.nonlocal.betas)
 end
 function n_pseudo_orbitals(file::UpfFile, l::Int)::Int
-    return file.header.number_of_wfc == 0 ? 0 : count(chi -> chi.l == l, file.pswfc.pswfcs)
+    return file.header.number_of_wfc == 0 ? 0 : count(chi -> chi.l == l, file.pswfc)
 end

@@ -140,7 +140,7 @@ Number of radial parts of the Kleinman-Bylander nonlocal projectors at all angul
 up to the maximum angular momentum channel.
 """
 function n_projectors(file::PsPFile)
-    return sum(l -> n_projector_radials(file, l), 0:max_angular_momentum(file); init=0)
+    return sum(l -> n_projectors(file, l), 0:max_angular_momentum(file); init=0)
 end
 
 """
@@ -150,7 +150,7 @@ Number pseudo-atomic wavefunctions at all angular momenta up to the maximum angu
 channel.
 """
 function n_pseudo_orbitals(file::PsPFile)
-    return sum(n_pseudo_orbitals(file, l), 0:max_angular_momentum(file); init=0)
+    return sum(l -> n_pseudo_orbitals(file, l), 0:max_angular_momentum(file); init=0)
 end
 
 Base.Broadcast.broadcastable(file::PsPFile) = Ref(file)

@@ -136,7 +136,9 @@ function _upf_construct_us_internal(upf::UpfFile)
                                  nc.ρval)
 end
 
+is_norm_conserving(::UltrasoftPsP)::Bool = false
 is_ultrasoft(::UltrasoftPsP)::Bool = true
+is_paw(::UltrasoftPsP)::Bool = false
 
 #TODO test the augmentation functions
 

@@ -6,6 +6,7 @@ using PeriodicTable
 using SpecialFunctions
 using Interpolations
 using QuadGK
+using Rotations
 
 import PseudoPotentialIO: fast_sphericalbesselj0, fast_sphericalbesselj
 
@@ -21,6 +22,10 @@ include("fixtures.jl")
 @testset "PseudoPotentialIO.jl" begin
     if any(in.(("all", "common"), Ref(TAGS)))
         include("common.jl")
+    end
+
+    if any(in.(("all", "file"), Ref(TAGS)))
+        include("file/file.jl")
     end
 
     if any(in.(("all", "file", "upf"), Ref(TAGS)))
@@ -41,6 +46,10 @@ include("fixtures.jl")
 
     if any(in.(("all", "file", "hgh"), Ref(TAGS)))
         include("file/hgh.jl")
+    end
+
+    if any(in.(("all", "psp"), Ref(TAGS)))
+        include("psp/psp.jl")
     end
 
     if any(in.(("all", "psp", "numeric"), Ref(TAGS)))

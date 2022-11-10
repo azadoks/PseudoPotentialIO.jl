@@ -18,9 +18,12 @@ import PeriodicTable
 export PsPFile
 export format
 export element
+export is_norm_conserving
+export is_ultrasoft
+export is_paw
 export formalism
-export relativistic_treatment
 export has_spin_orbit
+export relativistic_treatment
 export has_nlcc
 export valence_charge
 export max_angular_momentum
@@ -52,10 +55,10 @@ export n_projectors
 export n_pseudo_orbitals
 export local_potential_real
 export local_potential_fourier
-export pseudo_energy_correction
+export projector_coupling
 export projector_real
 export projector_fourier
-export projector_coupling
+export pseudo_energy_correction
 export core_charge_density_real
 export core_charge_density_fourier
 export valence_charge_density_real

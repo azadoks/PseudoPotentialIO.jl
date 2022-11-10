@@ -215,3 +215,5 @@ function NormConservingPsP(psp8::Psp8File)
 end
 
 is_norm_conserving(::NormConservingPsP)::Bool = true
+is_ultrasoft(::NormConservingPsP)::Bool = false
+is_paw(::NormConservingPsP)::Bool = false
