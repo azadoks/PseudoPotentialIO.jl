@@ -76,7 +76,7 @@ function _upf_construct_us_internal(upf::UpfFile)
     elseif upf.nonlocal.augmentation.nqf > 0
         #TODO check correctness
         r = upf.mesh.r
-        r2 = upf.mesh.^2
+        r2 = upf.mesh.r.^2
         nqf = upf.nonlocal.augmentation.nqf
         nqlc = 2upf.header.l_max + 1
 
@@ -90,7 +90,7 @@ function _upf_construct_us_internal(upf::UpfFile)
         end
         for (Q_upf, Qfcoef_upf) in
             zip(upf.nonlocal.augmentation.qijs, upf.nonlocal.augmentation.qfcoefs)
-            # It's not worth the effort to make these offset zero-indexed for l.
+            # It's not worth the effort to make these into OffsetVectors zero-indexed for l.
             qfcoef = reshape(Qfcoef_upf.qfcoef, nqf, nqlc)
             rinner = upf.nonlocal.augmentation.rinner
 

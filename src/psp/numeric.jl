@@ -93,35 +93,39 @@ function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
     return 4π * (simpson(f, psp.dr) - psp.Zval / q^2)
 end
 
-function projector_fourier(psp::NumericPsP, l::Int, n::Int, q::T)::T where {T<:Real}
-    r = @view psp.r[1:psp.β_ircut[l][n]]
-    f = @. r^2 * fast_sphericalbesselj(l, q * r) * psp.β[l][n]
-    return 4π * trapezoid(f, psp.dr)
+@inline function projector_fourier(psp::NumericPsP, l::Int, n::Int, q::T)::T where {T<:Real}
+    # r = @view psp.r[1:psp.β_ircut[l][n]]
+    # f = @. r^2 * fast_sphericalbesselj(l, q * r) * psp.β[l][n]
+    # return 4π * trapezoid(f, psp.dr)
+    return bessel_transform(l, psp.r, psp.dr, psp.β[l][n], q)
 end
 
-function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int,
+@inline function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int,
                                 q::T)::Union{Nothing,T} where {T<:Real}
     isnothing(psp.ϕ̃) && return nothing
-    r = @view psp.r[1:psp.ϕ̃_ircut[l][n]]
-    f = @. r^2 * fast_sphericalbesselj(l, q * r) * psp.ϕ̃[l][n]
-    return 4π * trapezoid(f, psp.dr)
+    # r = @view psp.r[1:psp.ϕ̃_ircut[l][n]]
+    # f = @. r^2 * fast_sphericalbesselj(l, q * r) * psp.ϕ̃[l][n]
+    # return 4π * trapezoid(f, psp.dr)
+    return bessel_transform(l, psp.r, psp.dr, psp.ϕ̃[l][n], q)
 end
 
-function valence_charge_density_fourier(psp::NumericPsP,
+@inline function valence_charge_density_fourier(psp::NumericPsP,
                                         q::T)::Union{Nothing,T} where {T<:Real}
-    isnothing(psp.ρval) && return nothing
-    f = @. psp.r^2 * fast_sphericalbesselj0(q * psp.r) * psp.ρval
-    return 4π * trapezoid(f, psp.dr)
+    # isnothing(psp.ρval) && return nothing
+    # f = @. psp.r^2 * fast_sphericalbesselj0(q * psp.r) * psp.ρval
+    # return 4π * trapezoid(f, psp.dr)
+    return bessel_transform(psp.r, psp.dr, psp.ρval, q)
 end
 
-function core_charge_density_fourier(psp::NumericPsP,
+@inline function core_charge_density_fourier(psp::NumericPsP,
                                      q::T)::Union{Nothing,T} where {T<:Real}
-    isnothing(psp.ρcore) && return nothing
-    f = @. psp.r^2 * fast_sphericalbesselj0(q * psp.r) * psp.ρcore
-    return 4π * trapezoid(f, psp.dr)
+    # isnothing(psp.ρcore) && return nothing
+    # f = @. psp.r^2 * fast_sphericalbesselj0(q * psp.r) * psp.ρcore
+    # return 4π * trapezoid(f, psp.dr)
+    return bessel_transform(psp.r, psp.dr, psp.ρcore, q)
 end
 
-function pseudo_energy_correction(psp::NumericPsP{T})::T where {T<:Real}
+@inline function pseudo_energy_correction(psp::NumericPsP{T})::T where {T<:Real}
     f = @. psp.r * (psp.r * psp.Vloc + psp.Zval)
     return 4π * trapezoid(f, psp.dr)
 end

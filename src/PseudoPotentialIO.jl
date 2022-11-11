@@ -88,6 +88,7 @@ export load_psp
 include("load.jl")
 
 ## Miscellaneous
+include("common/bessel_transform.jl")
 include("common/mesh.jl")
 include("common/quadrature.jl")
 include("common/spherical_bessel.jl")

@@ -17,7 +17,7 @@
         return 4π * r * fast_sphericalbesselj0(q * r) * (r * itp(r) + psp.Zval)
     end
 
-    function projector_integral(::NumericPsP, itp::Interpolations.GriddedInterpolation{T},
+    function wavefunction_like_integral(::NumericPsP, itp::Interpolations.GriddedInterpolation{T},
                                 l::Int, q::T, r::T)::T where {T<:Real}
         return 4π * r^2 * fast_sphericalbesselj(l, q * r) * itp(r)
     end
@@ -46,7 +46,7 @@
                 r = @view psp.r[1:psp.β_ircut[l][n]]
                 itp = interpolate((r,), psp.β[l][n], (Gridded(Linear()),))
                 for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
-                    ref = quadgk(r -> projector_integral(psp, itp, l, q, r), first(r),
+                    ref = quadgk(r -> wavefunction_like_integral(psp, itp, l, q, r), first(r),
                                  last(r))[1]
                     @test ref ≈ projector_fourier(psp, l, n, q) rtol = 1e-2 atol = 1e-2
                 end
@@ -65,7 +65,7 @@
         end
 
         @testset "Core charge density Fourier agrees with real" begin
-            if has_nlcc(psp)
+            if !isnothing(psp.ρcore)
                 itp = interpolate((psp.r,), psp.ρcore, (Gridded(Linear()),))
                 for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
                     ref = quadgk(r -> charge_density_integral(psp, itp, q, r), first(psp.r),
@@ -79,6 +79,33 @@
             q_small = 1e-5
             ref = local_potential_fourier(psp, q_small) + 4π * psp.Zval / q_small^2
             @test ref ≈ pseudo_energy_correction(psp) atol = 1e-2
+        end
+
+        @testset "Pseudo-atomic wavefunction Fouriers agree with real" begin
+            if !isnothing(psp.ϕ̃)
+                for l in 0:(psp.lmax), n in eachindex(psp.β[l])
+                    r = @view psp.r[1:psp.ϕ̃_ircut[l][n]]
+                    itp = interpolate((r,), psp.ϕ̃[l][n], (Gridded(Linear()),))
+                    for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
+                        ref = quadgk(r -> wavefunction_like_integral(psp, itp, l, q, r), first(r),
+                                    last(r))[1]
+                        @test ref ≈ projector_fourier(psp, l, n, q) rtol = 1e-2 atol = 1e-2
+                    end
+                end
+            end
+        end
+
+        @testset "Valence charge density Fouriers agree with real" begin
+            if !isnothing(psp.ρval)
+                for l in 0:(psp.lmax), n in eachindex(psp.β[l])
+                    itp = interpolate((r,), psp.ρval, (Gridded(Linear()),))
+                    for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
+                        ref = quadgk(r -> charge_density_integral(psp, itp, l, q, r), first(r),
+                                    last(r))[1]
+                        @test ref ≈ projector_fourier(psp, l, n, q) rtol = 1e-3 atol = 1e-3
+                    end
+                end
+            end
         end
     end
 end

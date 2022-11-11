@@ -55,11 +55,10 @@
             if !isnothing(ρval_R)
                 @test ρval_R ≈ valence_charge_density_real(psp, R_rot)
             end
-            if has_nlcc(psp)
-                @test core_charge_density_real(psp, R) ≈
-                      core_charge_density_real(psp, R_rot)
-            else
-                @test typeof(core_charge_density_real(psp, R)) == Nothing
+            ρcore_R = core_charge_density_real(psp, R)
+            @test typeof(ρcore_R) <: Union{Nothing,Real}
+            if !isnothing(ρcore_R)
+                @test ρcore_R ≈ core_charge_density_real(psp, R_rot)
             end
 
             K = rand(3) .+ eps(Float64)
@@ -79,11 +78,10 @@
             if !isnothing(ρval_K)
                 @test ρval_K ≈ valence_charge_density_fourier(psp, K_rot)
             end
-            if has_nlcc(psp)
-                @test core_charge_density_fourier(psp, K) ≈
-                      core_charge_density_fourier(psp, K_rot)
-            else
-                @test typeof(core_charge_density_fourier(psp, K)) == Nothing
+            ρcore_K = core_charge_density_fourier(psp, K)
+            @test typeof(ρcore_K) <: Union{Nothing,Real}
+            if !isnothing(ρcore_K)
+                @test ρcore_K ≈ core_charge_density_fourier(psp, K_rot)
             end
 
             @test relativistic_treatment(psp) in (:scalar, :full)
