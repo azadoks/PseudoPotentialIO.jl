@@ -5,7 +5,6 @@
     @inbounds @fastmath for i in eachindex(f)
         integrand[i] = r[i]^2 * fast_sphericalbesselj(l, q * r[i]) * f[i]
     end
-    # integrand = @. r^2 * fast_sphericalbesselj(l, q * r) * f
     return 4π * trapezoid(integrand, dr)
 end
 
@@ -15,7 +14,6 @@ end
     @inbounds @fastmath for i in eachindex(f)
         integrand[i] = r[i]^2 * fast_sphericalbesselj0(q * r[i]) * f[i]
     end
-    # integrand = @. r^2 * fast_sphericalbesselj0(q * r) * f
     return 4π * trapezoid(integrand, dr)
 end
 
