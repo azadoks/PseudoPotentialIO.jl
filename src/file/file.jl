@@ -157,9 +157,9 @@ Base.Broadcast.broadcastable(file::PsPFile) = Ref(file)
 
 function Base.show(io::IO, file::PsPFile)
     typename = string(typeof(file))
-    el = element(file).symbol
+    el = element(file)
     z = valence_charge(file)
-    return println(io, "$typename(element=$el, z_valence=$z)")
+    return print(io, "$typename(element=$el, z_valence=$z)")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", file::PsPFile)

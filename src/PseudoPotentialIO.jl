@@ -14,7 +14,7 @@ using Statistics
 import Base.Broadcast.broadcastable
 import PeriodicTable
 
-## File I/O
+## File datastructures and interface
 export PsPFile
 export format
 export element
@@ -92,4 +92,5 @@ include("common/bessel_transform.jl")
 include("common/mesh.jl")
 include("common/quadrature.jl")
 include("common/spherical_bessel.jl")
+include("common/interpolation.jl")
 end

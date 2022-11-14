@@ -50,39 +50,38 @@ function _upf_construct_nc_internal(upf::UpfFile)
     lmax = upf.header.l_max
     r = upf.mesh.r
     Vloc = upf.local_ ./ 2  # Ry -> Ha
-    ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc
-    
-    # Indices in upf.nonlocal.betas for projectors at each angular momentum
-    iβ_upf = map(0:lmax) do l
-        β_upf = upf.nonlocal.betas
-        filter(i -> β_upf[i].angular_momentum == l, eachindex(β_upf))
-    end
-    iβ_upf = OffsetVector(iβ_upf, 0:lmax)
-    
-    # Number of projectors at each angular momentum
-    nβ = OffsetArray(length.(iβ_upf), 0:lmax)
-    
-    # Find the first/last indices in upf.nonlocal.dij for each angular momentum so the 
-    # sub-arrays D[l][n,m] can be extracted
-    cumul_nβ = [0, cumsum(nβ)...]
-    
-    # Extract the blocks from `upf.nonlocal.dij` corresponding to each angular momentum
-    D = map(1:length(cumul_nβ) - 1) do i
-        collect(upf.nonlocal.dij[(cumul_nβ[i] + 1):cumul_nβ[i + 1],
-                                 (cumul_nβ[i] + 1):cumul_nβ[i + 1]])
-    end
-    D = OffsetVector(D, 0:lmax) .* 2  # 1/Ry -> 1/Ha
+    ρcore = isnothing(upf.nlcc) ? nothing : _truncate(upf.nlcc; atol=1e-8)
 
-    # Guess the mesh type to know how to extrapolate to r=0 when converting the projectors
-    # from the file (rβ) to the standard quantity (β)
+    # Guess the mesh type to choose scalar or vector `dr`
     mesh_type, _, _ = guess_mesh_type(r, upf.mesh.rab)
     mesh_type == "unknown" && error("Unknown mesh type")
     dr = mesh_type == "linear" ? upf.mesh.rab[1] : upf.mesh.rab
 
+    # Indices in upf.nonlocal.betas for projectors at each angular momentum
+    iβ_upf = map(0:lmax) do l
+        β_upf = upf.nonlocal.betas
+        return filter(i -> β_upf[i].angular_momentum == l, eachindex(β_upf))
+    end
+    iβ_upf = OffsetVector(iβ_upf, 0:lmax)
+
+    # Number of projectors at each angular momentum
+    nβ = OffsetArray(length.(iβ_upf), 0:lmax)
+
+    # Find the first/last indices in upf.nonlocal.dij for each angular momentum so the 
+    # sub-arrays D[l][n,m] can be extracted
+    cumul_nβ = [0, cumsum(nβ)...]
+
+    # Extract the blocks from `upf.nonlocal.dij` corresponding to each angular momentum
+    D = map(1:(length(cumul_nβ) - 1)) do i
+        return collect(upf.nonlocal.dij[(cumul_nβ[i] + 1):cumul_nβ[i + 1],
+                                        (cumul_nβ[i] + 1):cumul_nβ[i + 1]])
+    end
+    D = OffsetVector(D, 0:lmax) .* 2  # 1/Ry -> 1/Ha
+
     # Find the cutoff radius index for each projector
     β_ircut = map(0:lmax) do l
         map(iβ_upf[l]) do i
-            length(upf.nonlocal.betas[i].beta)
+            return length(upf.nonlocal.betas[i].beta)
         end
     end
     β_ircut = OffsetVector(β_ircut, 0:lmax)
@@ -93,49 +92,34 @@ function _upf_construct_nc_internal(upf::UpfFile)
     # polynomial.
     β = map(0:lmax) do l
         map(iβ_upf[l]) do i
-            if upf.mesh.r[1] == 0
-                _extrapolate_standardize_β_ϕ̃(upf.nonlocal.betas[i].beta, r, mesh_type)
-            else
-                _standardize_β_ϕ̃(upf.nonlocal.betas[i].beta, r)
-            end
+            return _standardize_wavefunction_like(upf.nonlocal.betas[i].beta, r)
         end
     end
     β = OffsetVector(β, 0:lmax) ./ 2  # Ry -> Ha
 
-    # UPFs store the pseudo-atomic valence charge density with a prefactor of 4π multiplied
-    # by the square of the radial grid. We do the extrapolation like for the projectors.
-    if upf.mesh.r[1] == 0
-        ρval = _extrapolate_standardize_ρval(upf.rhoatom, r, mesh_type)
-    else
-        ρval = _standardize_β_ϕ̃(upf.rhoatom, r)
-    end
+    # UPFs store the pseudo-atomic valence charge density with a prefactor of 4π r^2.
+    # We do the extrapolation like for the projectors.
+    ρval = _standardize_ρval(upf.rhoatom, r)
+    ρval = _truncate(ρval; atol=1e-8)
 
     # The pseudo-atomic wavefunctions need the same extrapolation treatment as the
     # projectors.
     if !isnothing(upf.pswfc)
         # Collect the indices in upf.nonlocal.betas for projectors at each angular momentum
         iχ_upf = map(0:lmax) do l
-            filter(i -> upf.pswfc[i].l == l, eachindex(upf.pswfc))
+            return filter(i -> upf.pswfc[i].l == l, eachindex(upf.pswfc))
         end
         iχ_upf = OffsetVector(iχ_upf, 0:lmax)
-        
-        ϕ̃_ircut = map(0:lmax) do l
-            map(iχ_upf[l]) do i
-                length(upf.pswfc[i].chi)
-            end
-        end
-        ϕ̃_ircut = OffsetVector(ϕ̃_ircut, 0:lmax)
 
         ϕ̃ = map(0:lmax) do l
             map(iχ_upf[l]) do i
-                if upf.mesh.r[1] == 0
-                    _extrapolate_standardize_β_ϕ̃(upf.pswfc[i].chi, r, mesh_type)
-                else
-                    _standardize_β_ϕ̃(upf.pswfc[i].chi, r)
-                end
+                χ_std = _standardize_wavefunction_like(upf.pswfc[i].chi, r)
+                χ_std = _truncate(χ_std; atol=1e-4)
             end
         end
         ϕ̃ = OffsetVector(ϕ̃, 0:lmax)
+
+        ϕ̃_ircut = OffsetVector(map(l -> length.(ϕ̃[l]), 0:lmax), 0:lmax)
     else
         ϕ̃_ircut = nothing
         ϕ̃ = nothing
@@ -145,42 +129,36 @@ function _upf_construct_nc_internal(upf::UpfFile)
                                       ϕ̃_ircut, ρcore, ρval)
 end
 
-function _standardize_β_ϕ̃(f_upf::Vector{Float64}, r::Vector{Float64})::Vector{Float64}
-    return @views f_upf ./ r[1:length(f_upf)]
-end
-
 function _standardize_ρval(ρval_upf::Vector{Float64}, r::Vector{Float64})::Vector{Float64}
-    return @. ρval_upf / (4Float64(π) * r^2)
-end
-
-function _extrapolate_standardize_β_ϕ̃(f_upf::Vector{Float64},
-                                      r::Vector{Float64}, mesh_type::String)::Vector{Float64}
-    ircut = length(f_upf)
-    f = zeros(Float64, ircut)
-    if mesh_type in ("log_1", "log_2")
-        f[3:ircut] = @views f_upf[3:ircut] ./ r[3:ircut]
-        poly = fit(r[3:6], f[3:6], 2)
-        f[1:2] = poly.(r[1:2])
-    else
-        f[2:ircut] = @views f_upf[2:ircut] ./ r[2:ircut]
-        f[1] = fit(r[2:5], f[2:5], 2)(r[1])
-    end
-    f
-    return f
-end
-
-function _extrapolate_standardize_ρval(ρval_upf::Vector{Float64},
-                                       r::Vector{Float64}, mesh_type::String)::Vector{Float64}
-    ρval = zeros(Float64, length(ρval_upf))
-    if mesh_type in ("log_1", "log_2")
-        ρval[3:end] = @views ρval_upf[3:end] ./ (4Float64(π) * r[3:end] .^ 2)
-        poly = fit(r[3:6], ρval[3:6], 2)
-        ρval[1:2] = poly.(r[1:2])
-    else
-        ρval[2:end] = @views ρval_upf[2:end] ./ (4Float64(π) * r[2:end] .^ 2)
-        ρval[1] = fit(r[2:5], ρval[2:5], 2)(r[1])
+    ρval = @. ρval_upf / (4Float64(π) * r^2)
+    if iszero(r[1])
+        ρval[1] = _extrapolate_to_zero(ρval, r)
     end
     return ρval
+end
+
+function _standardize_wavefunction_like(ϕ_upf::Vector{Float64},
+                                        r::Vector{Float64})::Vector{Float64}
+    irmax = length(ϕ_upf)
+    ϕ = ϕ_upf[1:irmax] ./ r[1:irmax]
+    if iszero(r[1])
+        ϕ[1] = _extrapolate_to_zero(ϕ, r)
+    end
+    return ϕ
+end
+
+function _extrapolate_to_zero(f::AbstractVector{Float64}, r::AbstractVector{Float64};
+                              atol::Float64=1e-1)::Float64
+    val = fit(r[2:6], f[2:6], 2)(r[1])
+    # If f is approaching 0 at r = 0, force it to numerical 0
+    return isapprox(val, 0; atol) ? 0.0 : val
+end
+
+function _truncate(f::AbstractVector{Float64}; atol=sqrt(eps(Float64)), length_min=2)
+    icut = findfirst(i -> maximum(abs, @view f[i:end]; init=0.) < atol, eachindex(f))
+    icut = isnothing(icut) ? firstindex(f) + length_min - 1 : icut
+    icut = (icut - firstindex(f)) < length_min ? firstindex(f) + length_min - 1 : icut
+    return f[firstindex(f):icut]
 end
 
 function NormConservingPsP(psp8::Psp8File)
@@ -194,22 +172,23 @@ function NormConservingPsP(psp8::Psp8File)
     r = psp8.rgrid
     dr = mean(diff(r))
     Vloc = psp8.v_local
-    
+
+    # Cut off the projectors at the first index after which their mean value goes to
+    # approximately zero.
     β = map(0:lmax) do l
         map(eachindex(psp8.projectors[l + 1])) do i
             proj = psp8.projectors[l + 1][i]
-            ircut = findfirst(i -> mean(abs.(proj[i:end])) < 1e-12, eachindex(proj))
-            isnothing(ircut) ? proj : proj[1:ircut]
+            proj = _truncate(proj; atol=1e-8)
         end
     end
     β = OffsetVector(β, 0:lmax)
 
     β_ircut = OffsetVector(map(l -> length.(β[l]), 0:lmax), 0:lmax)
     D = OffsetVector(map(l -> diagm(psp8.ekb[l + 1]), 0:lmax), 0:lmax)
-    ϕ̃ = nothing
+    ϕ̃ = nothing  # PSP8 doesn't support pseudo-atomic wavefunctions
     ϕ̃_ircut = nothing
     ρcore = psp8.rhoc
-    ρval = nothing
+    ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
     return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, β_ircut, D, ϕ̃,
                                       ϕ̃_ircut, ρcore, ρval)
 end

@@ -1,7 +1,8 @@
 families = (artifact"gbrv_lda_1.5_upf", artifact"sssp_pbe_precision_1.1.2_upf",
             artifact"hgh_lda_hgh", artifact"hgh_pbe_upf",
             artifact"pd_nc_sr_pbe_standard_0.4.1_psp8",
-            artifact"pd_nc_fr_pbesol_standard_0.4_psp8", artifact"sg15_2022.02.06_upf")
+            artifact"pd_nc_fr_pbesol_standard_0.4_psp8", artifact"sg15_2022.02.06_upf",
+            artifact"pd_nc_sr_pbe_standard_0.4.1_upf")
 
 upf1_filepaths = Dict("ag_lda_v1.4.uspp.F.UPF" => artifact"gbrv_lda_1.5_upf",
                       "B_pbe_v1.01.uspp.F.UPF" => artifact"sssp_pbe_precision_1.1.2_upf",
@@ -74,3 +75,14 @@ upf2_hgh_pairs = [("H.pbe-hgh.UPF", "h-q1.hgh"),
                   ("Rn.pbe-hgh.UPF", "rn-q8.hgh")]
 upf2_hgh_pairs = [(joinpath(artifact"hgh_pbe_upf", pair[1]),
                    joinpath(artifact"hgh_pbe_hgh", pair[2])) for pair in upf2_hgh_pairs]
+
+upf2_psp8_elements = ("Ag", "Al", "Ar", "As", "Au", "B", "Ba", "Be", "Bi", "Br", "C", "Ca",
+                      # "Cr", "Cu", # TODO Chromium and Copper agreement is terrible for some reason
+                      "Cd", "Cl", "Co", "Cs", "F", "Fe", "Ga", "Ge", "H", "He",
+                      "Hf", "Hg", "I", "In", "Ir", "K", "Kr", "La", "Li", "Lu", "Mg", "Mn",
+                      "Mo", "N", "Na", "Nb", "Ne", "Ni", "O", "Os", "P", "Pb", "Pd", "Po",
+                      "Pt", "Rb", "Re", "Rh", "Rn", "Ru", "S", "Sb", "Sc", "Se", "Si", "Sn",
+                      "Sr", "Ta", "Tc", "Te", "Ti", "Tl", "V", "W", "Xe", "Y", "Zn", "Zr")
+upf2_psp8_pairs = [(joinpath(artifact"pd_nc_sr_pbe_standard_0.4.1_upf", "$(element).upf"),
+                    joinpath(artifact"pd_nc_sr_pbe_standard_0.4.1_psp8", "$(element).psp8"))
+                   for element in upf2_psp8_elements]

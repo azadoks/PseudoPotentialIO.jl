@@ -1,14 +1,16 @@
 using Test
 using PseudoPotentialIO
+using Aqua
 using LazyArtifacts
 using Random
 using PeriodicTable
 using SpecialFunctions
-using Interpolations
 using QuadGK
 using Rotations
+using Interpolations
 
 import PseudoPotentialIO: fast_sphericalbesselj0, fast_sphericalbesselj
+import PseudoPotentialIO: build_interpolator
 
 Random.seed!(0)
 
@@ -20,6 +22,10 @@ println("\tRunning tests (TAGS = $(join(TAGS, ", "))).")
 include("fixtures.jl")
 
 @testset "PseudoPotentialIO.jl" begin
+    if any(in.(("all", "aqua"), Ref(TAGS)))
+        include("aqua.jl")
+    end
+
     if any(in.(("all", "common"), Ref(TAGS)))
         include("common.jl")
     end
@@ -70,5 +76,9 @@ include("fixtures.jl")
 
     if any(in.(("all", "psp", "analytical", "upf_hgh"), Ref(TAGS)))
         include("psp/upf_hgh.jl")
+    end
+
+    if any(in.(("all", "psp", "numeric", "upf_psp8"), Ref(TAGS)))
+        include("psp/upf_psp8.jl")
     end
 end

@@ -353,9 +353,9 @@ Base.Broadcast.broadcastable(psp::AbstractPsP) = Ref(psp)
 
 function Base.show(io::IO, psp::AbstractPsP)
     typename = string(typeof(psp))
-    el = element(psp).symbol
+    el = element(psp)
     z = valence_charge(psp)
-    return println(io, "$typename(element=$el, z_valence=$z)")
+    return print(io, "$typename(element=$el, z_valence=$z)")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", psp::AbstractPsP)

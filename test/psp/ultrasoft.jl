@@ -1,3 +1,4 @@
+#TODO add tests for augmentation real, augmentation fourier-real agreement, etc.
 @testset "Ultrasoft" begin
     @testset "From UPF" begin
         @testset "B_pbe_v1.01.uspp.F.UPF" begin

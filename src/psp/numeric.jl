@@ -64,28 +64,28 @@ function projector_coupling(psp::NumericPsP{T}, l::Int)::Matrix{T} where {T<:Rea
 end
 
 function local_potential_real(psp::NumericPsP, r::T)::T where {T<:Real}
-    return extrapolate(interpolate((psp.r,), psp.Vloc, (Gridded(Linear()),)), Flat())(r)
+    return build_interpolator(psp.Vloc, psp.r)(r)
 end
 
 function projector_real(psp::NumericPsP, l::Int, n::Int, r::T)::T where {T<:Real}
-    return extrapolate(interpolate((psp.r[1:psp.β_ircut[l][n]],), psp.β[l][n], (Gridded(Linear()),)), Flat())(r)
+    return build_interpolator(psp.β[l][n], psp.r)(r)
 end
 
 function pseudo_orbital_real(psp::NumericPsP, l::Int, n::Int,
                              r::T)::Union{Nothing,T} where {T<:Real}
     isnothing(psp.ϕ̃) && return nothing
-    return extrapolate(interpolate((psp.r[1:psp.ϕ̃_ircut[l][n]],), psp.ϕ̃[l][n], (Gridded(Linear()),)), Flat())(r)
+    return build_interpolator(psp.ϕ̃[l][n], psp.r)(r)
 end
 
 function valence_charge_density_real(psp::NumericPsP,
                                      r::T)::Union{Nothing,T} where {T<:Real}
     isnothing(psp.ρval) && return nothing
-    return extrapolate(interpolate((psp.r,), psp.ρval, (Gridded(Linear()),)), Flat())(r)
+    return build_interpolator(psp.ρval, psp.r)(r)
 end
 
 function core_charge_density_real(psp::NumericPsP, r::T)::Union{Nothing,T} where {T<:Real}
-    !has_nlcc(psp) && return nothing
-    return extrapolate(interpolate((psp.r,), psp.ρcore, (Gridded(Linear()),)), Flat())(r)
+    isnothing(psp.ρcore) && return nothing
+    return build_interpolator(psp.ρcore, psp.r)(r)
 end
 
 function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
@@ -94,34 +94,22 @@ function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
 end
 
 @inline function projector_fourier(psp::NumericPsP, l::Int, n::Int, q::T)::T where {T<:Real}
-    # r = @view psp.r[1:psp.β_ircut[l][n]]
-    # f = @. r^2 * fast_sphericalbesselj(l, q * r) * psp.β[l][n]
-    # return 4π * trapezoid(f, psp.dr)
     return bessel_transform(l, psp.r, psp.dr, psp.β[l][n], q)
 end
 
 @inline function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int,
                                 q::T)::Union{Nothing,T} where {T<:Real}
     isnothing(psp.ϕ̃) && return nothing
-    # r = @view psp.r[1:psp.ϕ̃_ircut[l][n]]
-    # f = @. r^2 * fast_sphericalbesselj(l, q * r) * psp.ϕ̃[l][n]
-    # return 4π * trapezoid(f, psp.dr)
     return bessel_transform(l, psp.r, psp.dr, psp.ϕ̃[l][n], q)
 end
 
 @inline function valence_charge_density_fourier(psp::NumericPsP,
                                         q::T)::Union{Nothing,T} where {T<:Real}
-    # isnothing(psp.ρval) && return nothing
-    # f = @. psp.r^2 * fast_sphericalbesselj0(q * psp.r) * psp.ρval
-    # return 4π * trapezoid(f, psp.dr)
     return bessel_transform(psp.r, psp.dr, psp.ρval, q)
 end
 
 @inline function core_charge_density_fourier(psp::NumericPsP,
                                      q::T)::Union{Nothing,T} where {T<:Real}
-    # isnothing(psp.ρcore) && return nothing
-    # f = @. psp.r^2 * fast_sphericalbesselj0(q * psp.r) * psp.ρcore
-    # return 4π * trapezoid(f, psp.dr)
     return bessel_transform(psp.r, psp.dr, psp.ρcore, q)
 end
 
