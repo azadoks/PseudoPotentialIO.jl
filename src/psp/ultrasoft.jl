@@ -1,3 +1,6 @@
+"""
+Type representing a numeric ultrasoft pseudopotential.
+"""
 struct UltrasoftPsP{T} <: NumericPsP{T}
     "Total charge"
     Ztot::T

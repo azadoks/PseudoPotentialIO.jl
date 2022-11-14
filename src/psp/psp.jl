@@ -34,160 +34,116 @@ abstract type AbstractPsP end
 
 #!!! Required functions !!!#
 """
-$(SIGNATURES)
-
 Element which the pseudopotential was constructed to reproduce.
 """
 function element(psp::AbstractPsP) end
 
 """
-$(SIGNATURES)
-
 Maximum angular momentum channel in the local part of the pseudopotential.
 """
 function max_angular_momentum(psp::AbstractPsP) end
 
 """
-$(SIGNATURES)
-
 Number of radial parts of the Kleinman-Bylander projectors `Rl(r)` at a given angular
 momentum.
 """
 function n_projectors(psp::AbstractPsP, l) end
 
 """
-$(SIGNATURES)
-
 Number of radial parts of the pseudo-atomic wavefunctions with angular momentum `l`.
 """
 function n_pseudo_orbitals(psp::AbstractPsP, l) end
 
 """
-$(SIGNATURES)
-
 Pseudo-atomic valence charge.
 """
 function valence_charge(psp::AbstractPsP) end
 
 """
-$(SIGNATURES)
-
 Whether the pseudopotential is of the norm-conserving kind.
 """
 function is_norm_conserving(psp::AbstractPsP) end
 
 """
-$(SIGNATURES)
-
 Whether the pseudopotential is of the ultrasoft kind.
 """
 function is_ultrasoft(psp::AbstractPsP) end
 
 """
-$(SIGNATURES)
-
 Whether the pseudopotential is of the plane-augmented wave kind.
 """
 function is_paw(psp::AbstractPsP) end
 
 """
-$(SIGNATURES)
-
 Whether the pseudopotential contains relativistic spin-orbit coupling data.
 """
 function has_spin_orbit(psp::AbstractPsP) end
 
 """
-$(SIGNATURES)
-
 Whether the pseudopotential contains non-linear core correction data (model core charge
 density).
 """
 function has_nlcc(psp::AbstractPsP) end
 
 """
-$(SIGNATURES)
-
 Projector coupling matrix for angular momentum `l`.
 """
 function projector_coupling(psp::AbstractPsP, l) end
 
 """
-$(SIGNATURES)
-
 Local part of the pseudopotential evaluated at real-space point `r`.
 """
 function local_potential_real(psp::AbstractPsP, r::Real) end
 
 """
-$(SIGNATURES)
-
 The `n`th nonlocal Kleinman-Bylander projector at angular momentum `l` evaluated at
 real-space point `r`.
 """
 function projector_real(psp::AbstractPsP, l::Integer, n::Integer, r::Real) end
 
 """
-$(SIGNATURES)
-
-The `n`the pseudo-atomic orbital at angular momentum `l` evaulated at real-space point `r`.
+The `n`th pseudo-atomic orbital at angular momentum `l` evaulated at real-space point `r`.
 """
 function pseudo_orbital_real(psp::AbstractPsP, l::Integer, n::Integer, r::Real) end
 
 """
-$(SIGNATURES)
-
 Pseudo-atomic valence charge density evaluated at real-space point `r`.
 """
 function valence_charge_density_real(psp::AbstractPsP, r::Real) end
 
 """
-$(SIGNATURES)
-
 Model core charge density evaluated at real-space point `r`.
 """
 function core_charge_density_real(psp::AbstractPsP, r::Real) end
 
 """
-$(SIGNATURES)
-
 Local part of the pseudopotential evaluated at reciprocal-space point `q`.
 """
 function local_potential_fourier(psp::AbstractPsP, q::Real) end
 
 """
-$(SIGNATURES)
-
 The `n`th nonlocal Kleinman-Bylander projector at angular momentum `l` evaluated at
 reciprocal-space point `q`.
 """
 function projector_fourier(psp::AbstractPsP, l::Integer, n::Integer, q::Real) end
 
 """
-$(SIGNATURES)
-
-The `n`the pseudo-atomic orbital at angular momentum `l` evaulated at reciprocal-space
+The `n`th pseudo-atomic orbital at angular momentum `l` evaulated at reciprocal-space
 point `q`.
 """
 function pseudo_orbital_fourier(psp::AbstractPsP, l::Integer, n::Integer, q::Real) end
 
 """
-$(SIGNATURES)
-
 Pseudo-atomic valence charge density evaluated at reciprocal-space point `q`.
 """
 function valence_charge_density_fourier(psp::AbstractPsP, q::Real) end
 
 """
-$(SIGNATURES)
-
 Model core charge density evaluated at reciprocal-space point `q`.
 """
 function core_charge_density_fourier(psp::AbstractPsP, q::Real) end
 
 """
-$(SIGNATURES)
-
 Pseudopotential energy correction (the DC component of the Fourier transform of the
 local part of the pseudopotential).
 """
@@ -195,15 +151,11 @@ function pseudo_energy_correction(psp::AbstractPsP) end
 
 #!!! Convenience functions !!!#
 """
-$(SIGNATURES)
-
 Type of relativistic treatment (fully relativistic or scalar-relativistic).
 """
 relativistic_treatment(psp::AbstractPsP)::Symbol = has_spin_orbit(psp) ? :full : :scalar
 
 """
-$(SIGNATURES)
-
 Formalism of the pseudopotential (norm-conserving, ultrasoft, projector-augmented wave,
 or Coulomb).
 """
@@ -214,8 +166,6 @@ function formalism(psp::AbstractPsP)::Symbol
 end
 
 """
-$(SIGNATURES)
-
 Number of radial parts of the Kleinman-Bylander projectors at all angular momenta up
 to the maximum angular momentum channel.
 """
@@ -224,8 +174,6 @@ function n_projectors(psp::AbstractPsP)
 end
 
 """
-$(SIGNATURES)
-
 Number pseudo-atomic wavefunctions `R(r) * Ylm(R)` at angular momenta `l` up to the maximum
 angular momentum channel.
 """
@@ -234,8 +182,6 @@ function n_pseudo_orbitals(psp::AbstractPsP)
 end
 
 """
-$(SIGNATURES)
-
 Projector coupling constant between the `n`th and `m`th projector with angular momentum `l`.
 """
 function projector_coupling(psp::AbstractPsP, l::Int, n::Int, m::Int)
@@ -243,8 +189,6 @@ function projector_coupling(psp::AbstractPsP, l::Int, n::Int, m::Int)
 end
 
 """
-$(SIGNATURES)
-
 Projector coupling constant between the `n`th projector with angular momentum `l` itself.
 """
 function projector_coupling(psp::AbstractPsP, l::Int, n::Int)
@@ -252,8 +196,6 @@ function projector_coupling(psp::AbstractPsP, l::Int, n::Int)
 end
 
 """
-$(SIGNATURES)
-
 Local part of the pseudopotential evaluated at real-space vector `R`.
 """
 function local_potential_real(psp::AbstractPsP, R::AbstractVector{T}) where {T<:Real}
@@ -261,8 +203,6 @@ function local_potential_real(psp::AbstractPsP, R::AbstractVector{T}) where {T<:
 end
 
 """
-$(SIGNATURES)
-
 The `n`th nonlocal Kleinman-Bylander projector at angular momentum `l` evaluated at
 real-space vector `R`.
 """
@@ -272,9 +212,7 @@ function projector_real(psp::AbstractPsP, l::Integer, n::Integer,
 end
 
 """
-$(SIGNATURES)
-
-The `n`the pseudo-atomic orbital at angular momentum `l` evaulated at real-space vector `R`.
+The `n`th pseudo-atomic orbital at angular momentum `l` evaulated at real-space vector `R`.
 """
 function pseudo_orbital_real(psp::AbstractPsP, l::Integer, n::Integer,
                              R::AbstractVector{T}) where {T<:Real}
@@ -282,8 +220,6 @@ function pseudo_orbital_real(psp::AbstractPsP, l::Integer, n::Integer,
 end
 
 """
-$(SIGNATURES)
-
 Pseudo-atomic valence charge density evaluated at real-space vector `R`.
 """
 function valence_charge_density_real(psp::AbstractPsP, R::AbstractVector{T}) where {T<:Real}
@@ -291,8 +227,6 @@ function valence_charge_density_real(psp::AbstractPsP, R::AbstractVector{T}) whe
 end
 
 """
-$(SIGNATURES)
-
 Model core charge density evaluated at real-space vector `R`.
 """
 function core_charge_density_real(psp::AbstractPsP, R::AbstractVector{T}) where {T<:Real}
@@ -300,8 +234,6 @@ function core_charge_density_real(psp::AbstractPsP, R::AbstractVector{T}) where 
 end
 
 """
-$(SIGNATURES)
-
 Local part of the pseudopotential evaluated at reciprocal-space vector `K`.
 """
 function local_potential_fourier(psp::AbstractPsP, K::AbstractVector{T}) where {T<:Real}
@@ -309,8 +241,6 @@ function local_potential_fourier(psp::AbstractPsP, K::AbstractVector{T}) where {
 end
 
 """
-$(SIGNATURES)
-
 The `n`th nonlocal Kleinman-Bylander projector at angular momentum `l` evaluated at
 reciprocal-space vector `K`.
 """
@@ -320,9 +250,7 @@ function projector_fourier(psp::AbstractPsP, l::Integer, n::Integer,
 end
 
 """
-$(SIGNATURES)
-
-The `n`the pseudo-atomic orbital at angular momentum `l` evaulated at reciprocal-space
+The `n`th pseudo-atomic orbital at angular momentum `l` evaulated at reciprocal-space
 vector `K`.
 """
 function pseudo_orbital_fourier(psp::AbstractPsP, l::Integer, n::Integer,
@@ -331,8 +259,6 @@ function pseudo_orbital_fourier(psp::AbstractPsP, l::Integer, n::Integer,
 end
 
 """
-$(SIGNATURES)
-
 Pseudo-atomic valence charge density evaluated at reciprocal-space vector `K`.
 """
 function valence_charge_density_fourier(psp::AbstractPsP,
@@ -341,8 +267,6 @@ function valence_charge_density_fourier(psp::AbstractPsP,
 end
 
 """
-$(SIGNATURES)
-
 Model core charge density evaluated at reciprocal-space vector `K`.
 """
 function core_charge_density_fourier(psp::AbstractPsP, K::AbstractVector{T}) where {T<:Real}

@@ -1,10 +1,4 @@
-"""
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
-Hartwigesen-Goedecker-Hutter pseudopotential file.
-"""
+@doc "Hartwigesen-Goedecker-Hutter pseudopotential file."
 struct HghFile <: PsPFile
     "Description"
     title::String

@@ -1,8 +1,4 @@
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_HEADER>`
 """
 struct UpfHeader <: PsPFile
@@ -57,10 +53,6 @@ struct UpfHeader <: PsPFile
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_MESH>`
 """
 struct UpfMesh
@@ -79,10 +71,6 @@ struct UpfMesh
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_NONLOCAL/PP_AUGMENTATION/PP_QIJ.[i].[j]>`
 """
 struct UpfQij
@@ -94,10 +82,6 @@ struct UpfQij
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_NONLOCAL/PP_AUGMENTATION/PP_QIJL.[i].[j].[l]>`
 """
 struct UpfQijl
@@ -117,10 +101,6 @@ struct UpfQfcoef
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_NONLOCAL/PP_AUGMENTATION>`
 """
 struct UpfAugmentation
@@ -167,10 +147,6 @@ struct UpfAugmentation
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_NONLOCAL/PP_BETA.[i]>`
 """
 struct UpfBeta
@@ -186,10 +162,6 @@ struct UpfBeta
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_NONLOCAL>`
 """
 struct UpfNonlocal
@@ -203,10 +175,6 @@ struct UpfNonlocal
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_PSWFC/PP_CHI>`
 """
 struct UpfChi
@@ -225,10 +193,6 @@ struct UpfChi
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_SPIN_ORB/PP_RELWFC.[i]>`
 """
 struct UpfRelWfc
@@ -241,10 +205,6 @@ struct UpfRelWfc
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_SPIN_ORB/PP_RELBETA.[i]>`
 """
 struct UpfRelBeta
@@ -254,10 +214,6 @@ struct UpfRelBeta
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_SPIN_ORB>`
 """
 struct UpfSpinOrb
@@ -266,10 +222,6 @@ struct UpfSpinOrb
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<//PP_(AE|PS)WFC.[i]>`
 """
 struct UpfWfc
@@ -280,10 +232,6 @@ struct UpfWfc
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_FULL_WFC>`
 """
 struct UpfFullWfc
@@ -292,10 +240,6 @@ struct UpfFullWfc
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_PAW>`
 """
 struct UpfPaw
@@ -309,10 +253,6 @@ struct UpfPaw
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_GIPAW/PP_GIPAW_CORE_ORBITALS/PP_GIPAW_CORE_ORBITAL.[i]>`
 """
 struct UpfGipawCoreOrbital
@@ -326,10 +266,6 @@ struct UpfGipawCoreOrbital
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
 UPF `<PP_GIPAW>`
 """
 struct UpfGipaw
@@ -338,11 +274,7 @@ struct UpfGipaw
 end
 
 """
-$TYPEDEF
-
-$(TYPEDFIELDS)
-
-UPF pseudopotential
+Universal Pseudopotential Format file contents.
 """
 struct UpfFile <: PsPFile
     "UPF format version"

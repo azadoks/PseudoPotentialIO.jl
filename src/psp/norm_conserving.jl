@@ -1,3 +1,6 @@
+"""
+Type representing a numeric norm-conserving pseudopotential.
+"""
 struct NormConservingPsP{T} <: NumericPsP{T}
     "Total charge."
     Ztot::T
@@ -187,7 +190,7 @@ function NormConservingPsP(psp8::Psp8File)
     D = OffsetVector(map(l -> diagm(psp8.ekb[l + 1]), 0:lmax), 0:lmax)
     ϕ̃ = nothing  # PSP8 doesn't support pseudo-atomic wavefunctions
     ϕ̃_ircut = nothing
-    ρcore = psp8.rhoc
+    ρcore = psp8.rhoc ./ (4π)
     ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
     return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, β_ircut, D, ϕ̃,
                                       ϕ̃_ircut, ρcore, ρval)

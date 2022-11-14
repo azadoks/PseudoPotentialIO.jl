@@ -1,6 +1,5 @@
 module PseudoPotentialIO
 using Artifacts
-using DocStringExtensions
 using EzXML
 using Interpolations
 using LazyArtifacts
@@ -13,6 +12,21 @@ using Statistics
 
 import Base.Broadcast.broadcastable
 import PeriodicTable
+
+## DocStringExtensions Templates
+#NOTE they don't seem to be working at the moment
+using DocStringExtensions
+@template (FUNCTIONS, METHODS, MACROS) = """
+                                         $(TYPEDSIGNATURES)
+                                         $(DOCSTRING)
+                                         $(METHODLIST)
+                                         """
+
+@template TYPES = """
+                  $(TYPEDEF)
+                  $(DOCSTRING)
+                  $(TYPEDFIELDS)
+                  """
 
 ## File datastructures and interface
 export PsPFile

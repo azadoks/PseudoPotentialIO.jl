@@ -35,79 +35,57 @@ abstract type PsPFile end
 
 #!!! Required functions !!!#
 """
-$(SIGNATURES)
-
 Pseudopotential file format.
 """
 function format(file::PsPFile) end
 
 """
-$(SIGNATURES)
-
 Short symbol of the element which the pseudopotential was constructed to reproduce.
 """
 function elemental_symbol(file::PsPFile) end
 
 """
-$(SIGNATURES)
-
 Maximum angular momentum channel in the local part of the pseudopotential.
 """
 function max_angular_momentum(file::PsPFile) end
 
 """
-$(SIGNATURES)
-
 Number of radial parts of the Kleinman-Bylander projectors `Rl(r)` at a given angular
 momentum.
 """
 function n_projectors(file::PsPFile, l) end
 
 """
-$(SIGNATURES)
-
 Number of radial parts of the pseudo-atomic wavefunctions with angular momentum `l`.
 """
 function n_pseudo_orbitals(file::PsPFile, l) end
 
 """
-$(SIGNATURES)
-
 Pseudo-atomic valence charge.
 """
 function valence_charge(file::PsPFile) end
 
 """
-$(SIGNATURES)
-
 Whether the pseudopotential is of the norm-conserving kind.
 """
 function is_norm_conserving(file::PsPFile) end
 
 """
-$(SIGNATURES)
-
 Whether the pseudopotential is of the ultrasoft kind.
 """
 function is_ultrasoft(file::PsPFile) end
 
 """
-$(SIGNATURES)
-
 Whether the pseudopotential is of the plane-augmented wave kind.
 """
 function is_paw(file::PsPFile) end
 
 """
-$(SIGNATURES)
-
 Whether the pseudopotential contains relativistic spin-orbit coupling data.
 """
 function has_spin_orbit(file::PsPFile) end
 
 """
-$(SIGNATURES)
-
 Whether the pseudopotential contains non-linear core correction data (model core charge
 density).
 """
@@ -115,8 +93,6 @@ function has_nlcc(file::PsPFile) end
 
 #!!! Convenience functions !!!#
 """
-$(SIGNATURES)
-
 Formalism of the pseudopotential (norm-conserving, ultrasoft, projector-augmented wave,
 or Coulomb).
 """
@@ -127,15 +103,11 @@ function formalism(file::PsPFile)::Symbol
 end
 
 """
-$(SIGNATURES)
-
 Type of relativistic treatment (fully relativistic or scalar-relativistic).
 """
 relativistic_treatment(file::PsPFile)::Symbol = has_spin_orbit(file) ? :full : :scalar
 
 """
-$(SIGNATURES)
-
 Number of radial parts of the Kleinman-Bylander nonlocal projectors at all angular momenta
 up to the maximum angular momentum channel.
 """
@@ -144,8 +116,6 @@ function n_projectors(file::PsPFile)
 end
 
 """
-$(SIGNATURES)
-
 Number pseudo-atomic wavefunctions at all angular momenta up to the maximum angular momentum
 channel.
 """

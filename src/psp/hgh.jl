@@ -1,3 +1,6 @@
+"""
+Type representing an analytical Hartwigsen-Goedecker-Hutter pseudopotential.
+"""
 struct HghPsP{T} <: AnalyticalPsP
     Zatom::Union{Nothing,T}
     "Valence charge"

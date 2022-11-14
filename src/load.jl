@@ -1,6 +1,9 @@
 #TODO functions for listing pseudo families, pseudos of a given element, etc.
 #TODO functions for working with the pseudo family artifacts
 
+"""
+Parse a pseudopotential file into a `PsPFile` struct. 
+"""
 function load_psp_file(path::AbstractString)
     _, ext = splitext(path)
     ext = lowercase(ext)
@@ -10,6 +13,9 @@ function load_psp_file(path::AbstractString)
     error("Unsupported file extension $(ext)")
 end
 
+"""
+Parse pseudopotential file contents into an `AbstractPsP` struct.
+"""
 function load_psp(file::PsPFile)
     formalism(file) == :norm_conserving && return NormConservingPsP(file)
     formalism(file) == :ultrasoft && return UltrasoftPsP(file)
