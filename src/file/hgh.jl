@@ -1,4 +1,6 @@
-@doc "Hartwigesen-Goedecker-Hutter pseudopotential file."
+"""
+Hartwigsen-Goedecker-Hutter pseudopotential file contents.
+"""
 struct HghFile <: PsPFile
     "Description"
     title::String

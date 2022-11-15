@@ -41,6 +41,10 @@ function NormConservingPsP(upf::UpfFile)
 end
 
 function _upf_construct_nc_internal(upf::UpfFile)
+    #TODO - Consider interpolating log meshes to linear meshes, see the note in the ABINIT
+    #TODO   PSP8 documentation
+    #TODO - Consider always extrapolating to r=0 so that corrected trepezoid quadrature can
+    #TODO   always be used
     # There are two possible units schemes for the projectors and coupling coefficients:
     # β [Ry Bohr^{-1/2}]  D [Ry^{-1}]
     # β [Bohr^{-1/2}]     D [Ry]
@@ -94,8 +98,9 @@ function _upf_construct_nc_internal(upf::UpfFile)
     # rβ by r where r > 0 and use that data to extrapolate to r = 0 using a quadratic
     # polynomial.
     β = map(0:lmax) do l
-        map(iβ_upf[l]) do i
-            return _standardize_wavefunction_like(upf.nonlocal.betas[i].beta, r)
+        map(iβ_upf[l]) do n
+            βln = _standardize_wavefunction_like(upf.nonlocal.betas[n].beta, r)
+            return _truncate(βln; atol=1e-8)
         end
     end
     β = OffsetVector(β, 0:lmax) ./ 2  # Ry -> Ha
@@ -117,11 +122,10 @@ function _upf_construct_nc_internal(upf::UpfFile)
         ϕ̃ = map(0:lmax) do l
             map(iχ_upf[l]) do i
                 χ_std = _standardize_wavefunction_like(upf.pswfc[i].chi, r)
-                χ_std = _truncate(χ_std; atol=1e-4)
+                return _truncate(χ_std; atol=1e-8)
             end
         end
         ϕ̃ = OffsetVector(ϕ̃, 0:lmax)
-
         ϕ̃_ircut = OffsetVector(map(l -> length.(ϕ̃[l]), 0:lmax), 0:lmax)
     else
         ϕ̃_ircut = nothing
@@ -152,14 +156,19 @@ end
 
 function _extrapolate_to_zero(f::AbstractVector{Float64}, r::AbstractVector{Float64};
                               atol::Float64=1e-1)::Float64
-    val = fit(r[2:6], f[2:6], 2)(r[1])
+    #TODO Address pathological cases on log meshes that have points at very small r
+    #TODO which yield large and noisy values close to zero for values that are stored
+    #TODO in file multiplied by `r` or `r^2`
+    val = fit(r[2:imax], f[2:imax], 2)(r[1])
     # If f is approaching 0 at r = 0, force it to numerical 0
     return isapprox(val, 0; atol) ? 0.0 : val
 end
 
-function _truncate(f::AbstractVector{Float64}; atol=sqrt(eps(Float64)), length_min=2)
-    icut = findfirst(i -> maximum(abs, @view f[i:end]; init=0.) < atol, eachindex(f))
-    icut = isnothing(icut) ? firstindex(f) + length_min - 1 : icut
+# `length_min=6` so that even quantities that are zero everywhere (usually placeholders)
+# won't error in the Simpson's method integrator, which requires at minimum 6 points
+function _truncate(f::AbstractVector{Float64}; atol=sqrt(eps(Float64)), length_min=6)
+    icut = findfirst(i -> maximum(abs, @view f[i:end]) < atol, eachindex(f))
+    icut = isnothing(icut) ? lastindex(f) : icut
     icut = (icut - firstindex(f)) < length_min ? firstindex(f) + length_min - 1 : icut
     return f[firstindex(f):icut]
 end
@@ -179,9 +188,9 @@ function NormConservingPsP(psp8::Psp8File)
     # Cut off the projectors at the first index after which their mean value goes to
     # approximately zero.
     β = map(0:lmax) do l
-        map(eachindex(psp8.projectors[l + 1])) do i
-            proj = psp8.projectors[l + 1][i]
-            proj = _truncate(proj; atol=1e-8)
+        map(eachindex(psp8.projectors[l + 1])) do n
+            βln = psp8.projectors[l + 1][n]
+            return _truncate(βln; atol=1e-8)
         end
     end
     β = OffsetVector(β, 0:lmax)
@@ -190,7 +199,7 @@ function NormConservingPsP(psp8::Psp8File)
     D = OffsetVector(map(l -> diagm(psp8.ekb[l + 1]), 0:lmax), 0:lmax)
     ϕ̃ = nothing  # PSP8 doesn't support pseudo-atomic wavefunctions
     ϕ̃_ircut = nothing
-    ρcore = psp8.rhoc ./ (4π)
+    ρcore = isnothing(psp8.rhoc) ? nothing : _truncate(psp8.rhoc ./ (4π); atol=1e-8)
     ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
     return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, β_ircut, D, ϕ̃,
                                       ϕ̃_ircut, ρcore, ρval)

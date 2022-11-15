@@ -88,6 +88,9 @@ function core_charge_density_real(psp::NumericPsP, r::T)::Union{Nothing,T} where
     return build_interpolator(psp.ρcore, psp.r)(r)
 end
 
+#TODO Implement in-place versions of the following functions which take a working array for
+#TODO `f` / to pass to `bessel_transform`.
+
 function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
     f = @. psp.r * fast_sphericalbesselj0(q * psp.r) * (psp.r * psp.Vloc + psp.Zval)
     return 4π * (simpson(f, psp.dr) - psp.Zval / q^2)
@@ -115,5 +118,5 @@ end
 
 @inline function pseudo_energy_correction(psp::NumericPsP{T})::T where {T<:Real}
     f = @. psp.r * (psp.r * psp.Vloc + psp.Zval)
-    return 4π * trapezoid(f, psp.dr)
+    return 4π * simpson(f, psp.dr)
 end

@@ -59,72 +59,132 @@ import PseudoPotentialIO: trapezoid, simpson
         end
     end
 
-    #TODO: move quadrature tests to separate file; fix them
-    # f(x) = exp(-x) * sin(x)
-    # @testset "trapezoid" begin
-    #     @testset "linear mesh" begin
-    #         i = 1:101
-    #         x = linear_mesh.(i, 0.01, -0.01)
-    #         dx = 0.01
-    #         fx = f.(x)
-    #         reference = quadgk(cubic_spline_interpolation(minimum(x):dx:maximum(x), fx),
-    #                            first(x), last(x))[1]
-    #         @test trapezoid(fx, dx) ≈ reference rtol = 1e-4
-    #     end
+    @testset "trapezoidal reference" begin
+        # Taken from Python Numerical Methods 21.03 "Trapezoidal Rule"
+        a = 0
+        b = π
+        n = 11
+        h = (b - a) / (n - 1)
+        x = range(a, b, n)
+        f = sin.(x)
+        @test trapezoid(f, h) == 1.9835235375094546
+        @test trapezoid(f, fill(h, n)) ≈ 1.9835235375094546
+    end
 
-    #     @testset "logarithmic mesh" begin
-    #         i = 1:101
-    #         a = 0.01
-    #         b = exp(-7.0) / 0.66
-    #         x = logarithmic_mesh1.(i, a, b)
-    #         dx = a .* b .* exp.((i .- 1) .* a)
-    #         fx = f.(x)
-    #         reference = quadgk(linear_interpolation((x,), fx), first(x), last(x))[1]
-    #         @test trapezoid(fx, dx) ≈ reference rtol = 1e-4
-    #     end
-    # end
+    @testset "simpson reference" begin
+        # Taken from Python Numerical Methods 21.04 "Simpson's Rule"
+        a = 0
+        b = π
+        n = 11
+        h = (b - a) / (n - 1)
+        x = range(a, b, n)
+        f = sin.(x)
+        @test simpson(f, h) == 2.0001095173150043
+        @test simpson(f, fill(h, n)) ≈ 2.0001095173150043
+    end
 
-    # @testset "simpson" begin
-    #     @testset "odd linear mesh" begin
-    #         i = 1:101
-    #         x = linear_mesh.(i, 0.01, -0.01)
-    #         dx = 0.01
-    #         fx = f.(x)
-    #         reference = quadgk(cubic_spline_interpolation(minimum(x):dx:maximum(x), fx),
-    #                            first(x), last(x))[1]
-    #         @test simpson(fx, dx) ≈ reference rtol = 1e-4
-    #     end
+    @testset "odd linear grid sin" begin
+        @testset for integrator in (trapezoid, simpson)
+            n = 100001
+            x0 = 0.00
+            dx = π / n
+            x = linear_mesh.(1:n, dx, x0 - dx)
+            fx = sin.(x)
+            @test integrator(fx, dx) ≈ 2.0
+            @test integrator(fx, fill(dx, n)) ≈ 2.0
+            @test integrator(fx, dx) ≈ integrator(fx, fill(dx, n))
+        end
+    end
 
-    #     @testset "odd logarithmic mesh" begin
-    #         i = 1:101
-    #         a = 0.01
-    #         b = exp(-7.0) / 0.66
-    #         x = logarithmic_mesh1.(i, a, b)
-    #         dx = a .* b .* exp.((i .- 1) .* a)
-    #         fx = f.(x)
-    #         reference = quadgk(linear_interpolation((x,), fx), first(x), last(x))[1]
-    #         @test simpson(fx, dx) ≈ reference rtol = 1e-4
-    #     end
+    @testset "even linear grid sin" begin
+        @testset for integrator in (trapezoid, simpson)
+            n = 100000
+            x0 = 0.00
+            dx = π / n
+            x = linear_mesh.(1:n, dx, x0 - dx)
+            fx = sin.(x)
+            @test integrator(fx, dx) ≈ 2.0
+            @test integrator(fx, fill(dx, n)) ≈ 2.0
+            @test integrator(fx, dx) ≈ integrator(fx, fill(dx, n))
+        end
+    end
 
-    #     @testset "even linear mesh" begin
-    #         i = 1:100
-    #         x = linear_mesh.(i, 0.01, -0.01)
-    #         dx = 0.01
-    #         fx = f.(x)
-    #         reference = quadgk(cubic_spline_interpolation(minimum(x):dx:maximum(x), fx),
-    #                            first(x), last(x))[1]
-    #         @test simpson(fx, dx) ≈ reference rtol = 1e-4
-    #     end
+    @testset "odd log grid sin" begin
+        @testset for integrator in (trapezoid, simpson)
+            n = 1000001
+            i = collect(1:n)
+            b = π / n
+            a = log(π / b) / (n - 1)
+            x = logarithmic_mesh1.(1:n, a, b)
+            dx = @. a * b * exp.(a * (i - 1))
+            fx = sin.(x)
+            @test integrator(fx, dx) ≈ 2.0 atol=1e-5 rtol=1e-5
+        end
+    end
 
-    #     @testset "even logarithmic mesh" begin
-    #         i = 1:100
-    #         a = 0.01
-    #         b = exp(-7.0) / 0.66
-    #         x = logarithmic_mesh1.(i, a, b)
-    #         dx = a .* b .* exp.((i .- 1) .* a)
-    #         fx = f.(x)
-    #         reference = quadgk(linear_interpolation((x,), fx), first(x), last(x))[1]
-    #         @test simpson(fx, dx) ≈ reference rtol = 1e-4
-    #     end
-    # end
+    @testset "even log grid sin" begin
+        @testset for integrator in (trapezoid, simpson)
+            n = 1000000
+            i = collect(1:n)
+            b = π / n
+            a = log(π / b) / (n - 1)
+            x = logarithmic_mesh1.(1:n, a, b)
+            dx = @. a * b * exp.(a * (i - 1))
+            fx = sin.(x)
+            @test integrator(fx, dx) ≈ 2.0 atol=1e-5 rtol=1e-5
+        end
+    end
+
+    # Reference value for ∫[0,π] exp(-x^2) sin(x) dx 
+    ref = -(√π * (-2erfi(1/2) + erfi(1/2 - im*π) + erfi(1/2 + im*π))) / (4 * exp(1/4))
+
+    @testset "odd linear grid exp sin" begin
+        @testset for integrator in (trapezoid, simpson)
+            n = 100001
+            x0 = 0.00
+            dx = π / n
+            x = linear_mesh.(1:n, dx, x0 - dx)
+            fx = @. exp(-(x^2)) * sin(x)
+            @test integrator(fx, dx) ≈ real(ref)
+            @test integrator(fx, fill(dx, n)) ≈ real(ref)
+        end
+    end
+
+    @testset "even linear grid exp sin" begin
+        @testset for integrator in (trapezoid, simpson)
+            n = 100000
+            x0 = 0.00
+            dx = π / n
+            x = linear_mesh.(1:n, dx, x0 - dx)
+            fx = @. exp(-(x^2)) * sin(x)
+            @test integrator(fx, dx) ≈ real(ref)
+            @test integrator(fx, fill(dx, n)) ≈ real(ref)
+        end
+    end
+
+    @testset "odd log grid exp sin" begin
+        @testset for integrator in (trapezoid, simpson)
+            n = 1000001
+            i = collect(1:n)
+            b = π / n
+            a = log(π / b) / (n - 1)
+            x = logarithmic_mesh1.(1:n, a, b)
+            dx = @. a * b * exp.(a * (i - 1))
+            fx = @. exp(-(x^2)) * sin(x)
+            @test integrator(fx, dx) ≈ real(ref) atol=1e-5 rtol=1e-5
+        end
+    end
+
+    @testset "even log grid exp sin" begin
+        @testset for integrator in (trapezoid, simpson)
+            n = 1000000
+            i = collect(1:n)
+            b = π / n
+            a = log(π / b) / (n - 1)
+            x = logarithmic_mesh1.(1:n, a, b)
+            dx = @. a * b * exp.(a * (i - 1))
+            fx = @. exp(-(x^2)) * sin(x)
+            @test integrator(fx, dx) ≈ real(ref) atol=1e-5 rtol=1e-5
+        end
+    end
 end

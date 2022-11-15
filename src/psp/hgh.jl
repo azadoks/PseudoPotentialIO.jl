@@ -1,7 +1,11 @@
 """
-Type representing an analytical Hartwigsen-Goedecker-Hutter pseudopotential.
+Analytical Hartwigsen-Goedecker-Hutter pseudopotential.
+
+[C. Hartwigsen, S. Goedecker, and J. Hutter.
+*Pys. Rev. B* **58**, 3641 (1998)](https://doi.org/10.1103/PhysRevB.58.3641)
 """
 struct HghPsP{T} <: AnalyticalPsP
+    "Atomic charge"
     Zatom::Union{Nothing,T}
     "Valence charge"
     Zval::T
@@ -11,9 +15,9 @@ struct HghPsP{T} <: AnalyticalPsP
     rloc::T
     "Polynomial coefficience of the local part of the pseudopotential"
     cloc::Vector{T}
-    "Radial cutoffs for the nonlocal projectors rnl[l]"
+    "Radial cutoffs for the nonlocal projectors `rnl[l]`"
     rnl::OffsetVector{T,Vector{T}}
-    "Nonlocal projector coupling coefficients D[l][n,m]"
+    "Nonlocal projector coupling coefficients `D[l][n,m]`"
     D::OffsetVector{Matrix{T},Vector{Matrix{T}}}
 end
 
