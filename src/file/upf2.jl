@@ -177,7 +177,9 @@ function upf2_parse_beta(node::EzXML.Node)
     name = nodename(node)
     index = get_attr(String, node, "index")
     if (index == "*") | isnothing(index)
-        # If two digits, will be written as "*"
+        # If two digits, will be written as "*" because of Fortran printing, and sometimes
+        # it is missing entirely. In both cases, we parse the index from the node name
+        # which has the form "BETA.(\d+)"
         index = parse(Int, split(name, ".")[2])
     else
         index = parse(Int, index)
@@ -259,6 +261,8 @@ upf2_parse_spin_orb(doc::EzXML.Document) = upf2_parse_spin_orb(findfirst("PP_SPI
 
 function upf2_parse_wfc(node::EzXML.Node)
     index = get_attr(Int, node, "index")
+    # Sometimes the `index` attribute is missng, so we parse it from the node name which is
+    # of the form "PSWFC.(\d+)"
     if isnothing(index)
         index = parse(Int, split(nodename(node), '.')[end])
     end
@@ -305,7 +309,7 @@ upf2_parse_paw(doc::EzXML.Document) = upf2_parse_paw(findfirst("PP_PAW", root(do
 function upf2_parse_gipaw_core_orbital(node::EzXML.Node)
     index = get_attr(Int, node, "index")
     label = get_attr(String, node, "label")
-    # Some files have these integers printed as floats
+    # Sometimes these integers are printed as floats
     n = Int(get_attr(Float64, node, "n"))
     l = Int(get_attr(Float64, node, "l"))
     core_orbital = parse.(Float64, split(strip(nodecontent(node))))
@@ -351,7 +355,7 @@ function upf2_parse_psp(doc::EzXML.Document)
     #* PP_PSWFC
     pswfc_node = findfirst("PP_PSWFC", root_node)
     pswfc = [upf2_parse_chi(n) for n in eachnode(pswfc_node) if occursin("PP_CHI.", nodename(n))]
-    pswfc = isempty(pswfc) ? nothing : pswfc  # Some files have an empy section
+    pswfc = isempty(pswfc) ? nothing : pswfc  # Sometimes the section exists but is empty
     #* PP_FULL_WFC
     if isnothing(findfirst("PP_FULL_WFC", root_node))
         full_wfc = nothing
