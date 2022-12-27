@@ -43,9 +43,7 @@ function has_tag(io::IO, tag::AbstractString)::Bool
     try
         read_until(io, tag)
         has_tag = true
-        seek(io, pos)
-    catch
-        has_tag = false
+    finally
         seek(io, pos)
     end
     return has_tag

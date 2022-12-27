@@ -43,7 +43,7 @@ end
 function _upf_construct_nc_internal(upf::UpfFile)
     #TODO - Consider interpolating log meshes to linear meshes, see the note in the ABINIT
     #TODO   PSP8 documentation
-    #TODO - Consider always extrapolating to r=0 so that corrected trepezoid quadrature can
+    #TODO - Consider always extrapolating to r=0 so that corrected trapezoid quadrature can
     #TODO   always be used
     # There are two possible units schemes for the projectors and coupling coefficients:
     # β [Ry Bohr^{-1/2}]  D [Ry^{-1}]
@@ -99,7 +99,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
     # polynomial.
     β = map(0:lmax) do l
         map(iβ_upf[l]) do n
-            βln = _standardize_wavefunction_like(upf.nonlocal.betas[n].beta, r)
+            βln = _upf_standardize_wavefunction_like(upf.nonlocal.betas[n].beta, r)
             return _truncate(βln; atol=1e-8)
         end
     end
@@ -107,7 +107,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
 
     # UPFs store the pseudo-atomic valence charge density with a prefactor of 4π r^2.
     # We do the extrapolation like for the projectors.
-    ρval = _standardize_ρval(upf.rhoatom, r)
+    ρval = _upf_standardize_ρval(upf.rhoatom, r)
     ρval = _truncate(ρval; atol=1e-8)
 
     # The pseudo-atomic wavefunctions need the same extrapolation treatment as the
@@ -121,7 +121,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
 
         ϕ̃ = map(0:lmax) do l
             map(iχ_upf[l]) do i
-                χ_std = _standardize_wavefunction_like(upf.pswfc[i].chi, r)
+                χ_std = _upf_standardize_wavefunction_like(upf.pswfc[i].chi, r)
                 return _truncate(χ_std; atol=1e-8)
             end
         end
@@ -136,7 +136,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
                                       ϕ̃_ircut, ρcore, ρval)
 end
 
-function _standardize_ρval(ρval_upf::Vector{Float64}, r::Vector{Float64})::Vector{Float64}
+function _upf_standardize_ρval(ρval_upf::Vector{Float64}, r::Vector{Float64})::Vector{Float64}
     ρval = @. ρval_upf / (4Float64(π) * r^2)
     if iszero(r[1])
         ρval[1] = _extrapolate_to_zero(ρval, r)
@@ -144,8 +144,8 @@ function _standardize_ρval(ρval_upf::Vector{Float64}, r::Vector{Float64})::Vec
     return ρval
 end
 
-function _standardize_wavefunction_like(ϕ_upf::Vector{Float64},
-                                        r::Vector{Float64})::Vector{Float64}
+function _upf_standardize_wavefunction_like(ϕ_upf::Vector{Float64},
+                                            r::Vector{Float64})::Vector{Float64}
     irmax = length(ϕ_upf)
     ϕ = ϕ_upf[1:irmax] ./ r[1:irmax]
     if iszero(r[1])
@@ -156,20 +156,28 @@ end
 
 function _extrapolate_to_zero(f::AbstractVector{Float64}, r::AbstractVector{Float64};
                               atol::Float64=1e-1)::Float64
-    #TODO Address pathological cases on log meshes that have points at very small r
-    #TODO which yield large and noisy values close to zero for values that are stored
-    #TODO in file multiplied by `r` or `r^2`
-    val = fit(r[2:imax], f[2:imax], 2)(r[1])
+    # Fit a quadratic polynomial to function using the first 4 points at non-zero radial
+    # coordinate and evaluate the polynomial at r = 0.
+    val = fit(r[2:6], f[2:6], 2)(r[1])
     # If f is approaching 0 at r = 0, force it to numerical 0
     return isapprox(val, 0; atol) ? 0.0 : val
 end
 
-# `length_min=6` so that even quantities that are zero everywhere (usually placeholders)
-# won't error in the Simpson's method integrator, which requires at minimum 6 points
+"""
+Truncate the function `f` on a radial grid at the first point where all the following values
+are within `atol` of 0. If fewer than `length_min` values remain or the function is within
+`atol` of 0 everywhere, return `nothing`.
+"""
 function _truncate(f::AbstractVector{Float64}; atol=sqrt(eps(Float64)), length_min=6)
+    # Find the first index after which the absolute value of the function is always less
+    # than the tolerance
     icut = findfirst(i -> maximum(abs, @view f[i:end]) < atol, eachindex(f))
-    icut = isnothing(icut) ? lastindex(f) : icut
-    icut = (icut - firstindex(f)) < length_min ? firstindex(f) + length_min - 1 : icut
+    # If such an index does not exist, set the cutoff index to the last index of the
+    # function vector
+    icut = something(icut, lastindex(f))
+    # If the cutoff index yields fewer than `length_min` values, return `nothing`
+    (icut - firstindex(f)) < length_min && return nothing
+    # Otherwise, return the truncated function
     return f[firstindex(f):icut]
 end
 
@@ -185,8 +193,6 @@ function NormConservingPsP(psp8::Psp8File)
     dr = mean(diff(r))
     Vloc = psp8.v_local
 
-    # Cut off the projectors at the first index after which their mean value goes to
-    # approximately zero.
     β = map(0:lmax) do l
         map(eachindex(psp8.projectors[l + 1])) do n
             βln = psp8.projectors[l + 1][n]
@@ -199,7 +205,7 @@ function NormConservingPsP(psp8::Psp8File)
     D = OffsetVector(map(l -> diagm(psp8.ekb[l + 1]), 0:lmax), 0:lmax)
     ϕ̃ = nothing  # PSP8 doesn't support pseudo-atomic wavefunctions
     ϕ̃_ircut = nothing
-    ρcore = isnothing(psp8.rhoc) ? nothing : _truncate(psp8.rhoc ./ (4π); atol=1e-8)
+    ρcore = isnothing(psp8.rhoc) ? nothing : _truncate(psp8.rhoc ./ 4π; atol=1e-8)
     ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
     return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, β_ircut, D, ϕ̃,
                                       ϕ̃_ircut, ρcore, ρval)

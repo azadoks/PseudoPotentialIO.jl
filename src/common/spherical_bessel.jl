@@ -19,7 +19,7 @@ Specialized for integer `l` in the range`0 <= l <= 5`.
     error("The case l = $l is not implemented")
 end
 
-# Specialization for (slightly) faster evaluations for `l = 0`
+# Specialization for (slightly) faster evaluations at `l = 0`
 @inline @fastmath function fast_sphericalbesselj0(x::T)::T where {T}
     return iszero(x) ? one(T) : sin(x) / x
 end
