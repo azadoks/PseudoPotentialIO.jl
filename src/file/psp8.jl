@@ -39,7 +39,7 @@ end
 """
 ABINIT PSeudoPotential format 8 file contents. Information on the file format specification
 and the meaning of the quantities within the file can be found on the
-["psp8" page](https://docs.abinit.org/developers/psp8_info/) of the Abinit documentation.
+["psp8" page](https://docs.abinit.org/developers/psp8_info/) of the ABINIT documentation.
 """
 struct Psp8File <: PsPFile
     "Various pseudopotential metadata"
@@ -69,14 +69,18 @@ struct Psp8File <: PsPFile
 end
 
 function psp8_parse_header(io::IO)
-    # line 1
+    # Line 1 contains the title / comment describing the pseudopotential
     title = readline(io)
-    # line 2
+    # Line 2 contains the atomic charge `zatom`, pseudoatomic charge `zion`, and creation
+    # date `pspd` (ddmmyy)
     s = split(readline(io))
     zatom = _parse_fortran(Float64, s[1])
     zion = _parse_fortran(Float64, s[2])
     pspd = parse(Int, s[3])
-    # line 3
+    # Line 3 contains the format version `pspcod`, exchange-correlation functional `pspxc`,
+    # maximum angular momentum channel `lmax`, equivalent angular momentum (pseudoindex of
+    # angular momentum block) where the local potential is listed `lloc`, number of points
+    # on the radial mesh `mmax`, and one deprecated quantity `r2well`
     s = split(readline(io))
     pspcod = parse(Int, s[1])
     pspxc = parse(Int, s[2])
@@ -85,21 +89,25 @@ function psp8_parse_header(io::IO)
     mmax = parse(Int, s[5])
     r2well = parse(Int, s[6])
     @assert pspcod == 8
-    # line 4
+    # Line 4 contains three integrated charge quantities: `rchrg``, `fchrg``, and `qchrg``.
+    # `fchrg`` is used to signal the presence of non-linear core-correction when greater
+    # than zero. `rchrg` and `qchrg` are not used.
     s = split(readline(io))
     rchrg = _parse_fortran(Float64, s[1])
     fchrg = _parse_fortran(Float64, s[2])
     qchrg = _parse_fortran(Float64, s[3])
-    # line 5
+    # Line 5 contains the number of KB non-local projectors per angular momentum channel
     s = split(readline(io))
     nproj = [parse(Int, s[l + 1]) for l in 0:lmax]
     if lloc <= lmax
         @assert nproj[lloc + 1] == 0
     end
-    # line 6
+    # Line 6 contains the "extension switch" flags which are used to signal the presence of
+    # spin-orbit coupling (and theoretically any other extension to the format)
     s = split(readline(io))
     extension_switch = parse(Int, s[1])
-    # line 7
+    # Line 7 contains the number of spin-orbit coupling KB non-local projectors per angular
+    # momentum channel when the extension switch has a value of 2 or 3
     if extension_switch in (2, 3)
         s = split(readline(io))
         nprojso = [0, [parse(Int, s[i]) for i in 1:lmax]...]
@@ -112,17 +120,24 @@ function psp8_parse_header(io::IO)
 end
 
 function psp8_parse_projector_block(io, nproj, mmax)
+    # The first line of each projector block contains first the angular momentum of the
+    # projectors then the "KB energies" (projector coupling constants) among the projectors
+    # in the block
     header_line = split(readline(io))
     l = parse(Int, header_line[1])
     nproj_l = nproj[l + 1]
     ekb = [_parse_fortran(Float64, header_line[i + 1]) for i in 1:nproj_l]
 
+    # The block itself has two metadata columns (index and radial coordinate in Bohr) and
+    # nproj[l + 1] data columns (the projectors).
     rgrid = Vector{Float64}(undef, mmax)
     projectors = [Vector{Float64}(undef, mmax) for _ in 1:(nproj_l)]
     for i in 1:mmax
         s = split(readline(io))
         rgrid[i] = _parse_fortran(Float64, s[2])
         for j in 1:nproj_l
+            # Vector-of-vectors is used because each projector will be separately truncated
+            # where it goes to zero at a later time
             projectors[j][i] = _parse_fortran(Float64, s[2 + j])
         end
     end
@@ -130,7 +145,7 @@ function psp8_parse_projector_block(io, nproj, mmax)
     return (; l, rgrid, projectors, ekb)
 end
 
-function psp8_parse_v_local(io, mmax)
+function psp8_parse_v_local_block(io, mmax)
     header_line = split(readline(io))
     l = parse(Int, header_line[1])
 
@@ -149,15 +164,15 @@ function psp8_parse_main_blocks(io, mmax, nproj, lmax, lloc)
     projector_blocks = []
     v_local_block = ()
 
-    if lmax < lloc
+    if lmax < lloc  # The local potential does not replace an angular momentum channel
         n_blocks = lmax + 1
-    else
+    else  # The local potential takes the place of an angular momentum channel in the file
         n_blocks = lmax
     end
 
     for _ in 0:n_blocks
-        # Record the position at the start of the block so we can
-        # read in the first line and go back
+        # Record the position at the start of the block so we can read in the first line
+        # and go back to it after reconaissance
         pos = position(io)
         # Read the block header
         header_line = split(readline(io))
@@ -166,8 +181,10 @@ function psp8_parse_main_blocks(io, mmax, nproj, lmax, lloc)
         # Parse the block's angular momentum
         block_l = parse(Int, header_line[1])
         if block_l == lloc
-            v_local_block = psp8_parse_v_local(io, mmax)
+            v_local_block = psp8_parse_v_local_block(io, mmax)
             if lloc <= lmax
+                # If the local potential is mixed in with the projectors, add an empty block
+                # to maintain proper angular momentum indexing
                 push!(projector_blocks, (; l=block_l, rgrid=nothing, projectors=[], ekb=[]))
             end
         else
@@ -183,6 +200,8 @@ function psp8_parse_main_blocks(io, mmax, nproj, lmax, lloc)
 end
 
 function psp8_parse_spin_orbit_blocks(io, mmax, nprojso, lmax)
+    # Spin-orbit coupling projector blocks have the same shape as "normal" projector blocks,
+    # but there is no spin-orbit local potential.
     projector_blocks = []
     for _ in 1:lmax
         block = psp8_parse_projector_block(io, nprojso, mmax)
@@ -195,7 +214,10 @@ function psp8_parse_spin_orbit_blocks(io, mmax, nprojso, lmax)
     return (; projectors, ekb)
 end
 
-function psp8_parse_nlcc(io, mmax)
+function psp8_parse_nlcc_block(io, mmax)
+    # The non-linear core correction block contains 7 columns: index, radial grid, core
+    # charge density (including a 4π factor), and the first four derivatives of the core
+    # charge density w.r.t. radial coordinate
     radial_grid = Vector{Float64}(undef, mmax)
     rhoc = Vector{Float64}(undef, mmax)
     d_rhoc_dr = Vector{Float64}(undef, mmax)
@@ -204,32 +226,33 @@ function psp8_parse_nlcc(io, mmax)
     d4_rhoc_dr4 = Vector{Float64}(undef, mmax)
     for i in 1:mmax
         s = split(readline(io))
-        radial_grid[i] = _parse_fortran(Float64, s[2])
-        # These include the 4π factor
-        rhoc[i] = _parse_fortran(Float64, s[3])
-        d_rhoc_dr[i] = _parse_fortran(Float64, s[4])
-        d2_rhoc_dr2[i] = _parse_fortran(Float64, s[5])
-        d3_rhoc_dr3[i] = _parse_fortran(Float64, s[6])
-        d4_rhoc_dr4[i] = _parse_fortran(Float64, s[7])
+        radial_grid[i] = _parse_fortran(Float64, s[2])  # r
+        rhoc[i] = _parse_fortran(Float64, s[3])         # 4π ρ
+        d_rhoc_dr[i] = _parse_fortran(Float64, s[4])    # dρ / dr
+        d2_rhoc_dr2[i] = _parse_fortran(Float64, s[5])  # d²ρ / dr²
+        d3_rhoc_dr3[i] = _parse_fortran(Float64, s[6])  # d³ρ / dr³
+        d4_rhoc_dr4[i] = _parse_fortran(Float64, s[7])  # d⁴ρ / dr⁴
     end
     return (; rhoc, d_rhoc_dr, d2_rhoc_dr2, d3_rhoc_dr3, d4_rhoc_dr4)
 end
 
 function Psp8File(io::IO)
+    # NOTE: parsing _must_ be done in order because it is done by reading the file
+    # incrementally and depends on the order of the lines in the file
     header = psp8_parse_header(io)
     main_blocks = psp8_parse_main_blocks(io, header.mmax, header.nproj, header.lmax,
                                          header.lloc)
     if header.extension_switch in (2, 3)
         spin_orbit = psp8_parse_spin_orbit_blocks(io, header.mmax, header.nprojso,
                                                   header.lmax)
-        # Add empty vectors for l=0 to maintain angular momentum - index correspondence
+        # Add empty vectors for l=0 to maintain angular momentum <-> index correspondence
         spin_orbit = (projectors=[[], spin_orbit.projectors...],
                       ekb=[[], spin_orbit.ekb...])
     else
         spin_orbit = (projectors=nothing, ekb=nothing)
     end
     if header.fchrg > 0
-        nlcc = psp8_parse_nlcc(io, header.mmax)
+        nlcc = psp8_parse_nlcc_block(io, header.mmax)
     else
         nlcc = (rhoc=nothing, d_rhoc_dr=nothing, d2_rhoc_dr2=nothing, d3_rhoc_dr3=nothing,
                 d4_rhoc_dr4=nothing)
