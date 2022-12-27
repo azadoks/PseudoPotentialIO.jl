@@ -88,8 +88,10 @@ function upf1_parse_info(io::IO)
     pos = position(io)
     info = String[]
     read_until(io, "<PP_INFO>")
-    # line = string(strip(readline(io)))
-    # push!(info, line)
+    # Read the first line of PP_INFO then read until the end tag
+    # TODO: this will break if there are no lines in PP_INFO
+    line = string(strip(readline(io)))
+    push!(info, line)
     while !occursin("</PP_INFO>", line)
         line = string(strip(readline(io)))
         push!(info, line)
