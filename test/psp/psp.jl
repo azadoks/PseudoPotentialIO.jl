@@ -1,4 +1,15 @@
-#TODO hide deprecation message coming from Quaternions.jl through Rotations.jl
+function random_versor()
+    r, i, j, k = randn(4)
+    quat_inorm = inv(sqrt(r*r + i*i + j*j + k*k))
+    return quat(r*quat_inorm, i*quat_inorm, j*quat_inorm, k*quat_inorm)
+end
+
+function rotate_vector(q::Quaternion, u::AbstractVector)
+    q_u = Quaternion(0, u[1], u[2], u[3])
+    q_v = q * q_u * conj(q)
+    return [imag_part(q_v)...]
+end
+
 @testset "AbstractPsP" begin
     filepaths = []
     for dir in families
@@ -40,7 +51,8 @@
             end
 
             R = rand(3)
-            R_rot = QuatRotation(rand(RotMatrix{3})) * R
+            # R_rot = QuatRotation(rand(RotMatrix{3})) * R
+            R_rot = rotate_vector(random_versor(), R)
 
             @test local_potential_real(psp, R) ≈ local_potential_real(psp, R_rot)
             for l in 0:max_angular_momentum(psp), n in 1:n_projectors(psp, l)
@@ -62,7 +74,8 @@
             end
 
             K = rand(3) .+ eps(Float64)
-            K_rot = QuatRotation(rand(RotMatrix{3})) * K
+            # K_rot = QuatRotation(rand(RotMatrix{3})) * K
+            K_rot = rotate_vector(random_versor(), K)
 
             @test local_potential_fourier(psp, K) ≈ local_potential_fourier(psp, K_rot)
             for l in 0:max_angular_momentum(psp), n in 1:n_projectors(psp, l)

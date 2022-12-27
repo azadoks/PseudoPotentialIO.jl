@@ -39,14 +39,15 @@ be returned to the same position as at call time.
 """
 function has_tag(io::IO, tag::AbstractString)::Bool
     pos = position(io)
-    has_tag = false
     try
         read_until(io, tag)
-        has_tag = true
+        return true
+    catch e
+        !isa(e, EOFError) && rethrow(e)
+        return false
     finally
         seek(io, pos)
     end
-    return has_tag
 end
 
 """

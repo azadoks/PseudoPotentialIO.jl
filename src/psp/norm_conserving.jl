@@ -16,14 +16,10 @@ struct NormConservingPsP{T} <: NumericPsP{T}
     Vloc::Vector{T}
     "Nonlocal projectors β[l][n] on the radial mesh."
     β::OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}
-    "Cutoff indices for nonlocal projectors"
-    β_ircut::OffsetVector{Vector{Int},Vector{Vector{Int}}}
     "Projector coupling coefficients D[l][n,m]."
     D::OffsetVector{Matrix{T},Vector{Matrix{T}}}
     "Pseudo-atomic wavefunctions ϕ̃[l][n] on the radial mesh."
     ϕ̃::Union{Nothing,OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}}
-    "Cutoff indices for nonlocal projectors"
-    ϕ̃_ircut::Union{Nothing,OffsetVector{Vector{Int},Vector{Vector{Int}}}}
     "Model core charge density for non-linear core correction on the radial mesh."
     ρcore::Union{Nothing,Vector{T}}
     "Valence charge density for charge density initialization on the radial mesh."
@@ -85,14 +81,6 @@ function _upf_construct_nc_internal(upf::UpfFile)
     end
     D = OffsetVector(D, 0:lmax) .* 2  # 1/Ry -> 1/Ha
 
-    # Find the cutoff radius index for each projector
-    β_ircut = map(0:lmax) do l
-        map(iβ_upf[l]) do i
-            return length(upf.nonlocal.betas[i].beta)
-        end
-    end
-    β_ircut = OffsetVector(β_ircut, 0:lmax)
-
     # UPFs store the projectors multiplied by the radial grid. For compatability with the
     # PseudoPotentialIO interface, we need the pure projectors. To get them, we divide
     # rβ by r where r > 0 and use that data to extrapolate to r = 0 using a quadratic
@@ -126,14 +114,11 @@ function _upf_construct_nc_internal(upf::UpfFile)
             end
         end
         ϕ̃ = OffsetVector(ϕ̃, 0:lmax)
-        ϕ̃_ircut = OffsetVector(map(l -> length.(ϕ̃[l]), 0:lmax), 0:lmax)
     else
-        ϕ̃_ircut = nothing
         ϕ̃ = nothing
     end
 
-    return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, β_ircut, D, ϕ̃,
-                                      ϕ̃_ircut, ρcore, ρval)
+    return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, D, ϕ̃, ρcore, ρval)
 end
 
 function _upf_standardize_ρval(ρval_upf::Vector{Float64}, r::Vector{Float64})::Vector{Float64}
@@ -166,7 +151,7 @@ end
 """
 Truncate the function `f` on a radial grid at the first point where all the following values
 are within `atol` of 0. If fewer than `length_min` values remain or the function is within
-`atol` of 0 everywhere, return `nothing`.
+`atol` of 0 everywhere, return the first `length_min` values.
 """
 function _truncate(f::AbstractVector{Float64}; atol=sqrt(eps(Float64)), length_min=6)
     # Find the first index after which the absolute value of the function is always less
@@ -175,9 +160,8 @@ function _truncate(f::AbstractVector{Float64}; atol=sqrt(eps(Float64)), length_m
     # If such an index does not exist, set the cutoff index to the last index of the
     # function vector
     icut = something(icut, lastindex(f))
-    # If the cutoff index yields fewer than `length_min` values, return `nothing`
-    (icut - firstindex(f)) < length_min && return nothing
-    # Otherwise, return the truncated function
+    # If `icut` gives too few values, set it to give the minimum number of values
+    icut = (icut - firstindex(f)) < length_min ? firstindex(f) + length_min : icut
     return f[firstindex(f):icut]
 end
 
@@ -201,14 +185,11 @@ function NormConservingPsP(psp8::Psp8File)
     end
     β = OffsetVector(β, 0:lmax)
 
-    β_ircut = OffsetVector(map(l -> length.(β[l]), 0:lmax), 0:lmax)
     D = OffsetVector(map(l -> diagm(psp8.ekb[l + 1]), 0:lmax), 0:lmax)
     ϕ̃ = nothing  # PSP8 doesn't support pseudo-atomic wavefunctions
-    ϕ̃_ircut = nothing
     ρcore = isnothing(psp8.rhoc) ? nothing : _truncate(psp8.rhoc ./ 4π; atol=1e-8)
     ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
-    return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, β_ircut, D, ϕ̃,
-                                      ϕ̃_ircut, ρcore, ρval)
+    return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, D, ϕ̃, ρcore, ρval)
 end
 
 is_norm_conserving(::NormConservingPsP)::Bool = true

@@ -16,14 +16,10 @@ struct UltrasoftPsP{T} <: NumericPsP{T}
     Vloc::Vector{T}
     "Nonlocal projectors β[l][n] on the radial mesh"
     β::OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}
-    "Cutoff indices for nonlocal projectors"
-    β_ircut::OffsetVector{Vector{Int},Vector{Vector{Int}}}
     "Projector coupling coefficients D[l][n,m]"
     D::OffsetVector{Matrix{T},Vector{Matrix{T}}}
     "Pseudo-atomic wavefunctions ϕ̃[l][n] on the radial mesh."
     ϕ̃::OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}
-    "Cutoff indices for nonlocal projectors"
-    ϕ̃_ircut::OffsetVector{Vector{Int},Vector{Vector{Int}}}
     "Augmentation charge density functions Q[l][n,m] on the radial mesh"
     Q::OffsetVector{Matrix{Vector{T}},Vector{Matrix{Vector{T}}}}
     "Augmentation charges q[l][n,m]"
@@ -128,8 +124,7 @@ function _upf_construct_us_internal(upf::UpfFile)
         error("q_with_l == false and nqf == 0, unsure what to do...")
     end
     return UltrasoftPsP{Float64}(nc.Ztot, nc.Zval, nc.lmax, nc.r, nc.dr, nc.Vloc, nc.β,
-                                 nc.β_ircut, nc.D, nc.ϕ̃, nc.ϕ̃_ircut, Q, q, nc.ρcore,
-                                 nc.ρval)
+                                 nc.D, nc.ϕ̃, Q, q, nc.ρcore, nc.ρval)
 end
 
 is_norm_conserving(::UltrasoftPsP)::Bool = false

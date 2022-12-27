@@ -33,8 +33,6 @@ Vloc::AbstractVector{Real}
 D::OffsetVector{AbstractMatrix{Real}}
 # Nonlocal projectors on the radial mesh β[l][n]
 β::OffsetVector{AbstractVector{AbstractVector{Real}}}
-# Cutoff indices for nonlocal projectors
-β_ircut::OffsetVector{AbstractVector{Int}}
 
 ## "Optional" fields (must still exist, but could be Union{Nothing})
 # Model core charge density (non-linear core correction) on the radial mesh
@@ -43,8 +41,6 @@ D::OffsetVector{AbstractMatrix{Real}}
 ρval::Union{Nothing,AbstractVector{Real}}
 # Pseudo-atomic orbitals on the radial mesh ϕ̃[l][n]
 ϕ̃::Union{Nothing,OffsetVector{AbstractVector{AbstractVector{Real}}}}
-# Cutoff indices for pseudo-atomic orbitals
-ϕ̃_ircut::Union{Nothing,OffsetVector{AbstractVector{Int}}}
 ```
 """
 abstract type NumericPsP{T} <: AbstractPsP end
@@ -67,7 +63,9 @@ function local_potential_real(psp::NumericPsP, r::T)::T where {T<:Real}
     return build_interpolator(psp.Vloc, psp.r)(r)
 end
 
-function projector_real(psp::NumericPsP, l::Int, n::Int, r::T)::T where {T<:Real}
+function projector_real(psp::NumericPsP, l::Int, n::Int,
+                        r::T)::Union{Nothing,T} where {T<:Real}
+    isnothing(psp.β[l][n]) && return nothing
     return build_interpolator(psp.β[l][n], psp.r)(r)
 end
 
