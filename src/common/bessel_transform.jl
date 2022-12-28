@@ -33,6 +33,11 @@ end
     return 4π * trapezoid(integrand, dr)
 end
 
+@inline function bessel_transform(::Int, ::AbstractVector{T}, ::Union{T,AbstractVector{T}},
+    ::AbstractVector{T}, ::T)::Nothing where {T<:Real}
+return nothing
+end
+
 @inline function bessel_transform(::AbstractVector{T}, ::Union{T,AbstractVector{T}},
                                   ::Nothing, ::T)::Nothing where {T<:Real}
     return nothing
