@@ -16,11 +16,11 @@
 
     function wavefunction_like_integral(::NumericPsP, itp, l::Int, q::T,
                                         r::T)::T where {T<:Real}
-        return 4π * r^2 * fast_sphericalbesselj(l, q * r) * itp(r)
+        return 4π * fast_sphericalbesselj(l, q * r) * itp(r)
     end
 
     function charge_density_integral(::NumericPsP, itp, q::T, r::T)::T where {T<:Real}
-        return 4π * r^2 * fast_sphericalbesselj0(q * r) * itp(r)
+        return 4π * fast_sphericalbesselj0(q * r) * itp(r)
     end
 
     @testset "$(splitpath(filepath)[end])" for filepath in filepaths

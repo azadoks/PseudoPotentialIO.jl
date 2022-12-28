@@ -1,7 +1,7 @@
 @doc raw"""
 Abstract type representing numeric pseudopotentials.
 
-All quantities must be in Hartree atomic units without prefactors like `r` or `4π`.
+All quantities must be in Hartree atomic units.
 
 - Lengths in Bohr radii (a₀)
 - Energies in Hartree (Ha / Eₕ)
@@ -31,15 +31,17 @@ Vloc::AbstractVector{Real}
 ## The units of `D` and `β` should be such that `⟨ βˡₙ | Dˡₙₘ | βˡₘ ⟩` gives Hartree
 # Nonlocal projector coupling constants D[l][n,m]
 D::OffsetVector{AbstractMatrix{Real}}
-# Nonlocal projectors on the radial mesh β[l][n]
+# Nonlocal projectors on the radial mesh, multiplied by the mesh squared r^2 β[l][n]
 β::OffsetVector{AbstractVector{AbstractVector{Real}}}
 
 ## "Optional" fields (must still exist, but could be Union{Nothing})
-# Model core charge density (non-linear core correction) on the radial mesh
+# Model core charge density (non-linear core correction) on the radial mesh, multiplied by
+# the mesh squared r^2 ρcore
 ρcore::Union{Nothing,AbstractVector{Real}}
-# Pseudo-atomic valence charge density on the radial mesh
+# Pseudo-atomic valence charge density on the radial mesh, multiplied by the mesh squared
+# r^2 ρval
 ρval::Union{Nothing,AbstractVector{Real}}
-# Pseudo-atomic orbitals on the radial mesh ϕ̃[l][n]
+# Pseudo-atomic orbitals on the radial mesh, multiplied by the mesh squared r^2 ϕ̃[l][n]
 ϕ̃::Union{Nothing,OffsetVector{AbstractVector{AbstractVector{Real}}}}
 ```
 """

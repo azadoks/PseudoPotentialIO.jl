@@ -53,7 +53,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
     lmax = upf.header.l_max
     r = upf.mesh.r
     Vloc = upf.local_ ./ 2  # Ry -> Ha
-    ρcore = isnothing(upf.nlcc) ? nothing : _truncate(upf.nlcc; atol=1e-8)
+    ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc  # _truncate(upf.nlcc; atol=1e-12)
 
     # Guess the mesh type to choose scalar or vector `dr`
     mesh_type, _, _ = guess_mesh_type(r, upf.mesh.rab)
@@ -81,36 +81,37 @@ function _upf_construct_nc_internal(upf::UpfFile)
     end
     D = OffsetVector(D, 0:lmax) .* 2  # 1/Ry -> 1/Ha
 
-    # UPFs store the projectors multiplied by the radial grid. For compatability with the
-    # PseudoPotentialIO interface, we need the pure projectors. To get them, we divide
-    # rβ by r where r > 0 and use that data to extrapolate to r = 0 using a quadratic
-    # polynomial.
+    # UPFs store the projectors multiplied by the radial grid, so we multiply again by the
+    # grid for consistency.
     β = map(0:lmax) do l
         map(iβ_upf[l]) do n
-            βln = _upf_standardize_wavefunction_like(upf.nonlocal.betas[n].beta, r)
-            return _truncate(βln; atol=1e-8)
+            βln = upf.nonlocal.betas[n].beta
+            βln = βln .* @view r[1:length(βln)]
+            return βln
+            # return _truncate(βln; atol=1e-12)
         end
     end
     β = OffsetVector(β, 0:lmax) ./ 2  # Ry -> Ha
 
     # UPFs store the pseudo-atomic valence charge density with a prefactor of 4π r^2.
-    # We do the extrapolation like for the projectors.
-    ρval = _upf_standardize_ρval(upf.rhoatom, r)
-    ρval = _truncate(ρval; atol=1e-8)
+    # For consistency, we remove the 4π prefactor.
+    ρval = upf.rhoatom ./ 4π  # _truncate(upf.rhoatom ./ 4π; atol=1e-12)
 
-    # The pseudo-atomic wavefunctions need the same extrapolation treatment as the
-    # projectors.
     if !isnothing(upf.pswfc)
-        # Collect the indices in upf.nonlocal.betas for projectors at each angular momentum
+        # Collect the indices in upf.pswfc for projectors at each angular momentum
         iχ_upf = map(0:lmax) do l
             return filter(i -> upf.pswfc[i].l == l, eachindex(upf.pswfc))
         end
         iχ_upf = OffsetVector(iχ_upf, 0:lmax)
 
+        # UPFs store the wavefunctions multiplied by the radial grid, so we multiply again
+        # by the grid for consistency.
         ϕ̃ = map(0:lmax) do l
             map(iχ_upf[l]) do i
-                χ_std = _upf_standardize_wavefunction_like(upf.pswfc[i].chi, r)
-                return _truncate(χ_std; atol=1e-8)
+                χln = upf.pswfc[i].chi
+                χln = χln .* @view r[1:length(χln)]
+                return χln
+                # return _truncate(χln; atol=1e-12)
             end
         end
         ϕ̃ = OffsetVector(ϕ̃, 0:lmax)
@@ -119,33 +120,6 @@ function _upf_construct_nc_internal(upf::UpfFile)
     end
 
     return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, D, ϕ̃, ρcore, ρval)
-end
-
-function _upf_standardize_ρval(ρval_upf::Vector{Float64}, r::Vector{Float64})::Vector{Float64}
-    ρval = @. ρval_upf / (4Float64(π) * r^2)
-    if iszero(r[1])
-        ρval[1] = _extrapolate_to_zero(ρval, r)
-    end
-    return ρval
-end
-
-function _upf_standardize_wavefunction_like(ϕ_upf::Vector{Float64},
-                                            r::Vector{Float64})::Vector{Float64}
-    irmax = length(ϕ_upf)
-    ϕ = ϕ_upf[1:irmax] ./ r[1:irmax]
-    if iszero(r[1])
-        ϕ[1] = _extrapolate_to_zero(ϕ, r)
-    end
-    return ϕ
-end
-
-function _extrapolate_to_zero(f::AbstractVector{Float64}, r::AbstractVector{Float64};
-                              atol::Float64=1e-1)::Float64
-    # Fit a quadratic polynomial to function using the first 4 points at non-zero radial
-    # coordinate and evaluate the polynomial at r = 0.
-    val = fit(r[2:6], f[2:6], 2)(r[1])
-    # If f is approaching 0 at r = 0, force it to numerical 0
-    return isapprox(val, 0; atol) ? 0.0 : val
 end
 
 """
@@ -177,17 +151,22 @@ function NormConservingPsP(psp8::Psp8File)
     dr = mean(diff(r))
     Vloc = psp8.v_local
 
+    # PSP8s store the projectors without any prefactor, so we multiply by the grid squared
+    # for consistency.
     β = map(0:lmax) do l
         map(eachindex(psp8.projectors[l + 1])) do n
             βln = psp8.projectors[l + 1][n]
-            return _truncate(βln; atol=1e-8)
+            βln = βln .* (@view r[1:length(βln)]).^2
+            return βln  # _truncate(βln; atol=1e-12)
         end
     end
     β = OffsetVector(β, 0:lmax)
 
     D = OffsetVector(map(l -> diagm(psp8.ekb[l + 1]), 0:lmax), 0:lmax)
     ϕ̃ = nothing  # PSP8 doesn't support pseudo-atomic wavefunctions
-    ρcore = isnothing(psp8.rhoc) ? nothing : _truncate(psp8.rhoc ./ 4π; atol=1e-8)
+    # PSP8s store the core charge density with a prefactor of 4π, which we remove for
+    # consistency.
+    ρcore = isnothing(psp8.rhoc) ? nothing : psp8.rhoc ./ 4π  # _truncate(psp8.rhoc ./ 4π; atol=1e-12)
     ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
     return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, D, ϕ̃, ρcore, ρval)
 end

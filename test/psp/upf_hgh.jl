@@ -18,7 +18,7 @@
                     nmax = min(n_projectors(upf2, l), n_projectors(hgh, l))
                     for n in 1:nmax
                         @test projector_fourier(upf2, l, n, q) ≈
-                            projector_fourier(hgh, l, n, q) atol = 1e-3 rtol = 1e-3
+                              projector_fourier(hgh, l, n, q) atol = 1e-3 rtol = 1e-3
                     end
                 end
             end
