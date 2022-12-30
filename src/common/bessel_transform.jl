@@ -16,7 +16,7 @@ The function should be rapidly decaying to zero within the bounds of the mesh.
     @inbounds @fastmath for i in eachindex(f)
         integrand[i] = f[i] * fast_sphericalbesselj(l, q * r[i])
     end
-    return 4π * trapezoid(integrand, dr)
+    return 4π * simpson(integrand, dr)
 end
 
 # Special case where l = 0 can use the (slightly) faster `fast_sphericalbesselj0`
@@ -30,7 +30,7 @@ end
     @inbounds @fastmath for i in eachindex(f)
         integrand[i] = f[i] * fast_sphericalbesselj0(q * r[i])
     end
-    return 4π * trapezoid(integrand, dr)
+    return 4π * simpson(integrand, dr)
 end
 
 @inline function bessel_transform(::Int, ::AbstractVector{T}, ::Union{T,AbstractVector{T}},

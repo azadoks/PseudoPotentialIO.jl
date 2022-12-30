@@ -93,7 +93,7 @@ end
 
 function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
     f = @. psp.r * fast_sphericalbesselj0(q * psp.r) * (psp.r * psp.Vloc + psp.Zval)
-    return 4π * (trapezoid(f, psp.dr) - psp.Zval / q^2)
+    return 4π * (simpson(f, psp.dr) - psp.Zval / q^2)
 end
 
 @inline function projector_fourier(psp::NumericPsP, l::Int, n::Int, q::T)::T where {T<:Real}
@@ -118,5 +118,5 @@ end
 
 @inline function pseudo_energy_correction(psp::NumericPsP{T})::T where {T<:Real}
     f = @. psp.r * (psp.r * psp.Vloc + psp.Zval)
-    return 4π * trapezoid(f, psp.dr)
+    return 4π * simpson(f, psp.dr)
 end
