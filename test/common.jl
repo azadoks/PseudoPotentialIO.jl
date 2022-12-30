@@ -62,7 +62,7 @@ import PseudoPotentialIO: trapezoid, simpson
     @testset "trapezoidal reference" begin
         # Taken from Python Numerical Methods 21.03 "Trapezoidal Rule"
         a = 0
-        b = π
+        b = float(π)
         n = 11
         h = (b - a) / (n - 1)
         x = range(a, b, n)
@@ -74,7 +74,7 @@ import PseudoPotentialIO: trapezoid, simpson
     @testset "simpson reference" begin
         # Taken from Python Numerical Methods 21.04 "Simpson's Rule"
         a = 0
-        b = π
+        b = float(π)
         n = 11
         h = (b - a) / (n - 1)
         x = range(a, b, n)
@@ -87,7 +87,7 @@ import PseudoPotentialIO: trapezoid, simpson
         @testset for integrator in (trapezoid, simpson)
             n = 100001
             x0 = 0.00
-            dx = π / n
+            dx = float(π) / n
             x = linear_mesh.(1:n, dx, x0 - dx)
             fx = sin.(x)
             @test integrator(fx, dx) ≈ 2.0
@@ -100,7 +100,7 @@ import PseudoPotentialIO: trapezoid, simpson
         @testset for integrator in (trapezoid, simpson)
             n = 100000
             x0 = 0.00
-            dx = π / n
+            dx = float(π) / n
             x = linear_mesh.(1:n, dx, x0 - dx)
             fx = sin.(x)
             @test integrator(fx, dx) ≈ 2.0
@@ -113,7 +113,7 @@ import PseudoPotentialIO: trapezoid, simpson
         @testset for integrator in (trapezoid, simpson)
             n = 1000001
             i = collect(1:n)
-            b = π / n
+            b = float(π) / n
             a = log(π / b) / (n - 1)
             x = logarithmic_mesh1.(1:n, a, b)
             dx = @. a * b * exp.(a * (i - 1))
@@ -126,7 +126,7 @@ import PseudoPotentialIO: trapezoid, simpson
         @testset for integrator in (trapezoid, simpson)
             n = 1000000
             i = collect(1:n)
-            b = π / n
+            b = float(π) / n
             a = log(π / b) / (n - 1)
             x = logarithmic_mesh1.(1:n, a, b)
             dx = @. a * b * exp.(a * (i - 1))
@@ -142,7 +142,7 @@ import PseudoPotentialIO: trapezoid, simpson
         @testset for integrator in (trapezoid, simpson)
             n = 100001
             x0 = 0.00
-            dx = π / n
+            dx = float(π) / n
             x = linear_mesh.(1:n, dx, x0 - dx)
             fx = @. exp(-(x^2)) * sin(x)
             @test integrator(fx, dx) ≈ real(ref)
@@ -154,7 +154,7 @@ import PseudoPotentialIO: trapezoid, simpson
         @testset for integrator in (trapezoid, simpson)
             n = 100000
             x0 = 0.00
-            dx = π / n
+            dx = float(π) / n
             x = linear_mesh.(1:n, dx, x0 - dx)
             fx = @. exp(-(x^2)) * sin(x)
             @test integrator(fx, dx) ≈ real(ref)
@@ -166,7 +166,7 @@ import PseudoPotentialIO: trapezoid, simpson
         @testset for integrator in (trapezoid, simpson)
             n = 1000001
             i = collect(1:n)
-            b = π / n
+            b = float(π) / n
             a = log(π / b) / (n - 1)
             x = logarithmic_mesh1.(1:n, a, b)
             dx = @. a * b * exp.(a * (i - 1))
@@ -179,7 +179,7 @@ import PseudoPotentialIO: trapezoid, simpson
         @testset for integrator in (trapezoid, simpson)
             n = 1000000
             i = collect(1:n)
-            b = π / n
+            b = float(π) / n
             a = log(π / b) / (n - 1)
             x = logarithmic_mesh1.(1:n, a, b)
             dx = @. a * b * exp.(a * (i - 1))
