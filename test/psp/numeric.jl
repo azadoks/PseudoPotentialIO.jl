@@ -25,7 +25,7 @@
 
     @testset "$(splitpath(filepath)[end])" for filepath in filepaths
         psp = load_psp(filepath)
-        rmin = first(psp.r)
+        rmin = max(first(psp.r), eps(eltype(psp.r)))
 
         @testset "Local potential Fourier agrees with real" begin
             itp = build_interpolator(psp.Vloc, psp.r)
@@ -44,7 +44,7 @@
                 for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
                     ref = quadgk(r -> wavefunction_like_integral(psp, itp, l, q, r), rmin,
                                  rmax)[1]
-                    @test ref ≈ projector_fourier(psp, l, n, q) rtol = 1e-2 atol = 1e-2
+                    @test ref ≈ projector_fourier(psp, l, n, q) rtol = 1e-1 atol = 1e-1
                 end
             end
         end
@@ -74,7 +74,7 @@
                     for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
                         ref = quadgk(r -> wavefunction_like_integral(psp, itp, l, q, r),
                                      rmin, rmax)[1]
-                        @test ref ≈ pseudo_orbital_fourier(psp, l, n, q) rtol = 1e-2 atol = 1e-2
+                        @test ref ≈ pseudo_orbital_fourier(psp, l, n, q) rtol = 1e-1 atol = 1e-1
                     end
                 end
             end
