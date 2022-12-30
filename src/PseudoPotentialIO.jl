@@ -1,100 +1,110 @@
 module PseudoPotentialIO
-
+using Artifacts
 using EzXML
+using Interpolations
+using LazyArtifacts
+using LinearAlgebra
+using OffsetArrays
+using Polynomials
+using Printf
+using SpecialFunctions
+using Statistics
 
-include("common.jl")
+import Base.Broadcast.broadcastable
+import PeriodicTable
 
-export parse_upf1
-include("upf1.jl")
+## DocStringExtensions Templates
+#NOTE they don't seem to be working at the moment
+using DocStringExtensions
+@template (FUNCTIONS, METHODS, MACROS) = """
+                                         $(TYPEDSIGNATURES)
+                                         $(DOCSTRING)
+                                         $(METHODLIST)
+                                         """
 
-export parse_upf2
-include("upf2.jl")
+@template TYPES = """
+                  $(TYPEDEF)
+                  $(DOCSTRING)
+                  $(TYPEDFIELDS)
+                  """
 
-export parse_psp8
-include("psp8.jl")
+## File datastructures and interface
+export PsPFile
+export format
+export element
+export is_norm_conserving
+export is_ultrasoft
+export is_paw
+export formalism
+export has_spin_orbit
+export relativistic_treatment
+export has_nlcc
+export valence_charge
+export max_angular_momentum
+export n_projectors
+export n_pseudo_orbitals
+include("file/file.jl")
 
-"""
-    get_upf_version(filename::AbstractString)
+export UpfFile
+include("file/upf.jl")
+include("file/upf1.jl")
+include("file/upf2.jl")
 
-Parse the version of a UPF file from its contents.
-Supported versions are old UPF (v1) and UPF with schema (v2).
+export Psp8File
+include("file/psp8.jl")
 
-!!! Note
-UPF v2 without schema is not supported.
-"""
-function get_upf_version(filename::AbstractString)::Int
-    open(filename, "r") do io
-        line = readline(io)
-        # Old UPF files start with the `<PP_INFO>` section
-        if occursin("<PP_INFO>", line)
-            return 1
-        # New UPF files with schema are in XML and start with a version tag
-        elseif occursin("UPF version=\"2.0.1\"", line)
-            return 2
-        else
-            error("Unknown UPF version")
-        end
-    end
-end
+export HghFile
+include("file/hgh.jl")
 
-"""
-    load_upf(filename::AbstractString)
+## Pseudopotential datastructures and interface
+export AbstractPsP
+export element
+export formalism
+export relativistic_treatment
+export has_spin_orbit
+export has_nlcc
+export valence_charge
+export max_angular_momentum
+export n_projectors
+export n_pseudo_orbitals
+export local_potential_real
+export local_potential_fourier
+export projector_coupling
+export projector_real
+export projector_fourier
+export pseudo_energy_correction
+export core_charge_density_real
+export core_charge_density_fourier
+export valence_charge_density_real
+export valence_charge_density_fourier
+export pseudo_orbital_real
+export pseudo_orbital_fourier
+include("psp/psp.jl")
 
-Load a UPF file, supports old (v1) and v2 with schema.
-"""
-function load_upf(filename::AbstractString)
-    version = get_upf_version(filename)
-    if version == 1
-        open(filename, "r") do io
-            return parse_upf1(io)
-        end
-    elseif version == 2
-        text = read(filename, String)
-        # Remove end-of-file junk (input data, etc.)
-        text = string(split(text, "</UPF>")[1], "</UPF>")
-        # Clean any errant `&` characters
-        text = replace(text, "&" => "")
-        doc_root = root(parsexml(text))
-        return parse_upf2(doc_root)
-    end
-end
+export NumericPsP
+include("psp/numeric.jl")
 
-"""
-    get_psp_version(filename::AbstractString)
+export NormConservingPsP
+include("psp/norm_conserving.jl")
 
-Parse the version of a PSP file from its contents.
-"""
-function get_psp_version(filename::AbstractString)::Int
-    open(filename, "r") do io
-        # Discard the first two lines
-        for _ = 1:2
-            readline(io)
-        end
-        # The version number is the first entry on line 3
-        s = split(readline(io))
-        return parse(Int, s[1])
-    end
-end
+export UltrasoftPsP
+include("psp/ultrasoft.jl")
 
-"""
-    load_psp(filename::AbstractString)
+export AnalyticalPsP
+include("psp/analytical.jl")
 
-Load a PSP file, supports only version 8.
-"""
-function load_psp(filename::AbstractString)
-    version = get_psp_version(filename)
-    open(filename, "r") do io
-        if version == 8
-            psp = parse_psp8(io)
-            psp["header"]["filename"] = filename
-            return psp
-        else
-            throw(ExceptionError("psp format version $(version) is not implemented."))
-        end
-    end
-end
+export HghPsP
+include("psp/hgh.jl")
 
-export load_upf
+## Core functions
+export load_psp_file
 export load_psp
+include("load.jl")
 
+## Miscellaneous
+include("common/bessel_transform.jl")
+include("common/mesh.jl")
+include("common/quadrature.jl")
+include("common/spherical_bessel.jl")
+include("common/interpolation.jl")
 end
