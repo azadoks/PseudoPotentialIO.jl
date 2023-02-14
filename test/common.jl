@@ -65,7 +65,7 @@ import PseudoPotentialIO: trapezoid, simpson
         b = float(π)
         n = 11
         h = (b - a) / (n - 1)
-        x = range(a, b, n)
+        x = range(a, b, length=n)
         f = sin.(x)
         @test trapezoid(f, h) == 1.9835235375094546
         @test trapezoid(f, fill(h, n)) ≈ 1.9835235375094546
@@ -77,7 +77,7 @@ import PseudoPotentialIO: trapezoid, simpson
         b = float(π)
         n = 11
         h = (b - a) / (n - 1)
-        x = range(a, b, n)
+        x = range(a, b, length=n)
         f = sin.(x)
         @test simpson(f, h) == 2.0001095173150043
         @test simpson(f, fill(h, n)) ≈ 2.0001095173150043
