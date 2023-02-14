@@ -1,17 +1,18 @@
-# @doc raw"""
-# Trapezoidal rule integration for a function `f(x)` on a grid with grid spacing `dx`.
+@doc raw"""
+Trapezoidal rule integration for a function `f(x)` on a grid with grid spacing `dx`.
 
-# For a non-uniform grid:
-# ```math
-# \int_a^b f(x) dx \approx \sum_{k=2}^N \frac{f(x_{k-1}) + f(x_k)}{2} (x_k - x_{k-1})
-# ```
+For a non-uniform grid:
+```math
+\int_a^b f(x) dx \approx \sum_{k=2}^N \frac{f(x_{k-1}) + f(x_k)}{2} (x_k - x_{k-1})
+```
 
-# For a uniform grid:
-# ```math
-# \int_a^b f(x) dx \approx
-# \Delta x \left( \sum_{k=2}^{N-1} f(x_k) + \frac{f(x_1) + f(x_N)}{2} \right)
-# ```
-# """
+For a uniform grid:
+```math
+\int_a^b f(x) dx \approx
+\Delta x \left( \sum_{k=2}^{N-1} f(x_k) + \frac{f(x_1) + f(x_N)}{2} \right)
+```
+"""
+trapezoid
 @inbounds function trapezoid(f::AbstractVector{T},
                              dx::AbstractVector{T})::T where {T<:Real}
     s = zero(T)
@@ -63,21 +64,22 @@ end
     return s / 3 * dx
 end
 
-# @doc raw"""
-# Simpson's rule integration for a function `f(x)` on a grid with grid spacing `dx`.
+@doc raw"""
+Simpson's rule integration for a function `f(x)` on a grid with grid spacing `dx`.
 
-# Performs better than the trapezoidal rule on logarithmic grids.
+Performs better than the trapezoidal rule on logarithmic grids.
 
-# For a uniform grid with an odd number of grid points:
-# ```math
-# \int_a^b f(x) dx \approx
-# \frac{\Delta x}{3} \left[
-# f(x_1) +
-# 4 \left( \sum_{i=2, i \mathrm{even}}^{N-1} f(x_i) \right) +
-# 2 \left( \sum_{i=3, i \mathrm{odd}}^{N-2} f(x_i) +
-# f(x_N) \right) \right]
-# ```
-# """
+For a uniform grid with an odd number of grid points:
+```math
+\int_a^b f(x) dx \approx
+\frac{\Delta x}{3} \left[
+f(x_1) +
+4 \left( \sum_{i=2, i \mathrm{even}}^{N-1} f(x_i) \right) +
+2 \left( \sum_{i=3, i \mathrm{odd}}^{N-2} f(x_i) +
+f(x_N) \right) \right]
+```
+"""
+simpson
 @inbounds function simpson(f::Function, i_start::Int, i_stop::Int, dx::AbstractVector{T},
                            q::T)::T where {T<:Real}
     s = f(i_start, q) * dx[i_start]

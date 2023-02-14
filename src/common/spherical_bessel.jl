@@ -1,5 +1,5 @@
 #TODO Implement the recursive algorithm to compare performance and accuracy
-"""
+@doc raw"""
 Spherical Bessel function of the first kind jₗ(x).
     
 Consistent with https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions
@@ -44,7 +44,7 @@ end
            (sin(x) * (945 - 420x^2 + 15x^4) + cos(x) * (-945x + 105x^3 - x^5)) / x^6
 end
 
-"""
+@doc raw"""
 Get the spherical Bessel function of the first kind jₗ(x) for a given `l`.
 """
 function fast_sphericalbesselj_function(l::Integer)::Function
