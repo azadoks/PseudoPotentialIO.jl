@@ -60,16 +60,16 @@ function _upf_construct_augmentation_q_with_l(upf::UpfFile)
     return Q
 end
 
-function _upf_construct_augmentation_qfcoef(upf::UpfFile)
+@views function _upf_construct_augmentation_qfcoef(upf::UpfFile)
     #TODO check correctness
     r = upf.mesh.r
-    r2 = upf.mesh.r.^2
+    r2 = upf.mesh.r .^ 2
     nqf = upf.nonlocal.augmentation.nqf
     nqlc = 2upf.header.l_max + 1
 
     Q = OffsetVector([Matrix{Vector{Float64}}(undef, upf.header.number_of_proj,
-                                                upf.header.number_of_proj)
-                        for l in 0:(2upf.header.l_max)], 0:(2upf.header.l_max))
+                                              upf.header.number_of_proj)
+                      for l in 0:(2upf.header.l_max)], 0:(2upf.header.l_max))
     for l in 0:(2upf.header.l_max), i in 1:(upf.header.number_of_proj),
         j in 1:(upf.header.number_of_proj)
         # Fill Q with zero vectors
@@ -92,7 +92,7 @@ function _upf_construct_augmentation_qfcoef(upf::UpfFile)
             qij = copy(Q_upf.qij)
             ircut = findfirst(i -> r[i] > rinner[l + 1], eachindex(r)) - 1
             poly = Polynomial(qfcoef[:, l + 1])
-            qij[1:ircut] = r[1:ircut].^(l + 2) .* poly.(r2[1:ircut])
+            qij[1:ircut] = r[1:ircut] .^ (l + 2) .* poly.(r2[1:ircut])
 
             Q[l][Q_upf.first_index, Q_upf.second_index] = qij
             Q[l][Q_upf.second_index, Q_upf.first_index] = qij
@@ -158,8 +158,12 @@ end
 
 function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int,
                               q::T)::T where {T<:Real}
-    f = @. psp.r^2 * fast_sphericalbesselj0(q * r) * psp.Q[l][n, m]
-    return 4π * trapezoid(f, psp.dr)
+    function integrand(i::Int, q::T)
+        return psp.r[i]^2 * fast_sphericalbesselj0(q * psp.r[i]) * psp.Q[l][n, m]
+    end
+    return 4π *
+           simpson(integrand, firstindex(psp.Q[l][n, m]), lastindex(psp.Q[l][n, m]), psp.dr,
+                   q)
 end
 
 function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int,

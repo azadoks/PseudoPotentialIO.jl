@@ -88,35 +88,36 @@ function core_charge_density_real(psp::NumericPsP, r::T)::Union{Nothing,T} where
     return build_interpolator(psp.ρcore, psp.r)(r)
 end
 
-#TODO Implement in-place versions of the following functions which take a working array for
-#TODO `f` / to pass to `bessel_transform`.
-
 function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
-    f = @. psp.r * fast_sphericalbesselj0(q * psp.r) * (psp.r * psp.Vloc + psp.Zval)
-    return 4π * (simpson(f, psp.dr) - psp.Zval / q^2)
+    integrand(i::Int, q::T)::T = psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
+                                 (psp.r[i] * psp.Vloc[i] + psp.Zval)
+    F = simpson(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr, q)
+    return 4π * (F - psp.Zval / q^2)
 end
 
-@inline function projector_fourier(psp::NumericPsP, l::Int, n::Int, q::T)::T where {T<:Real}
+@inbounds function projector_fourier(psp::NumericPsP, l::Int, n::Int,
+                                     q::T)::T where {T<:Real}
     return bessel_transform(l, psp.r, psp.dr, psp.β[l][n], q)
 end
 
-@inline function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int,
-                                q::T)::Union{Nothing,T} where {T<:Real}
+@inbounds function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int,
+                                          q::T)::Union{Nothing,T} where {T<:Real}
     isnothing(psp.ϕ̃) && return nothing
     return bessel_transform(l, psp.r, psp.dr, psp.ϕ̃[l][n], q)
 end
 
-@inline function valence_charge_density_fourier(psp::NumericPsP,
-                                        q::T)::Union{Nothing,T} where {T<:Real}
-    return bessel_transform(psp.r, psp.dr, psp.ρval, q)
+@inbounds function valence_charge_density_fourier(psp::NumericPsP,
+                                                  q::T)::Union{Nothing,T} where {T<:Real}
+    return bessel_transform(0, psp.r, psp.dr, psp.ρval, q)
 end
 
-@inline function core_charge_density_fourier(psp::NumericPsP,
+function core_charge_density_fourier(psp::NumericPsP,
                                      q::T)::Union{Nothing,T} where {T<:Real}
-    return bessel_transform(psp.r, psp.dr, psp.ρcore, q)
+    return bessel_transform(0, psp.r, psp.dr, psp.ρcore, q)
 end
 
-@inline function pseudo_energy_correction(psp::NumericPsP{T})::T where {T<:Real}
-    f = @. psp.r * (psp.r * psp.Vloc + psp.Zval)
-    return 4π * simpson(f, psp.dr)
+@inbounds function pseudo_energy_correction(psp::NumericPsP{T})::T where {T<:Real}
+    integrand(i::Int, _::T)::T = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
+    return 4π *
+           simpson(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr, one(T))
 end
