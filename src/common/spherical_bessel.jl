@@ -1,4 +1,5 @@
 #TODO Implement the recursive algorithm to compare performance and accuracy
+#TODO Try to remove branching in `fast_sphericalbesselj`
 @doc raw"""
 Spherical Bessel function of the first kind jₗ(x).
     
@@ -24,6 +25,7 @@ end
 
 function fast_sphericalbesselj1(x::T)::T where {T<:Real}
     iszero(x) && return zero(T)
+    # (sin(x) - cos(x) * x) / x^2
     sinx, cosx = sincos(x)
     invx2 = (1 / x)^2
     sinx_xcosx = fma(-cosx, x, sinx)
@@ -32,6 +34,7 @@ end
 
 function fast_sphericalbesselj2(x::T)::T where {T<:Real}
     iszero(x) && return zero(T)
+    # (sin(x) * (3 - x^2) + cos(x) * (-3x)) / x^3
     invx = 1 / x
     sinx, cosx = sincos(x)
     invx2 = invx * invx
@@ -43,6 +46,7 @@ end
 
 function fast_sphericalbesselj3(x::T)::T where {T<:Real}
     iszero(x) && return zero(T)
+    # (sin(x) * (15 - 6x^2) + cos(x) * (x^3 - 15x)) / x^4
     invx = 1 / x
     sinx, cosx = sincos(x)
     invx2 = invx * invx
@@ -56,6 +60,7 @@ end
 
 function fast_sphericalbesselj4(x::T)::T where {T<:Real}
     iszero(x) && return zero(T)
+    # (sin(x) * (105 - 45x^2 + x^4) + cos(x) * (10x^3 - 105x)) / x^5
     invx = 1 / x
     sinx, cosx = sincos(x)
     invx2 = invx * invx
@@ -71,6 +76,7 @@ end
 
 function fast_sphericalbesselj5(x::T)::T where {T<:Real}
     iszero(x) && return zero(T)
+    # (sin(x) * (945 - 420x^2 + 15x^4) + cos(x) * (-945x + 105x^3 - x^5)) / x^6
     invx = 1 / x
     sinx, cosx = sincos(x)
     invx2 = invx * invx
