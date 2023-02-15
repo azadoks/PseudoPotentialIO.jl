@@ -12,8 +12,8 @@ The function `f` should be rapidly decaying to zero within the bounds of the mes
 ```
 """
 function bessel_transform(quantity_type::BesselTransformQuantityType, l::Int,
-                          r::AbstractVector, dr::Union{T,AbstractVector},
-                          f::AbstractVector, q) where {T}
+                          r::AbstractVector, dr::Union{Real,AbstractVector},
+                          f::AbstractVector, q)
     integrand = _bessel_transform_integrand(quantity_type, l, r, f, q)
     return 4π * simpson(integrand, firstindex(f), lastindex(f), dr)
 end
