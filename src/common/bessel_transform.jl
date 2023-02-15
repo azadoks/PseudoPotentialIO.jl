@@ -19,14 +19,14 @@ function bessel_transform(quantity_type::BesselTransformQuantityType, l::Int,
 end
 
 @inline function bessel_transform(::BesselTransformQuantityType, ::Int, ::AbstractVector,
-                                  ::Union{T,AbstractVector}, ::Nothing,
-                                  _)::Nothing where {T}
+                                  ::Union{Real,AbstractVector}, ::Nothing,
+                                  _)::Nothing
     return nothing
 end
 
 @inline function bessel_transform(::BesselTransformQuantityType, ::AbstractVector,
-                                  ::Union{T,AbstractVector},
-                                  ::Nothing, _)::Nothing where {T}
+                                  ::Union{Real,AbstractVector},
+                                  ::Nothing, _)::Nothing
     return nothing
 end
 
