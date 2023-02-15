@@ -147,7 +147,7 @@ function core_charge_density_fourier(psp::AbstractPsP, q::Real) end
 Pseudopotential energy correction (the DC component of the Fourier transform of the
 local part of the pseudopotential).
 """
-function pseudo_energy_correction(psp::AbstractPsP) end
+function pseudo_energy_correction(T::Type, psp::AbstractPsP) end
 
 #!!! Convenience functions !!!#
 """

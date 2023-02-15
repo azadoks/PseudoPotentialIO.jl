@@ -12,34 +12,32 @@ The function `f` should be rapidly decaying to zero within the bounds of the mes
 ```
 """
 function bessel_transform(quantity_type::BesselTransformQuantityType, l::Int,
-                          r::AbstractVector{T}, dr::Union{T,AbstractVector{T}},
-                          f::AbstractVector{T}, q::T)::T where {T<:Real}
+                          r::AbstractVector, dr::Union{T,AbstractVector},
+                          f::AbstractVector, q) where {T}
     integrand = _bessel_transform_integrand(quantity_type, l, r, f, q)
     return 4π * simpson(integrand, firstindex(f), lastindex(f), dr)
 end
 
-@inline function bessel_transform(::BesselTransformQuantityType, ::Int, ::AbstractVector{T},
-                                  ::Union{T,AbstractVector{T}},
-                                  ::Nothing, ::T)::Nothing where {T<:Real}
+@inline function bessel_transform(::BesselTransformQuantityType, ::Int, ::AbstractVector,
+                                  ::Union{T,AbstractVector}, ::Nothing,
+                                  _)::Nothing where {T}
     return nothing
 end
 
-@inline function bessel_transform(::BesselTransformQuantityType, ::AbstractVector{T},
-                                  ::Union{T,AbstractVector{T}},
-                                  ::Nothing, ::T)::Nothing where {T<:Real}
+@inline function bessel_transform(::BesselTransformQuantityType, ::AbstractVector,
+                                  ::Union{T,AbstractVector},
+                                  ::Nothing, _)::Nothing where {T}
     return nothing
 end
 
-@inbounds function _bessel_transform_integrand(::OrbitalLike, l::Int, r::AbstractVector{T},
-                                               f::AbstractVector{T},
-                                               q::T)::Function where {T<:Real}
-    integrand(i::Int)::T = f[i] * fast_sphericalbesselj(l, q * r[i])
+@inbounds function _bessel_transform_integrand(::OrbitalLike, l::Int, r::AbstractVector,
+                                               f::AbstractVector, q)::Function
+    integrand(i::Int) = f[i] * fast_sphericalbesselj(l, q * r[i])
     return integrand
 end
 
-@inbounds function _bessel_transform_integrand(::DensityLike, l::Int, r::AbstractVector{T},
-                                               f::AbstractVector{T},
-                                               q::T)::Function where {T<:Real}
-    integrand(i::Int)::T = r[i]^2 * f[i] * fast_sphericalbesselj(l, q * r[i])
+@inbounds function _bessel_transform_integrand(::DensityLike, l::Int, r::AbstractVector,
+                                               f::AbstractVector, q)::Function
+    integrand(i::Int) = r[i]^2 * f[i] * fast_sphericalbesselj(l, q * r[i])
     return integrand
 end

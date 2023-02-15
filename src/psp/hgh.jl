@@ -134,7 +134,7 @@ function projector_real(psp::HghPsP, l::Int, n::Int, r::T)::T where {T<:Real}
            sqrt(gamma(l + ired))
 end
 
-function pseudo_energy_correction(psp::HghPsP{T})::T where {T<:Real}
+function pseudo_energy_correction(T::Type, psp::HghPsP)
     # By construction we need to compute the DC component of the difference
     # of the Coulomb potential (-Z/G^2 in Fourier space) and the pseudopotential
     # i.e. -4πZ/(ΔG)^2 -  eval_psp_local_fourier(psp, ΔG) for ΔG → 0. This is:
@@ -145,5 +145,5 @@ function pseudo_energy_correction(psp::HghPsP{T})::T where {T<:Real}
 
     # Multiply by number of electrons and 4π (spherical Hankel prefactor)
     # to get energy per unit cell
-    return 4π * difference_DC
+    return T(4π * difference_DC)
 end

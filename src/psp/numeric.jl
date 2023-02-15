@@ -116,7 +116,7 @@ function core_charge_density_fourier(psp::NumericPsP,
     return bessel_transform(DensityLike(), 0, psp.r, psp.dr, psp.ρcore, q)
 end
 
-@inbounds function pseudo_energy_correction(psp::NumericPsP{T})::T where {T<:Real}
-    integrand(i::Int)::T = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
-    return 4π * dotprod(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)
+@inbounds function pseudo_energy_correction(T::Type, psp::NumericPsP)
+    integrand(i::Int) = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
+    return T(4π * dotprod(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr))
 end

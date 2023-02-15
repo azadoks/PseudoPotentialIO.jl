@@ -14,8 +14,7 @@ f(x_N) \right) \right]
 ```
 """
 simpson
-@inbounds function simpson(f::Function, i_start::Int, i_stop::Int,
-                           dx::AbstractVector{T})::T where {T<:Real}
+@inbounds function simpson(f::Function, i_start::Int, i_stop::Int, dx::AbstractVector)
     s = f(i_start) * dx[i_start]
     s += sum(i -> 4 * f(i) * dx[i], (i_start + 1):2:(i_stop - 1))
     s += sum(i -> 2 * f(i) * dx[i], (i_start + 2):2:(i_stop - 1))
@@ -24,7 +23,7 @@ simpson
     return s / 3
 end
 
-@inbounds function simpson(f::Function, i_start::Int, i_stop::Int, dx::T)::T where {T<:Real}
+@inbounds function simpson(f::Function, i_start::Int, i_stop::Int, dx)
     s = f(i_start)
     s += 4 * sum(i -> f(i), (i_start + 1):2:(i_stop - 1))
     s += 2 * sum(i -> f(i), (i_start + 2):2:(i_stop - 1))
@@ -32,20 +31,10 @@ end
     return s / 3 * dx
 end
 
-@inbounds function dotprod(f::Function, i_start::Int, i_stop::Int,
-                 dx::AbstractVector{T})::T where {T<:Real}
-    s = zero(T)
-    for i in i_start:i_stop
-        s += f(i) * dx[i]
-    end
-    return s
+@inbounds function dotprod(f::Function, i_start::Int, i_stop::Int, dx::AbstractVector)
+    return sum(i -> f(i) * dx[i], i_start:i_stop)
 end
 
-@inbounds function dotprod(f::Function, i_start::Int, i_stop::Int,
-                           dx::T)::T where {T<:Real}
-    s = zero(T)
-    for i in i_start:i_stop
-        s += f(i) * dx
-    end
-    return s
+@inbounds function dotprod(f::Function, i_start::Int, i_stop::Int, dx)
+    return sum(f, i_start:i_stop) * dx
 end
