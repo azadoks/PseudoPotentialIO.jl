@@ -9,8 +9,8 @@ The function `f` should be rapidly decaying to zero within the bounds of the mes
 """
 function bessel_transform(l::Int, r::AbstractVector{T}, dr::Union{T,AbstractVector{T}},
                           f::AbstractVector{T}, q::T)::T where {T<:Real}
-    integrand = _bessel_transform_integrand(l, r, f)
-    return 4π * simpson(integrand, firstindex(f), lastindex(f), dr, q)
+    integrand = _bessel_transform_integrand(l, r, f, q)
+    return 4π * simpson(integrand, firstindex(f), lastindex(f), dr)
 end
 
 @inline function bessel_transform(::Int, ::AbstractVector{T}, ::Union{T,AbstractVector{T}},
@@ -24,8 +24,7 @@ end
 end
 
 @inbounds function _bessel_transform_integrand(l::Int, r::AbstractVector{T},
-                                               f::AbstractVector{T})::Function where {T<:Real}
-    fast_sphericalbesseljl = fast_sphericalbesselj_function(l)
-    integrand(i::Int, q::T)::T = f[i] * fast_sphericalbesseljl(q * r[i])
+                                               f::AbstractVector{T}, q::T)::Function where {T<:Real}
+    integrand(i::Int)::T = f[i] * fast_sphericalbesselj(l, q * r[i])
     return integrand
 end

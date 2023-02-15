@@ -1,3 +1,5 @@
+import PseudoPotentialIO: fast_sphericalbesselj, fast_sphericalbesselj0
+
 @testset "Analytical" begin
     dirs = [artifact"hgh_lda_hgh", artifact"hgh_pbe_hgh"]
 

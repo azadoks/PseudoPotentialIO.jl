@@ -6,12 +6,8 @@ using Random
 using PeriodicTable
 using SpecialFunctions
 using QuadGK
-# using Rotations
 using Quaternions
 using Interpolations
-
-import PseudoPotentialIO: fast_sphericalbesselj0, fast_sphericalbesselj
-import PseudoPotentialIO: build_interpolator
 
 Random.seed!(0)
 

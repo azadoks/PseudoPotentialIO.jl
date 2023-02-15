@@ -89,9 +89,9 @@ function core_charge_density_real(psp::NumericPsP, r::T)::Union{Nothing,T} where
 end
 
 function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
-    integrand(i::Int, q::T)::T = psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
-                                 (psp.r[i] * psp.Vloc[i] + psp.Zval)
-    F = simpson(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr, q)
+    integrand(i::Int)::T = psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
+                           (psp.r[i] * psp.Vloc[i] + psp.Zval)
+    F = simpson(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)
     return 4π * (F - psp.Zval / q^2)
 end
 
@@ -117,7 +117,6 @@ function core_charge_density_fourier(psp::NumericPsP,
 end
 
 @inbounds function pseudo_energy_correction(psp::NumericPsP{T})::T where {T<:Real}
-    integrand(i::Int, _::T)::T = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
-    return 4π *
-           simpson(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr, one(T))
+    integrand(i::Int)::T = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
+    return 4π * simpson(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)
 end

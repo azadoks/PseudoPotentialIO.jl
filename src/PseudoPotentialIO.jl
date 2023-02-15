@@ -14,7 +14,7 @@ import Base.Broadcast.broadcastable
 import PeriodicTable
 
 ## DocStringExtensions Templates
-#NOTE they don't seem to be working at the moment
+# TODO they don't seem to be working at the moment
 using DocStringExtensions
 @template (FUNCTIONS, METHODS, MACROS) = """
                                          $(TYPEDSIGNATURES)

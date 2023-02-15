@@ -1,3 +1,6 @@
+import PseudoPotentialIO: fast_sphericalbesselj, fast_sphericalbesselj0
+import PseudoPotentialIO: build_interpolator
+
 #TODO work on tightening tolerances
 @testset "Numeric" begin
     filepaths = [upf1_filepaths["B_pbe_v1.01.uspp.F.UPF"],
