@@ -66,7 +66,7 @@ import PseudoPotentialIO: build_interpolator
         @testset "Pseudo energy correction" begin
             q_small = 1e-5
             ref = local_potential_fourier(psp, q_small) + 4π * psp.Zval / q_small^2
-            @test ref ≈ pseudo_energy_correction(psp) rtol = 1e-2 atol = 1e-2
+            @test ref ≈ pseudo_energy_correction(Float64, psp) rtol = 1e-2 atol = 1e-2
         end
 
         @testset "Pseudo-atomic wavefunction Fouriers agree with real" begin

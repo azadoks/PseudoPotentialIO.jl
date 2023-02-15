@@ -27,8 +27,8 @@
         end
 
         @testset "Pseudo energy correction agrees" begin
-            @test pseudo_energy_correction(upf2) ≈
-                  pseudo_energy_correction(psp8) rtol = 1e-2 atol = 1e-2
+            @test pseudo_energy_correction(Float64, upf2) ≈
+                  pseudo_energy_correction(Float64, psp8) rtol = 1e-2 atol = 1e-2
         end
     end
 end

@@ -49,7 +49,7 @@ import PseudoPotentialIO: fast_sphericalbesselj, fast_sphericalbesselj0
             q_small = 1e-5
             ref = local_potential_fourier(psp, q_small) +
                   4π * valence_charge(psp) / q_small^2
-            @test ref ≈ pseudo_energy_correction(psp) atol = 1e-2
+            @test ref ≈ pseudo_energy_correction(Float64, psp) atol = 1e-2
         end
     end
 end
