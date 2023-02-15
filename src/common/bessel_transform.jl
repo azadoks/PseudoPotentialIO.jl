@@ -18,12 +18,14 @@ function bessel_transform(quantity_type::BesselTransformQuantityType, l::Int,
     return 4π * simpson(integrand, firstindex(f), lastindex(f), dr)
 end
 
-@inline function bessel_transform(::Int, ::AbstractVector{T}, ::Union{T,AbstractVector{T}},
+@inline function bessel_transform(::BesselTransformQuantityType, ::Int, ::AbstractVector{T},
+                                  ::Union{T,AbstractVector{T}},
                                   ::Nothing, ::T)::Nothing where {T<:Real}
     return nothing
 end
 
-@inline function bessel_transform(::AbstractVector{T}, ::Union{T,AbstractVector{T}},
+@inline function bessel_transform(::BesselTransformQuantityType, ::AbstractVector{T},
+                                  ::Union{T,AbstractVector{T}},
                                   ::Nothing, ::T)::Nothing where {T<:Real}
     return nothing
 end

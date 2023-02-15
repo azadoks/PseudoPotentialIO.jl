@@ -51,7 +51,6 @@ end
             end
 
             R = rand(3)
-            # R_rot = QuatRotation(rand(RotMatrix{3})) * R
             R_rot = rotate_vector(random_versor(), R)
 
             @test local_potential_real(psp, R) ≈ local_potential_real(psp, R_rot)
@@ -74,7 +73,6 @@ end
             end
 
             K = rand(3) .+ eps(Float64)
-            # K_rot = QuatRotation(rand(RotMatrix{3})) * K
             K_rot = rotate_vector(random_versor(), K)
 
             @test local_potential_fourier(psp, K) ≈ local_potential_fourier(psp, K_rot)
