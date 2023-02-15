@@ -19,74 +19,86 @@ function fast_sphericalbesselj(l::Integer, x::T)::T where {T<:Real}
 end
 
 function fast_sphericalbesselj0(x::T)::T where {T<:Real}
-    iszero(x) && return one(T)
-    return sin(x) / x
+    if !iszero(x)
+        return sin(x) / x
+    end
+    return one(T)
 end
 
 function fast_sphericalbesselj1(x::T)::T where {T<:Real}
-    iszero(x) && return zero(T)
-    # (sin(x) - cos(x) * x) / x^2
-    sinx, cosx = sincos(x)
-    invx2 = (1 / x)^2
-    sinx_xcosx = fma(-cosx, x, sinx)
-    return sinx_xcosx * invx2
+    if !iszero(x)
+        # (sin(x) - cos(x) * x) / x^2
+        sinx, cosx = sincos(x)
+        invx2 = (1 / x)^2
+        sinx_xcosx = fma(-cosx, x, sinx)
+        return sinx_xcosx * invx2
+    end
+    return zero(T)
 end
 
 function fast_sphericalbesselj2(x::T)::T where {T<:Real}
-    iszero(x) && return zero(T)
-    # (sin(x) * (3 - x^2) + cos(x) * (-3x)) / x^3
-    invx = 1 / x
-    sinx, cosx = sincos(x)
-    invx2 = invx * invx
-    invxsinx = sinx * invx
-    tmp1 = 3 * invx2
-    tmp2 = tmp1 - 1
-    return invxsinx * tmp2 - tmp1 * cosx
+    if !iszero(x)
+        # (sin(x) * (3 - x^2) + cos(x) * (-3x)) / x^3
+        invx = 1 / x
+        sinx, cosx = sincos(x)
+        invx2 = invx * invx
+        invxsinx = sinx * invx
+        tmp1 = 3 * invx2
+        tmp2 = tmp1 - 1
+        return invxsinx * tmp2 - tmp1 * cosx
+    end
+    return zero(T)
 end
 
 function fast_sphericalbesselj3(x::T)::T where {T<:Real}
-    iszero(x) && return zero(T)
-    # (sin(x) * (15 - 6x^2) + cos(x) * (x^3 - 15x)) / x^4
-    invx = 1 / x
-    sinx, cosx = sincos(x)
-    invx2 = invx * invx
-    xcosx = x * cosx
-    invx4 = invx2 * invx2
-    poly1 = -6 * invx2
-    poly_cos = fma(-15, invx4, invx2)
-    poly_sin = fma(15, invx4, poly1)
-    return (sinx * poly_sin + xcosx * poly_cos)
+    if !iszero(x)
+        # (sin(x) * (15 - 6x^2) + cos(x) * (x^3 - 15x)) / x^4
+        invx = 1 / x
+        sinx, cosx = sincos(x)
+        invx2 = invx * invx
+        xcosx = x * cosx
+        invx4 = invx2 * invx2
+        poly1 = -6 * invx2
+        poly_cos = fma(-15, invx4, invx2)
+        poly_sin = fma(15, invx4, poly1)
+        return (sinx * poly_sin + xcosx * poly_cos)
+    end
+    return zero(T)
 end
 
 function fast_sphericalbesselj4(x::T)::T where {T<:Real}
-    iszero(x) && return zero(T)
-    # (sin(x) * (105 - 45x^2 + x^4) + cos(x) * (10x^3 - 105x)) / x^5
-    invx = 1 / x
-    sinx, cosx = sincos(x)
-    invx2 = invx * invx
-    xsinx = x * sinx
-    invx4 = invx2 * invx2
-    invx6 = invx2 * invx4
-    poly1 = fma(-45, invx4, invx2)
-    poly2 = 10 * invx2
-    poly_cos = fma(-105, invx4, poly2)
-    poly_sin = fma(105, invx6, poly1)
-    return (xsinx * poly_sin + cosx * poly_cos)
+    if !iszero(x)
+        # (sin(x) * (105 - 45x^2 + x^4) + cos(x) * (10x^3 - 105x)) / x^5
+        invx = 1 / x
+        sinx, cosx = sincos(x)
+        invx2 = invx * invx
+        xsinx = x * sinx
+        invx4 = invx2 * invx2
+        invx6 = invx2 * invx4
+        poly1 = fma(-45, invx4, invx2)
+        poly2 = 10 * invx2
+        poly_cos = fma(-105, invx4, poly2)
+        poly_sin = fma(105, invx6, poly1)
+        return (xsinx * poly_sin + cosx * poly_cos)
+    end
+    return zero(T)
 end
 
 function fast_sphericalbesselj5(x::T)::T where {T<:Real}
-    iszero(x) && return zero(T)
-    # (sin(x) * (945 - 420x^2 + 15x^4) + cos(x) * (-945x + 105x^3 - x^5)) / x^6
-    invx = 1 / x
-    sinx, cosx = sincos(x)
-    invx2 = invx * invx
-    xcosx = x * cosx
-    invx4 = invx2 * invx2
-    invx6 = invx2 * invx4
-    poly1 = fma(105, invx4, -invx2)
-    poly2 = 15 * invx2
-    poly3 = fma(-420, invx4, poly2)
-    poly_cos = fma(-945, invx6, poly1)
-    poly_sin = fma(945, invx6, poly3)
-    return (sinx * poly_sin + xcosx * poly_cos)
+    if !iszero(x)
+        # (sin(x) * (945 - 420x^2 + 15x^4) + cos(x) * (-945x + 105x^3 - x^5)) / x^6
+        invx = 1 / x
+        sinx, cosx = sincos(x)
+        invx2 = invx * invx
+        xcosx = x * cosx
+        invx4 = invx2 * invx2
+        invx6 = invx2 * invx4
+        poly1 = fma(105, invx4, -invx2)
+        poly2 = 15 * invx2
+        poly3 = fma(-420, invx4, poly2)
+        poly_cos = fma(-945, invx6, poly1)
+        poly_sin = fma(945, invx6, poly3)
+        return (sinx * poly_sin + xcosx * poly_cos)
+    end
+    return zero(T)
 end

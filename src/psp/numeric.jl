@@ -91,32 +91,32 @@ end
 function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
     integrand(i::Int)::T = psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
                            (psp.r[i] * psp.Vloc[i] + psp.Zval)
-    F = simpson(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)
+    F = dotprod(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)
     return 4π * (F - psp.Zval / q^2)
 end
 
 @inbounds function projector_fourier(psp::NumericPsP, l::Int, n::Int,
                                      q::T)::T where {T<:Real}
-    return bessel_transform(l, psp.r, psp.dr, psp.β[l][n], q)
+    return bessel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.β[l][n], q)
 end
 
 @inbounds function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int,
                                           q::T)::Union{Nothing,T} where {T<:Real}
     isnothing(psp.ϕ̃) && return nothing
-    return bessel_transform(l, psp.r, psp.dr, psp.ϕ̃[l][n], q)
+    return bessel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.ϕ̃[l][n], q)
 end
 
 @inbounds function valence_charge_density_fourier(psp::NumericPsP,
                                                   q::T)::Union{Nothing,T} where {T<:Real}
-    return bessel_transform(0, psp.r, psp.dr, psp.ρval, q)
+    return bessel_transform(DensityLike(), 0, psp.r, psp.dr, psp.ρval, q)
 end
 
 function core_charge_density_fourier(psp::NumericPsP,
                                      q::T)::Union{Nothing,T} where {T<:Real}
-    return bessel_transform(0, psp.r, psp.dr, psp.ρcore, q)
+    return bessel_transform(DensityLike(), 0, psp.r, psp.dr, psp.ρcore, q)
 end
 
 @inbounds function pseudo_energy_correction(psp::NumericPsP{T})::T where {T<:Real}
     integrand(i::Int)::T = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
-    return 4π * simpson(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)
+    return 4π * dotprod(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)
 end

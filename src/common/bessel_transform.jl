@@ -1,3 +1,7 @@
+abstract type BesselTransformQuantityType end
+struct OrbitalLike <: BesselTransformQuantityType end
+struct DensityLike <: BesselTransformQuantityType end
+
 @doc raw"""
 Bessel-Fourier (also Hankel) transform of order `l` of a function `f` on a radial mesh `r`.
 The function `f` should be rapidly decaying to zero within the bounds of the mesh.
@@ -7,9 +11,10 @@ The function `f` should be rapidly decaying to zero within the bounds of the mes
 4\pi \int_{r_1}^{r_N} f(r) j_l(q r) r^2 dr
 ```
 """
-function bessel_transform(l::Int, r::AbstractVector{T}, dr::Union{T,AbstractVector{T}},
+function bessel_transform(quantity_type::BesselTransformQuantityType, l::Int,
+                          r::AbstractVector{T}, dr::Union{T,AbstractVector{T}},
                           f::AbstractVector{T}, q::T)::T where {T<:Real}
-    integrand = _bessel_transform_integrand(l, r, f, q)
+    integrand = _bessel_transform_integrand(quantity_type, l, r, f, q)
     return 4π * simpson(integrand, firstindex(f), lastindex(f), dr)
 end
 
@@ -23,8 +28,16 @@ end
     return nothing
 end
 
-@inbounds function _bessel_transform_integrand(l::Int, r::AbstractVector{T},
-                                               f::AbstractVector{T}, q::T)::Function where {T<:Real}
+@inbounds function _bessel_transform_integrand(::OrbitalLike, l::Int, r::AbstractVector{T},
+                                               f::AbstractVector{T},
+                                               q::T)::Function where {T<:Real}
     integrand(i::Int)::T = f[i] * fast_sphericalbesselj(l, q * r[i])
+    return integrand
+end
+
+@inbounds function _bessel_transform_integrand(::DensityLike, l::Int, r::AbstractVector{T},
+                                               f::AbstractVector{T},
+                                               q::T)::Function where {T<:Real}
+    integrand(i::Int)::T = r[i]^2 * f[i] * fast_sphericalbesselj(l, q * r[i])
     return integrand
 end

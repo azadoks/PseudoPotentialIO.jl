@@ -31,3 +31,21 @@ end
     s += (i_stop - i_start + 1) % 2 == 1 ? f(i_stop) : -f(i_stop - 1)
     return s / 3 * dx
 end
+
+@inbounds function dotprod(f::Function, i_start::Int, i_stop::Int,
+                 dx::AbstractVector{T})::T where {T<:Real}
+    s = zero(T)
+    for i in i_start:i_stop
+        s += f(i) * dx[i]
+    end
+    return s
+end
+
+@inbounds function dotprod(f::Function, i_start::Int, i_stop::Int,
+                           dx::T)::T where {T<:Real}
+    s = zero(T)
+    for i in i_start:i_stop
+        s += f(i) * dx
+    end
+    return s
+end
