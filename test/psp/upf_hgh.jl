@@ -24,6 +24,17 @@
             end
         end
 
+        @testset "Projector coupling coefficients agree" begin
+            lmax = min(max_angular_momentum(upf2), max_angular_momentum(hgh))
+            for l in 0:lmax
+                nmax = min(n_projectors(upf2, l), n_projectors(hgh, l))
+                for n in 1:nmax, m in n:nmax
+                    @test projector_coupling(upf2, l, n, m) ≈
+                          projector_coupling(hgh, l, n, m) atol = 1e-8 rtol = 1e-8
+                end
+            end
+        end
+
         @testset "Pseudo energy correction agrees" begin
             @test pseudo_energy_correction(Float64, upf2) ≈
                   pseudo_energy_correction(Float64, hgh) rtol = 1e-3 atol = 1e-3

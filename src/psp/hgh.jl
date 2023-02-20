@@ -1,4 +1,4 @@
-"""
+@doc raw"""
 Analytical Hartwigsen-Goedecker-Hutter pseudopotential.
 
 [C. Hartwigsen, S. Goedecker, and J. Hutter.
@@ -41,6 +41,8 @@ end
 element(psp::HghPsP)::String = PeriodicTable.elements[Int(psp.Zatom)].symbol
 has_spin_orbit(::HghPsP)::Bool = false
 has_nlcc(::HghPsP)::Bool = false
+has_ρval(::HghPsP)::Bool = false
+has_ϕ̃(::HghPsP)::Bool = false
 is_norm_conserving(::HghPsP)::Bool = true
 is_ultrasoft(::HghPsP)::Bool = false
 is_paw(::HghPsP)::Bool = false

@@ -11,7 +11,7 @@ using SpecialFunctions
 using Statistics
 
 import Base.Broadcast.broadcastable
-import PeriodicTable
+using PeriodicTable: PeriodicTable
 
 ## DocStringExtensions Templates
 # TODO they don't seem to be working at the moment
@@ -90,6 +90,9 @@ include("psp/norm_conserving.jl")
 export UltrasoftPsP
 include("psp/ultrasoft.jl")
 
+export ProjectorAugmentedWavePsP
+include("psp/paw.jl")
+
 export AnalyticalPsP
 include("psp/analytical.jl")
 
@@ -100,6 +103,11 @@ include("psp/hgh.jl")
 export load_psp_file
 export load_psp
 include("load.jl")
+
+export load_upf
+include("deprecated/common.jl")
+include("deprecated/upf1.jl")
+include("deprecated/upf2.jl")
 
 ## Miscellaneous
 include("common/bessel_transform.jl")

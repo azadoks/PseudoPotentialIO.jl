@@ -20,7 +20,7 @@
         @test isa(is_norm_conserving(file), Bool)
         @test isa(is_ultrasoft(file), Bool)
         @test isa(is_paw(file), Bool)
-        @test formalism(file) in (:norm_conserving, :ultrasoft, :paw)
+        @test formalism(file) in (NormConservingPsP, UltrasoftPsP, ProjectorAugmentedWavePsP)
         @test isa(has_spin_orbit(file), Bool)
         @test relativistic_treatment(file) in (:scalar, :full)
         @test isa(has_nlcc(file), Bool)

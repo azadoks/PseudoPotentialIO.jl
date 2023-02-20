@@ -95,7 +95,7 @@ end
             end
 
             @test relativistic_treatment(psp) in (:scalar, :full)
-            @test formalism(psp) in (:norm_conserving, :ultrasoft, :paw)
+            @test formalism(psp) in (NormConservingPsP, UltrasoftPsP, ProjectorAugmentedWavePsP)
         end
     end
 end

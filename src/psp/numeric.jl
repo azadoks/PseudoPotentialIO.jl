@@ -56,6 +56,8 @@ n_pseudo_orbitals(psp::NumericPsP, l::Int)::Int = isnothing(psp.ϕ̃) ? 0 : leng
 valence_charge(psp::NumericPsP) = psp.Zval
 has_spin_orbit(::NumericPsP)::Bool = false  # This is a current limitation
 has_nlcc(psp::NumericPsP)::Bool = !isnothing(psp.ρcore)
+has_ρval(psp::NumericPsP)::Bool = !isnothing(psp.ρval)
+has_ϕ̃(psp::NumericPsP)::Bool = !isnothing(psp.ϕ̃)
 
 function projector_coupling(psp::NumericPsP{T}, l::Int)::Matrix{T} where {T<:Real}
     return psp.D[l]
@@ -88,7 +90,7 @@ function core_charge_density_real(psp::NumericPsP, r::T)::Union{Nothing,T} where
     return build_interpolator(psp.ρcore, psp.r)(r)
 end
 
-function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
+@inbounds function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
     integrand(i::Int)::T = psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
                            (psp.r[i] * psp.Vloc[i] + psp.Zval)
     F = dotprod(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)

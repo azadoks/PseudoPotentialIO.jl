@@ -1,4 +1,4 @@
-"""
+@doc raw"""
 Type representing a numeric norm-conserving pseudopotential.
 """
 struct NormConservingPsP{T} <: NumericPsP{T}
@@ -53,7 +53,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
     lmax = upf.header.l_max
     r = upf.mesh.r
     Vloc = upf.local_ ./ 2  # Ry -> Ha
-    ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc  # _truncate(upf.nlcc; atol=1e-12)   # TODO decide where to truncate
+    ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc  # _truncate(upf.nlcc; atol=1e-12)   # TODO decide where / if to truncate
 
     # Guess the mesh type to choose scalar or vector `dr`
     mesh_type, _, _ = guess_mesh_type(r, upf.mesh.rab)
@@ -87,14 +87,14 @@ function _upf_construct_nc_internal(upf::UpfFile)
         map(iβ_upf[l]) do n
             βln = upf.nonlocal.betas[n].beta
             βln = βln .* @view r[1:length(βln)]
-            # return _truncate(βln; atol=1e-12)   # TODO decide where to truncate
+            # return _truncate(βln; atol=1e-12)   # TODO decide where / if to truncate
         end
     end
     β = OffsetVector(β, 0:lmax) ./ 2  # Ry -> Ha
 
     # UPFs store the pseudo-atomic valence charge density with a prefactor of 4π r^2.
     # For consistency, we remove the 4π prefactor.
-    ρval = upf.rhoatom ./ 4π  # _truncate(upf.rhoatom ./ 4π; atol=1e-12)   # TODO decide where to truncate
+    ρval = upf.rhoatom ./ 4π  # _truncate(upf.rhoatom ./ 4π; atol=1e-12)   # TODO decide where / if to truncate
 
     if !isnothing(upf.pswfc)
         # Collect the indices in upf.pswfc for projectors at each angular momentum
@@ -110,7 +110,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
                 χln = upf.pswfc[i].chi
                 χln = χln .* @view r[1:length(χln)]
                 return χln
-                # return _truncate(χln; atol=1e-12)  # TODO decide where to truncate
+                # return _truncate(χln; atol=1e-12)  # TODO decide where / if to truncate
             end
         end
         ϕ̃ = OffsetVector(ϕ̃, 0:lmax)

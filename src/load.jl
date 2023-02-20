@@ -16,12 +16,11 @@ end
 """
 Parse pseudopotential file contents into an `AbstractPsP` struct.
 """
-function load_psp(file::PsPFile)
-    formalism(file) == :norm_conserving && return NormConservingPsP(file)
-    formalism(file) == :ultrasoft && return UltrasoftPsP(file)
-    error("Unsupported formalism $(formalism(file))")
-end
+load_psp(file::PsPFile) = formalism(file)(file)
 load_psp(file::HghFile) = HghPsP(file)
 
+"""
+Load a pseudopotential file on disk directly into its corresponding `AbstractPsP` subtype.
+"""
 load_psp(path::AbstractString) = return load_psp(load_psp_file(path))
 load_psp(dir::AbstractString, filename::AbstractString) = load_psp(joinpath(dir, filename))

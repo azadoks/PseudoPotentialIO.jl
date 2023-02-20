@@ -93,13 +93,12 @@ function has_nlcc(file::PsPFile) end
 
 #!!! Convenience functions !!!#
 """
-Formalism of the pseudopotential (norm-conserving, ultrasoft, projector-augmented wave,
-or Coulomb).
+Formalism of the pseudopotential.
 """
-function formalism(file::PsPFile)::Symbol
-    is_paw(file) && return :paw
-    is_ultrasoft(file) && return :ultrasoft
-    is_norm_conserving(file) && return :norm_conserving
+function formalism(file::PsPFile)::Type
+    is_paw(file) && return ProjectorAugmentedWavePsP
+    is_ultrasoft(file) && return UltrasoftPsP
+    is_norm_conserving(file) && return NormConservingPsP
 end
 
 """

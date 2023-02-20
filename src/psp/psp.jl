@@ -86,6 +86,16 @@ density).
 function has_nlcc(psp::AbstractPsP) end
 
 """
+Whether the pseudopotential contains valence charge density data.
+"""
+function has_ρval(psp::AbstractPsP) end
+
+"""
+Whether the pseudopotential contains pseudoatomic orbitals.
+"""
+function has_ϕ̃(psp::AbstractPsP) end
+
+"""
 Projector coupling matrix for angular momentum `l`.
 """
 function projector_coupling(psp::AbstractPsP, l) end
@@ -159,10 +169,10 @@ relativistic_treatment(psp::AbstractPsP)::Symbol = has_spin_orbit(psp) ? :full :
 Formalism of the pseudopotential (norm-conserving, ultrasoft, projector-augmented wave,
 or Coulomb).
 """
-function formalism(psp::AbstractPsP)::Symbol
-    is_norm_conserving(psp) && return :norm_conserving
-    is_ultrasoft(psp) && return :ultrasoft
-    is_paw(psp) && return :paw
+function formalism(psp::AbstractPsP)::Type
+    is_norm_conserving(psp) && return NormConservingPsP
+    is_ultrasoft(psp) && return UltrasoftPsP
+    is_paw(psp) && return ProjectorAugmentedWavePsP
 end
 
 """
