@@ -99,15 +99,12 @@ include("psp/analytical.jl")
 export HghPsP
 include("psp/hgh.jl")
 
-export AbstractInterpolatedPsP
-export InterpolatedNormConservingPsP
-include("psp/interpolated.jl")
-
 ## Core functions
 export load_psp_file
 export load_psp
 include("load.jl")
 
+## Deprecated loaders
 export load_upf
 export load_psp8
 include("deprecated/upf.jl")
