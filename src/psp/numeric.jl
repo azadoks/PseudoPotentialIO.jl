@@ -99,23 +99,23 @@ end
 
 @inbounds function projector_fourier(psp::NumericPsP, l::Int, n::Int,
                                      q::T)::T where {T<:Real}
-    return bessel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.β[l][n], q)
+    return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.β[l][n], q)
 end
 
 @inbounds function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int,
                                           q::T)::Union{Nothing,T} where {T<:Real}
     isnothing(psp.ϕ̃) && return nothing
-    return bessel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.ϕ̃[l][n], q)
+    return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.ϕ̃[l][n], q)
 end
 
 @inbounds function valence_charge_density_fourier(psp::NumericPsP,
                                                   q::T)::Union{Nothing,T} where {T<:Real}
-    return bessel_transform(DensityLike(), 0, psp.r, psp.dr, psp.ρval, q)
+    return hankel_transform(DensityLike(), 0, psp.r, psp.dr, psp.ρval, q)
 end
 
 function core_charge_density_fourier(psp::NumericPsP,
                                      q::T)::Union{Nothing,T} where {T<:Real}
-    return bessel_transform(DensityLike(), 0, psp.r, psp.dr, psp.ρcore, q)
+    return hankel_transform(DensityLike(), 0, psp.r, psp.dr, psp.ρcore, q)
 end
 
 @inbounds function pseudo_energy_correction(T::Type, psp::NumericPsP)

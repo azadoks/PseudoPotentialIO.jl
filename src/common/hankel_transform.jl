@@ -1,9 +1,9 @@
-abstract type BesselTransformQuantityType end
-struct OrbitalLike <: BesselTransformQuantityType end
-struct DensityLike <: BesselTransformQuantityType end
+abstract type HankelTransformQuantityType end
+struct OrbitalLike <: HankelTransformQuantityType end
+struct DensityLike <: HankelTransformQuantityType end
 
 @doc raw"""
-Bessel-Fourier (also Hankel) transform of order `l` of a function `f` on a radial mesh `r`.
+Hankel / Bessel-Fourier transform of order `l` of a function `f` on a radial mesh `r`.
 The function `f` should be rapidly decaying to zero within the bounds of the mesh.
 
 ```math
@@ -11,32 +11,32 @@ The function `f` should be rapidly decaying to zero within the bounds of the mes
 4\pi \int_{r_1}^{r_N} f(r) j_l(q r) r^2 dr
 ```
 """
-function bessel_transform(quantity_type::BesselTransformQuantityType, l::Int,
+function hankel_transform(quantity_type::HankelTransformQuantityType, l::Int,
                           r::AbstractVector, dr::Union{Real,AbstractVector},
                           f::AbstractVector, q)
-    integrand = _bessel_transform_integrand(quantity_type, l, r, f, q)
+    integrand = _hankel_transform_integrand(quantity_type, l, r, f, q)
     return 4π * simpson(integrand, firstindex(f), lastindex(f), dr)
 end
 
-@inline function bessel_transform(::BesselTransformQuantityType, ::Int, ::AbstractVector,
+@inline function hankel_transform(::HankelTransformQuantityType, ::Int, ::AbstractVector,
                                   ::Union{Real,AbstractVector}, ::Nothing,
                                   _)::Nothing
     return nothing
 end
 
-@inline function bessel_transform(::BesselTransformQuantityType, ::AbstractVector,
+@inline function hankel_transform(::HankelTransformQuantityType, ::AbstractVector,
                                   ::Union{Real,AbstractVector},
                                   ::Nothing, _)::Nothing
     return nothing
 end
 
-@inbounds function _bessel_transform_integrand(::OrbitalLike, l::Int, r::AbstractVector,
+@inbounds function _hankel_transform_integrand(::OrbitalLike, l::Int, r::AbstractVector,
                                                f::AbstractVector, q)::Function
     integrand(i::Int) = f[i] * fast_sphericalbesselj(l, q * r[i])
     return integrand
 end
 
-@inbounds function _bessel_transform_integrand(::DensityLike, l::Int, r::AbstractVector,
+@inbounds function _hankel_transform_integrand(::DensityLike, l::Int, r::AbstractVector,
                                                f::AbstractVector, q)::Function
     integrand(i::Int) = r[i]^2 * f[i] * fast_sphericalbesselj(l, q * r[i])
     return integrand

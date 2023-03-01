@@ -8,6 +8,7 @@ using SpecialFunctions
 using QuadGK
 using Quaternions
 using Interpolations
+using JSON
 
 Random.seed!(0)
 
@@ -77,5 +78,11 @@ include("fixtures.jl")
 
     if any(in.(("all", "psp", "numeric", "upf_psp8"), Ref(TAGS)))
         include("psp/upf_psp8.jl")
+    end
+
+    if any(in.(("all", "deprecated"), Ref(TAGS)))
+        include("deprecated/upf.jl")
+        include("deprecated/upf_json.jl")
+        include("deprecated/upf_psp8.jl")
     end
 end

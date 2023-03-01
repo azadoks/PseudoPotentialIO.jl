@@ -99,18 +99,22 @@ include("psp/analytical.jl")
 export HghPsP
 include("psp/hgh.jl")
 
+export AbstractInterpolatedPsP
+export InterpolatedNormConservingPsP
+include("psp/interpolated.jl")
+
 ## Core functions
 export load_psp_file
 export load_psp
 include("load.jl")
 
 export load_upf
-include("deprecated/common.jl")
-include("deprecated/upf1.jl")
-include("deprecated/upf2.jl")
+export load_psp8
+include("deprecated/upf.jl")
+include("deprecated/psp8.jl")
 
 ## Miscellaneous
-include("common/bessel_transform.jl")
+include("common/hankel_transform.jl")
 include("common/mesh.jl")
 include("common/quadrature.jl")
 include("common/spherical_bessel.jl")
