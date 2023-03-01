@@ -41,3 +41,31 @@ end
     integrand(i::Int) = r[i]^2 * f[i] * fast_sphericalbesselj(l, q * r[i])
     return integrand
 end
+
+function hankel_transform_function(::OrbitalLike, l::Int,
+                                   r::AbstractVector, dr::Union{Real,AbstractVector},
+                                   f::AbstractVector)
+    j = fast_sphericalbesselj_function(l)
+    hankel(q) = 4π * simpson(i -> f[i] * j(q * r[i]), firstindex(f), lastindex(f), dr)
+    return hankel
+end
+
+function hankel_transform_function(::DensityLike, r::AbstractVector,
+                                   dr::Union{Real,AbstractVector}, f::AbstractVector)
+    function hankel(q)
+        integrand(i) = r[i]^2 * f[i] * fast_sphericalbesselj0(q * r[i])
+        return 4π * simpson(integrand, firstindex(f), lastindex(f), dr)
+    end
+    return hankel
+end
+
+@inline function hankel_transform_function(::HankelTransformQuantityType, ::Int,
+                                           ::AbstractVector, ::Union{Real,AbstractVector},
+                                           ::Nothing)
+    return _ -> nothing
+end
+
+@inline function hankel_transform_function(::HankelTransformQuantityType, ::AbstractVector,
+                                           ::Union{Real,AbstractVector}, ::Nothing)
+    return _ -> nothing
+end

@@ -63,34 +63,62 @@ function projector_coupling(psp::NumericPsP{T}, l::Int)::Matrix{T} where {T<:Rea
     return psp.D[l]
 end
 
+local_potential_real_function(psp::NumericPsP) = build_interpolator(psp.Vloc, psp.r)
+
 function local_potential_real(psp::NumericPsP, r::T)::T where {T<:Real}
     return build_interpolator(psp.Vloc, psp.r)(r)
 end
 
+function projector_real_function(psp::NumericPsP, l::Int, n::Int)
+    isnothing(psp.β[l][n]) && return _ -> nothing
+    return build_interpolator(psp.Vloc, psp.r)
+end
+
 function projector_real(psp::NumericPsP, l::Int, n::Int,
                         r::T)::Union{Nothing,T} where {T<:Real}
-    isnothing(psp.β[l][n]) && return nothing
-    return build_interpolator(psp.β[l][n], psp.r)(r)
+    return projector_real_function(psp, l, n)(r)
+end
+
+function pseudo_orbital_real_function(psp::NumericPsP, l::Int, n::Int)
+    isnothing(psp.ϕ̃) && return _ -> nothing
+    return build_interpolator(psp.ϕ̃[l][n], psp.r)
 end
 
 function pseudo_orbital_real(psp::NumericPsP, l::Int, n::Int,
                              r::T)::Union{Nothing,T} where {T<:Real}
-    isnothing(psp.ϕ̃) && return nothing
-    return build_interpolator(psp.ϕ̃[l][n], psp.r)(r)
+    return pseudo_orbital_real_function(psp, l, n)(r)
+end
+
+function valence_charge_density_real_function(psp::NumericPsP)
+    isnothing(psp.ρval) && return _ -> nothing
+    return build_interpolator(psp.ρval, psp.r)
 end
 
 function valence_charge_density_real(psp::NumericPsP,
                                      r::T)::Union{Nothing,T} where {T<:Real}
-    isnothing(psp.ρval) && return nothing
-    return build_interpolator(psp.ρval, psp.r)(r)
+    return valence_charge_density_real_function(psp)(r)
+end
+
+function core_charge_density_real_function(psp::NumericPsP)
+    isnothing(psp.ρcore) && return _ -> nothing
+    return build_interpolator(psp.ρcore, psp.r)
 end
 
 function core_charge_density_real(psp::NumericPsP, r::T)::Union{Nothing,T} where {T<:Real}
-    isnothing(psp.ρcore) && return nothing
-    return build_interpolator(psp.ρcore, psp.r)(r)
+    return core_charge_density_real_function(psp)(r)
 end
 
-@inbounds function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
+@inbounds function local_potential_fourier_function(psp::NumericPsP)
+    function fourier(q)
+        integrand(i::Int) = psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
+            (psp.r[i] * psp.Vloc[i] + psp.Zval)
+        integral = dotprod(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)
+        4π * (integral - psp.Zval / q^2)
+    end
+    return fourier
+end
+
+function local_potential_fourier(psp::NumericPsP, q::T)::T where {T<:Real}
     integrand(i::Int)::T = psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
                            (psp.r[i] * psp.Vloc[i] + psp.Zval)
     F = dotprod(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)
@@ -102,20 +130,37 @@ end
     return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.β[l][n], q)
 end
 
+@inbounds function projector_fourier_function(psp::NumericPsP, l::Int, n::Int)
+    return hankel_transform_function(OrbitalLike(), l, psp.r, psp.dr, psp.β[l][n])
+end
+
 @inbounds function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int,
                                           q::T)::Union{Nothing,T} where {T<:Real}
     isnothing(psp.ϕ̃) && return nothing
     return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.ϕ̃[l][n], q)
 end
 
-@inbounds function valence_charge_density_fourier(psp::NumericPsP,
+@inbounds function pseudo_orbital_fourier_function(psp::NumericPsP, l::Int, n::Int)
+    isnothing(psp.ϕ̃) && return _ -> nothing
+    return hankel_transform_function(OrbitalLike(), l, psp.r, psp.dr, psp.ϕ̃[l][n])
+end
+
+function valence_charge_density_fourier(psp::NumericPsP,
                                                   q::T)::Union{Nothing,T} where {T<:Real}
     return hankel_transform(DensityLike(), 0, psp.r, psp.dr, psp.ρval, q)
+end
+
+function valence_charge_density_fourier_function(psp::NumericPsP)
+    return hankel_transform_function(DensityLike(), psp.r, psp.dr, psp.ρval)
 end
 
 function core_charge_density_fourier(psp::NumericPsP,
                                      q::T)::Union{Nothing,T} where {T<:Real}
     return hankel_transform(DensityLike(), 0, psp.r, psp.dr, psp.ρcore, q)
+end
+
+function core_charge_density_fourier_function(psp::NumericPsP)
+    return hankel_transform_function(DensityLike(), psp.r, psp.dr, psp.ρcore)
 end
 
 @inbounds function pseudo_energy_correction(T::Type, psp::NumericPsP)

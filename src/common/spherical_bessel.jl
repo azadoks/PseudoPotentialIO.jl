@@ -18,6 +18,16 @@ function fast_sphericalbesselj(l::Integer, x::T)::T where {T<:Real}
     return error("The case l = $l is not implemented")
 end
 
+function fast_sphericalbesselj_function(l::Integer)
+    l == 0 && return fast_sphericalbesselj0
+    l == 1 && return fast_sphericalbesselj1
+    l == 2 && return fast_sphericalbesselj2
+    l == 3 && return fast_sphericalbesselj3
+    l == 4 && return fast_sphericalbesselj4
+    l == 5 && return fast_sphericalbesselj5
+    return error("The case l = $l is not implemented")
+end
+
 function fast_sphericalbesselj0(x::T)::T where {T<:Real}
     if !iszero(x)
         return sin(x) / x
