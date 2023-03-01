@@ -1,23 +1,13 @@
 @testset "UPF--JSON" begin
-    UPF_DIR = "./deprecated/fixtures/upf"
-    JSON_DIR = "./deprecated/fixtures/json"
     HEADER_KEYS = [
         "number_of_proj", "core_correction", "element", "pseudo_type", "z_valence",
         "mesh_size", "number_of_wfc"
     ]
 
-    pseudo_pairs = []
-    for (root, dirs, files) in walkdir(JSON_DIR)
-        for file in files
-            upf_filename = replace(file, ".json" => ".upf")
-            upf_path = joinpath(UPF_DIR, upf_filename)
-            if isfile(upf_path)
-                json = JSON.parsefile(joinpath(root, file))["pseudo_potential"]
-                upf = load_upf(upf_path)
-                push!(pseudo_pairs, (json=json, upf=upf))
-            end
-        end
-    end
+    pseudo_pairs = [(
+        json=JSON.parsefile("./deprecated/fixtures/json/Fe_nc-sr-04_pbe_standard.json")["pseudo_potential"],
+        upf=load_upf(joinpath(artifact"pd_nc_sr_pbe_standard_0.4.1_upf", "Fe.upf"))
+    )]
 
     @testset "header" begin
         for pair in pseudo_pairs

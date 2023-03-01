@@ -90,8 +90,8 @@ function load_upf(io::IO)
             old_upf["atomic_wave_functions"][relwfc.index]["label"] = relwfc.els
             old_upf["atomic_wave_functions"][relwfc.index]["principal_quantum_number"] = relwfc.nn
             old_upf["atomic_wave_functions"][relwfc.index]["total_angular_momentum"] = relwfc.jchi
-            old_upf["atomic_wave_functions"][relwfc.index]["angular_momentum"] = lchi
-            old_upf["atomic_wave_functions"][relwfc.index]["occupation"] = relwfc.oc
+            old_upf["atomic_wave_functions"][relwfc.index]["angular_momentum"] = relwfc.lchi
+            old_upf["atomic_wave_functions"][relwfc.index]["occupation"] = isnothing(relwfc.oc) ? 0. : relwfc.oc
         end
         for relbeta in new_upf.spin_orb.relbetas
             old_upf["beta_projectors"][relbeta.index]["angular_momentum"] = relbeta.lll

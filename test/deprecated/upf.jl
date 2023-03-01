@@ -1,18 +1,11 @@
 @testset "UPF" begin
-    UPF_DIR = "./deprecated/fixtures/upf"
     VECTOR_KEYS = ["radial_grid", "core_charge_density", "local_potential", "total_charge_density"]
     HEADER_KEYS = [
         "number_of_proj", "core_correction", "element", "pseudo_type", "z_valence",
         "mesh_size", "number_of_wfc"
     ]
 
-    pseudos = []
-    for (root, dirs, files) in walkdir(UPF_DIR)
-        for file in files
-            upf = load_upf(joinpath(root, file))
-            push!(pseudos, upf)
-        end
-    end
+    pseudos = [load_upf.(values(upf1_filepaths))..., load_upf.(values(upf2_filepaths))...]
 
     @testset "mesh" begin
         for upf in pseudos

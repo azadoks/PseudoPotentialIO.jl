@@ -1,19 +1,5 @@
 @testset "PSP8--UPF" begin
-    UPF_DIR = "./deprecated/fixtures/upf"
-    PSP8_DIR = "./deprecated/fixtures/psp8"
-
-    pseudo_pairs = []
-    for (root, dirs, files) in walkdir(PSP8_DIR)
-        for file in files
-            upf_filename = replace(file, ".psp8" => ".upf")
-            upf_path = joinpath(UPF_DIR, upf_filename)
-            if isfile(upf_path)
-                psp = load_psp8(joinpath(root, file))
-                upf = load_upf(upf_path)
-                push!(pseudo_pairs, (psp=psp, upf=upf))
-            end
-        end
-    end
+    pseudo_pairs = [(upf=load_upf(pair[1]), psp=load_psp8(pair[2])) for pair in upf2_psp8_pairs]
 
     @testset "header" begin
         for pair in pseudo_pairs
