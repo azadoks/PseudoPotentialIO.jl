@@ -30,18 +30,20 @@ import PseudoPotentialIO: fast_sphericalbesselj, fast_sphericalbesselj0
         psp = load_psp(filepath)
 
         @testset "Local potential Fourier agrees with real" begin
+            Ṽloc = local_potential_fourier(psp)
             for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
                 ref = quadgk(local_potential_integrand(psp, q), 0, Inf)[1] -
                       4π * valence_charge(psp) / q^2
-                @test ref ≈ local_potential_fourier(psp)(q) rtol = 1e-3 atol = 1e-3
+                @test ref ≈ Ṽloc(q) rtol = 1e-3 atol = 1e-3
             end
         end
 
         @testset "Nonlocal projector Fouriers agree with real" begin
             for l in 0:max_angular_momentum(psp), n in 1:n_projectors(psp, l)
+                β̃ = projector_fourier(psp, l, n)
                 for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
                     ref = quadgk(projector_integrand(psp, l, n, q), 0, Inf)[1]
-                    @test ref ≈ projector_fourier(psp, l, n)(q) rtol = 1e-3 atol = 1e-3
+                    @test ref ≈ β̃(q) rtol = 1e-3 atol = 1e-3
                 end
             end
         end

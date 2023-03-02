@@ -1,6 +1,6 @@
 import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
-import PseudoPotentialIO: guess_mesh_type, fast_sphericalbesselj, fast_sphericalbesselj0
-import PseudoPotentialIO: simpson
+import PseudoPotentialIO: guess_mesh_type, fast_sphericalbesselj
+import PseudoPotentialIO: simpson, dotprod
 
 @testset "common" begin
     @testset "guess_mesh_type" begin
@@ -69,7 +69,7 @@ import PseudoPotentialIO: simpson
     end
 
     @testset "odd linear grid sin" begin
-        @testset for integrator in [simpson,]
+        @testset for integrator in [simpson, dotprod]
             n = 100001
             x0 = 0.00
             dx = float(π) / n
@@ -84,7 +84,7 @@ import PseudoPotentialIO: simpson
     end
 
     @testset "even linear grid sin" begin
-        @testset for integrator in [simpson,]
+        @testset for integrator in [simpson, dotprod]
             n = 100000
             x0 = 0.00
             dx = float(π) / n
@@ -99,7 +99,7 @@ import PseudoPotentialIO: simpson
     end
 
     @testset "odd log grid sin" begin
-        @testset for integrator in [simpson,]
+        @testset for integrator in [simpson, dotprod]
             n = 1000001
             i = collect(1:n)
             b = float(π) / n
@@ -114,7 +114,7 @@ import PseudoPotentialIO: simpson
     end
 
     @testset "even log grid sin" begin
-        @testset for integrator in [simpson,]
+        @testset for integrator in [simpson, dotprod]
             n = 1000000
             i = collect(1:n)
             b = float(π) / n
@@ -132,7 +132,7 @@ import PseudoPotentialIO: simpson
     ref = -(√π * (-2erfi(1/2) + erfi(1/2 - im*π) + erfi(1/2 + im*π))) / (4 * exp(1/4))
 
     @testset "odd linear grid exp sin" begin
-        @testset for integrator in [simpson,]
+        @testset for integrator in [simpson, dotprod]
             n = 100001
             x0 = 0.00
             dx = float(π) / n
@@ -146,7 +146,7 @@ import PseudoPotentialIO: simpson
     end
 
     @testset "even linear grid exp sin" begin
-        @testset for integrator in [simpson,]
+        @testset for integrator in [simpson, dotprod]
             n = 100000
             x0 = 0.00
             dx = float(π) / n
@@ -160,7 +160,7 @@ import PseudoPotentialIO: simpson
     end
 
     @testset "odd log grid exp sin" begin
-        @testset for integrator in [simpson,]
+        @testset for integrator in [simpson, dotprod]
             n = 1000001
             i = collect(1:n)
             b = float(π) / n
@@ -175,7 +175,7 @@ import PseudoPotentialIO: simpson
     end
 
     @testset "even log grid exp sin" begin
-        @testset for integrator in [simpson,]
+        @testset for integrator in [simpson, dotprod]
             n = 1000000
             i = collect(1:n)
             b = float(π) / n

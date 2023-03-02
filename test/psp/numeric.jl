@@ -28,72 +28,73 @@ import PseudoPotentialIO: build_interpolator
     end
 
     @testset "$(splitpath(filepath)[end])" for filepath in filepaths
-        psp = load_psp(filepath)
-        rmin = max(first(psp.r), eps(eltype(psp.r)))
+        @testset "Truncation tol=$(tol)" for tol in [nothing, 1e-10, 1e-8, 1e-6]
+            psp = load_psp(filepath)
+            rmin = max(first(psp.r), eps(eltype(psp.r)))
 
-        @testset "Local potential Fourier agrees with real" begin
-            # itp = build_interpolator(psp.Vloc, psp.r)
-            rmax = psp.r[lastindex(psp.Vloc)]
-            Vloc_fourier = local_potential_fourier(psp)
-            for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
-                ref = quadgk(local_potential_integrand(psp, q), rmin, rmax)[1] -
-                      4π * psp.Zval / q^2
-                @test ref ≈ Vloc_fourier(q) rtol = 1e-2 atol = 1e-2
-            end
-        end
-
-        @testset "Nonlocal projector Fouriers agree with real" begin
-            for l in 0:(psp.lmax), n in eachindex(psp.β[l])
-                itp = build_interpolator(psp.β[l][n], psp.r)
-                rmax = psp.r[lastindex(psp.β[l][n])]
-                β_fourier = projector_fourier(psp, l, n)
+            @testset "Local potential Fourier agrees with real" begin
+                rmax = psp.r[lastindex(psp.Vloc)]
+                Vloc_fourier = local_potential_fourier(psp; tol)
                 for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
-                    ref = quadgk(wavefunction_like_integrand(psp, itp, l, q), rmin, rmax)[1]
-                    @test ref ≈ β_fourier(q) rtol = 1e-1 atol = 1e-1
+                    ref = quadgk(local_potential_integrand(psp, q), rmin, rmax)[1] -
+                        4π * psp.Zval / q^2
+                    @test ref ≈ Vloc_fourier(q) rtol = 1e-2 atol = 1e-2
                 end
             end
-        end
 
-        @testset "Core charge density Fourier agrees with real" begin
-            if !isnothing(psp.ρcore)
-                itp = build_interpolator(psp.ρcore, psp.r)
-                rmax = psp.r[lastindex(psp.ρcore)]
-                ρcore_fourier = core_charge_density_fourier(psp)
-                for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
-                    ref = quadgk(charge_density_integrand(psp, itp, q), rmin, rmax)[1]
-                    @test ref ≈ ρcore_fourier(q) rtol = 1e-2 atol = 1e-2
-                end
-            end
-        end
-
-        @testset "Pseudo energy correction" begin
-            q_small = 1e-5
-            ref = local_potential_fourier(psp)(q_small) + 4π * psp.Zval / q_small^2
-            @test ref ≈ pseudo_energy_correction(Float64, psp) rtol = 1e-2 atol = 1e-2
-        end
-
-        @testset "Pseudo-atomic wavefunction Fouriers agree with real" begin
-            if !isnothing(psp.ϕ̃)
-                for l in 0:(psp.lmax), n in eachindex(psp.ϕ̃[l])
-                    itp = build_interpolator(psp.ϕ̃[l][n], psp.r)
-                    rmax = psp.r[lastindex(psp.ϕ̃[l][n])]
-                    ϕ̃_fourier = pseudo_orbital_fourier(psp, l, n)
+            @testset "Nonlocal projector Fouriers agree with real" begin
+                for l in 0:(psp.lmax), n in eachindex(psp.β[l])
+                    itp = build_interpolator(psp.β[l][n], psp.r)
+                    rmax = psp.r[lastindex(psp.β[l][n])]
+                    β_fourier = projector_fourier(psp, l, n; tol)
                     for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
                         ref = quadgk(wavefunction_like_integrand(psp, itp, l, q), rmin, rmax)[1]
-                        @test ref ≈ ϕ̃_fourier(q) rtol = 1e-1 atol = 1e-1
+                        @test ref ≈ β_fourier(q) rtol = 1e-1 atol = 1e-1
                     end
                 end
             end
-        end
 
-        @testset "Valence charge density Fouriers agree with real" begin
-            if !isnothing(psp.ρval)
-                itp = build_interpolator(psp.ρval, psp.r)
-                rmax = psp.r[lastindex(psp.ρval)]
-                ρval_fourier = valence_charge_density_fourier(psp)
-                for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
-                    ref = quadgk(charge_density_integrand(psp, itp, q), rmin, rmax)[1]
-                    @test ref ≈ ρval_fourier(q) rtol = 1e-2 atol = 1e-2
+            @testset "Core charge density Fourier agrees with real" begin
+                if !isnothing(psp.ρcore)
+                    itp = build_interpolator(psp.ρcore, psp.r)
+                    rmax = psp.r[lastindex(psp.ρcore)]
+                    ρcore_fourier = core_charge_density_fourier(psp; tol)
+                    for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
+                        ref = quadgk(charge_density_integrand(psp, itp, q), rmin, rmax)[1]
+                        @test ref ≈ ρcore_fourier(q) rtol = 1e-2 atol = 1e-2
+                    end
+                end
+            end
+
+            @testset "Pseudo energy correction" begin
+                q_small = 1e-5
+                ref = local_potential_fourier(psp)(q_small) + 4π * psp.Zval / q_small^2
+                @test ref ≈ pseudo_energy_correction(Float64, psp) rtol = 1e-2 atol = 1e-2
+            end
+
+            @testset "Pseudo-atomic wavefunction Fouriers agree with real" begin
+                if !isnothing(psp.ϕ̃)
+                    for l in 0:(psp.lmax), n in eachindex(psp.ϕ̃[l])
+                        itp = build_interpolator(psp.ϕ̃[l][n], psp.r)
+                        rmax = psp.r[lastindex(psp.ϕ̃[l][n])]
+                        ϕ̃_fourier = pseudo_orbital_fourier(psp, l, n; tol)
+                        for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
+                            ref = quadgk(wavefunction_like_integrand(psp, itp, l, q), rmin, rmax)[1]
+                            @test ref ≈ ϕ̃_fourier(q) rtol = 1e-1 atol = 1e-1
+                        end
+                    end
+                end
+            end
+
+            @testset "Valence charge density Fouriers agree with real" begin
+                if !isnothing(psp.ρval)
+                    itp = build_interpolator(psp.ρval, psp.r)
+                    rmax = psp.r[lastindex(psp.ρval)]
+                    ρval_fourier = valence_charge_density_fourier(psp; tol)
+                    for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
+                        ref = quadgk(charge_density_integrand(psp, itp, q), rmin, rmax)[1]
+                        @test ref ≈ ρval_fourier(q) rtol = 1e-2 atol = 1e-2
+                    end
                 end
             end
         end

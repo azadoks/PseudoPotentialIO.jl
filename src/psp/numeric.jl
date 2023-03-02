@@ -85,34 +85,42 @@ function core_charge_density_real(psp::NumericPsP)
     return build_interpolator(psp.ρcore, psp.r)
 end
 
-@inbounds function local_potential_fourier(psp::NumericPsP)
+@inbounds function local_potential_fourier(psp::NumericPsP; tol=nothing)
+    i_start = firstindex(psp.Vloc)
+    i_stop = find_truncation_index(psp.Vloc, tol)
     function Vloc(q)
         integrand(i::Int) = psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
             (psp.r[i] * psp.Vloc[i] + psp.Zval)
-        integral = dotprod(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr)
+        integral = dotprod(integrand, i_start, i_stop, psp.dr)
         4π * (integral - psp.Zval / q^2)
     end
     return Vloc
 end
 
-@inbounds function projector_fourier(psp::NumericPsP, l::Int, n::Int)
-    return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.β[l][n])
+@inbounds function projector_fourier(psp::NumericPsP, l::Int, n::Int; tol=nothing)
+    i_stop = find_truncation_index(psp.β[l][n], tol)
+    return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.β[l][n]; i_stop)
 end
 
-@inbounds function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int)
+@inbounds function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int; tol=nothing)
     isnothing(psp.ϕ̃) && return _ -> nothing
-    return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.ϕ̃[l][n])
+    i_stop = find_truncation_index(psp.ϕ̃[l][n], tol)
+    return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.ϕ̃[l][n]; i_stop)
 end
 
-function valence_charge_density_fourier(psp::NumericPsP)
-    return hankel_transform(DensityLike(), psp.r, psp.dr, psp.ρval)
+function valence_charge_density_fourier(psp::NumericPsP; tol=nothing)
+    i_stop = find_truncation_index(psp.ρval, tol)
+    return hankel_transform(DensityLike(), psp.r, psp.dr, psp.ρval; i_stop)
 end
 
-function core_charge_density_fourier(psp::NumericPsP)
-    return hankel_transform(DensityLike(), psp.r, psp.dr, psp.ρcore)
+function core_charge_density_fourier(psp::NumericPsP; tol=nothing)
+    i_stop = find_truncation_index(psp.ρcore, tol)
+    return hankel_transform(DensityLike(), psp.r, psp.dr, psp.ρcore; i_stop)
 end
 
-@inbounds function pseudo_energy_correction(T::Type, psp::NumericPsP)
+@inbounds function pseudo_energy_correction(T::Type, psp::NumericPsP; tol=nothing)
+    i_start = firstindex(psp.Vloc)
+    i_stop = find_truncation_index(psp.Vloc, tol)
     integrand(i::Int) = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
-    return T(4π * dotprod(integrand, firstindex(psp.Vloc), lastindex(psp.Vloc), psp.dr))
+    return T(4π * dotprod(integrand, i_start, i_stop, psp.dr))
 end
