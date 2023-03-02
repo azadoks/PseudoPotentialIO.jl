@@ -6,7 +6,6 @@ using Random
 using PeriodicTable
 using SpecialFunctions
 using QuadGK
-using Quaternions
 using Interpolations
 using JSON
 
