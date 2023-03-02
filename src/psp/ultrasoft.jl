@@ -133,40 +133,22 @@ is_paw(::UltrasoftPsP)::Bool = false
 
 #TODO test the augmentation functions
 
-function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int)::Matrix{T} where {T<:Real}
+function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int)::Matrix{T} where {T}
     return psp.q[l]
 end
 
-function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int)::T where {T<:Real}
+function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int)::T where {T}
     return psp.q[l][n, n]
 end
 
-function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int,
-                               m::Int)::T where {T<:Real}
+function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int, m::Int)::T where {T}
     return psp.q[l][n, m]
 end
 
-function augmentation_real(psp::UltrasoftPsP, l::Int, n::Int, m::Int,
-                           r::T)::T where {T<:Real}
-    return interpolate((psp.r,), psp.Q[l][n, m], (Gridded(Linear()),))(r)
+function augmentation_real(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
+    return interpolate((psp.r,), psp.Q[l][n, m], (Gridded(Linear()),))
 end
 
-function augmentation_real(psp::UltrasoftPsP, l::Int, n::Int, m::Int,
-                           R::AbstractVector{T})::T where {T<:Real}
-    return augmentation_real(psp, l, n, m, norm(R))
-end
-
-function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int,
-                              q::T)::T where {T<:Real}
-    function integrand(i::Int, q::T)
-        return psp.r[i]^2 * fast_sphericalbesselj0(q * psp.r[i]) * psp.Q[l][n, m]
-    end
-    return 4π *
-           simpson(integrand, firstindex(psp.Q[l][n, m]), lastindex(psp.Q[l][n, m]), psp.dr,
-                   q)
-end
-
-function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int,
-                              K::AbstractVector{T})::T where {T<:Real}
-    return augmentation_fourier(psp, l, n, m, norm(K))
+function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
+    return hankel_transform(DensityLike(), psp.r, psp.dr, psp.Q[l][n, m])
 end

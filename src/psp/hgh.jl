@@ -31,8 +31,8 @@ function HghPsP(file::HghFile)
         cloc = [cloc; zeros(Float64, n_extra)]
     end
 
-    rnl = OffsetVector(file.rp, 0:file.lmax)
-    D = OffsetVector(file.h, 0:file.lmax)
+    rnl = OffsetVector(file.rp, 0:(file.lmax))
+    D = OffsetVector(file.h, 0:(file.lmax))
 
     return HghPsP{Float64}(Zatom, sum(Float64.(file.zion)), file.lmax, file.rloc, cloc,
                            rnl, D)
@@ -74,21 +74,26 @@ is a polynomial of at most degree 8. This function returns `Q`.
 end
 
 # [GTH98] (6) except they do it with plane waves normalized by 1/sqrt(Ω).
-function local_potential_fourier(psp::HghPsP, q::T)::T where {T<:Real}
-    x = q * psp.rloc
-    return local_potential_polynomial_fourier(psp, x) * exp(-x^2 / 2) / x^2
+function local_potential_fourier(psp::HghPsP)
+    function Vloc(q)
+        x = q * psp.rloc
+        return local_potential_polynomial_fourier(psp, x) * exp(-x^2 / 2) / x^2
+    end
+    return Vloc
 end
 
 # [GTH98] (1)
-function local_potential_real(psp::HghPsP, r::T)::T where {T<:Real}
-    r == 0 && return local_potential_real(psp, eps(T)) # quick hack for the division by zero below
-    cloc = psp.cloc
-    rr = r / psp.rloc
-    return convert(T,
-                   -psp.Zval / r * erf(rr / sqrt(T(2)))
-                   +
-                   exp(-rr^2 / 2) *
-                   (cloc[1] + cloc[2] * rr^2 + cloc[3] * rr^4 + cloc[4] * rr^6))
+function local_potential_real(psp::HghPsP)
+    function Vloc(r::T) where {T}
+        r == 0 && return local_potential_real(psp, eps(T)) # quick hack for the division by zero below
+        cloc = psp.cloc
+        rr = r / psp.rloc
+        return convert(T,
+                       -psp.Zval / r * erf(rr / sqrt(T(2))) +
+                       exp(-rr^2 / 2) *
+                       (cloc[1] + cloc[2] * rr^2 + cloc[3] * rr^4 + cloc[4] * rr^6))
+    end
+    return Vloc
 end
 
 @doc raw"""
@@ -123,17 +128,23 @@ and `Q` is a polynomial. This function returns `Q`.
 end
 
 # [HGH98] (7-15) except they do it with plane waves normalized by 1/sqrt(Ω).
-function projector_fourier(psp::HghPsP, l::Int, n::Int, q::T)::T where {T<:Real}
-    x::T = q * psp.rnl[l]
-    return projector_polynomial_fourier(psp, l, n, x) * exp(-x^2 / 2)
+function projector_fourier(psp::HghPsP, l::Int, n::Int)
+    function β(q::T) where {T}
+        x::T = q * psp.rnl[l]
+        return projector_polynomial_fourier(psp, l, n, x) * exp(-x^2 / 2)
+    end
+    return β
 end
 
 # [HGH98] (3)
-function projector_real(psp::HghPsP, l::Int, n::Int, r::T)::T where {T<:Real}
-    rnl = T(psp.rnl[l])
-    ired = (4n - 1) / T(2)
-    return sqrt(T(2)) * r^(l + 2(n - 1)) * exp(-r^2 / 2rnl^2) / rnl^(l + ired) /
-           sqrt(gamma(l + ired))
+function projector_real(psp::HghPsP, l::Int, n::Int)
+    function β(r::T) where {T}
+        rnl = T(psp.rnl[l])
+        ired = (4n - 1) / T(2)
+        return sqrt(T(2)) * r^(l + 2(n - 1)) * exp(-r^2 / 2rnl^2) / rnl^(l + ired) /
+               sqrt(gamma(l + ired))
+    end
+    return β
 end
 
 function pseudo_energy_correction(T::Type, psp::HghPsP)
@@ -141,8 +152,7 @@ function pseudo_energy_correction(T::Type, psp::HghPsP)
     # of the Coulomb potential (-Z/G^2 in Fourier space) and the pseudopotential
     # i.e. -4πZ/(ΔG)^2 -  eval_psp_local_fourier(psp, ΔG) for ΔG → 0. This is:
     cloc_coeffs = [1, 3, 15, 105]
-    difference_DC = (psp.Zval * psp.rloc^2 / 2
-                     +
+    difference_DC = (psp.Zval * psp.rloc^2 / 2 +
                      sqrt(π / 2) * psp.rloc^3 * sum(cloc_coeffs .* psp.cloc))
 
     # Multiply by number of electrons and 4π (spherical Hankel prefactor)

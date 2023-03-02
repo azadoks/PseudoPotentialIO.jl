@@ -69,21 +69,16 @@ export n_projectors
 export n_pseudo_orbitals
 export local_potential_real
 export local_potential_fourier
-export local_potential_fourier_function
 export projector_coupling
 export projector_real
 export projector_fourier
-export projector_fourier_function
 export pseudo_energy_correction
 export core_charge_density_real
 export core_charge_density_fourier
-export core_charge_density_fourier_function
 export valence_charge_density_real
 export valence_charge_density_fourier
-export valence_charge_density_fourier_function
 export pseudo_orbital_real
 export pseudo_orbital_fourier
-export pseudo_orbital_fourier_function
 include("psp/psp.jl")
 
 export NumericPsP

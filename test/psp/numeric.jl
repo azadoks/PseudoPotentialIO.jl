@@ -13,17 +13,18 @@ import PseudoPotentialIO: build_interpolator
                  psp8_filepaths["H.psp8"],
                  psp8_filepaths["Fe.psp8"]]
 
-    function local_potential_integral(psp::NumericPsP, itp, q::T, r::T)::T where {T<:Real}
-        return 4π * r * fast_sphericalbesselj0(q * r) * (r * itp(r) + psp.Zval)
+    function local_potential_integrand(psp::NumericPsP, q)
+        Vloc = local_potential_real(psp)
+        return r -> 4π * r * fast_sphericalbesselj0(q * r) * (r * Vloc(r) + psp.Zval)
     end
 
-    function wavefunction_like_integral(::NumericPsP, itp, l::Int, q::T,
-                                        r::T)::T where {T<:Real}
-        return 4π * fast_sphericalbesselj(l, q * r) * itp(r)
+    function wavefunction_like_integrand(::NumericPsP, itp, l::Int, q)
+        jₗ = fast_sphericalbesselj(l)
+        return r -> 4π * jₗ(q * r) * itp(r)
     end
 
-    function charge_density_integral(::NumericPsP, itp, q::T, r::T)::T where {T<:Real}
-        return 4π * r^2 * fast_sphericalbesselj0(q * r) * itp(r)
+    function charge_density_integrand(::NumericPsP, itp, q)
+        return r -> 4π * r^2 * fast_sphericalbesselj0(q * r) * itp(r)
     end
 
     @testset "$(splitpath(filepath)[end])" for filepath in filepaths
@@ -31,11 +32,11 @@ import PseudoPotentialIO: build_interpolator
         rmin = max(first(psp.r), eps(eltype(psp.r)))
 
         @testset "Local potential Fourier agrees with real" begin
-            itp = build_interpolator(psp.Vloc, psp.r)
+            # itp = build_interpolator(psp.Vloc, psp.r)
             rmax = psp.r[lastindex(psp.Vloc)]
-            Vloc_fourier = local_potential_fourier_function(psp)
+            Vloc_fourier = local_potential_fourier(psp)
             for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
-                ref = quadgk(r -> local_potential_integral(psp, itp, q, r), rmin, rmax)[1] -
+                ref = quadgk(local_potential_integrand(psp, q), rmin, rmax)[1] -
                       4π * psp.Zval / q^2
                 @test ref ≈ Vloc_fourier(q) rtol = 1e-2 atol = 1e-2
             end
@@ -45,10 +46,9 @@ import PseudoPotentialIO: build_interpolator
             for l in 0:(psp.lmax), n in eachindex(psp.β[l])
                 itp = build_interpolator(psp.β[l][n], psp.r)
                 rmax = psp.r[lastindex(psp.β[l][n])]
-                β_fourier = projector_fourier_function(psp, l, n)
+                β_fourier = projector_fourier(psp, l, n)
                 for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
-                    ref = quadgk(r -> wavefunction_like_integral(psp, itp, l, q, r), rmin,
-                                 rmax)[1]
+                    ref = quadgk(wavefunction_like_integrand(psp, itp, l, q), rmin, rmax)[1]
                     @test ref ≈ β_fourier(q) rtol = 1e-1 atol = 1e-1
                 end
             end
@@ -58,9 +58,9 @@ import PseudoPotentialIO: build_interpolator
             if !isnothing(psp.ρcore)
                 itp = build_interpolator(psp.ρcore, psp.r)
                 rmax = psp.r[lastindex(psp.ρcore)]
-                ρcore_fourier = core_charge_density_fourier_function(psp)
+                ρcore_fourier = core_charge_density_fourier(psp)
                 for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
-                    ref = quadgk(r -> charge_density_integral(psp, itp, q, r), rmin, rmax)[1]
+                    ref = quadgk(charge_density_integrand(psp, itp, q), rmin, rmax)[1]
                     @test ref ≈ ρcore_fourier(q) rtol = 1e-2 atol = 1e-2
                 end
             end
@@ -68,7 +68,7 @@ import PseudoPotentialIO: build_interpolator
 
         @testset "Pseudo energy correction" begin
             q_small = 1e-5
-            ref = local_potential_fourier(psp, q_small) + 4π * psp.Zval / q_small^2
+            ref = local_potential_fourier(psp)(q_small) + 4π * psp.Zval / q_small^2
             @test ref ≈ pseudo_energy_correction(Float64, psp) rtol = 1e-2 atol = 1e-2
         end
 
@@ -77,10 +77,9 @@ import PseudoPotentialIO: build_interpolator
                 for l in 0:(psp.lmax), n in eachindex(psp.ϕ̃[l])
                     itp = build_interpolator(psp.ϕ̃[l][n], psp.r)
                     rmax = psp.r[lastindex(psp.ϕ̃[l][n])]
-                    ϕ̃_fourier = pseudo_orbital_fourier_function(psp, l, n)
+                    ϕ̃_fourier = pseudo_orbital_fourier(psp, l, n)
                     for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
-                        ref = quadgk(r -> wavefunction_like_integral(psp, itp, l, q, r),
-                                     rmin, rmax)[1]
+                        ref = quadgk(wavefunction_like_integrand(psp, itp, l, q), rmin, rmax)[1]
                         @test ref ≈ ϕ̃_fourier(q) rtol = 1e-1 atol = 1e-1
                     end
                 end
@@ -91,9 +90,9 @@ import PseudoPotentialIO: build_interpolator
             if !isnothing(psp.ρval)
                 itp = build_interpolator(psp.ρval, psp.r)
                 rmax = psp.r[lastindex(psp.ρval)]
-                ρval_fourier = valence_charge_density_fourier_function(psp)
+                ρval_fourier = valence_charge_density_fourier(psp)
                 for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
-                    ref = quadgk(r -> charge_density_integral(psp, itp, q, r), rmin, rmax)[1]
+                    ref = quadgk(charge_density_integrand(psp, itp, q), rmin, rmax)[1]
                     @test ref ≈ ρval_fourier(q) rtol = 1e-2 atol = 1e-2
                 end
             end
