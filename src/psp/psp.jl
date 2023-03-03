@@ -115,6 +115,32 @@ Projector coupling matrix for angular momentum `l`.
 function projector_coupling(psp::AbstractPsP, l) end
 
 """
+Cutoff radius of the local potential in real-space.
+"""
+function local_potential_cutoff_radius(psp::AbstractPsP) end
+
+"""
+Cutoff radius of the `n`th Kleinman-Bylander non-local projector at angular momentum `l` in
+real-space.
+"""
+function projector_cutoff_radius(psp::AbstractPsP, l::Int, n::Int) end
+
+"""
+Cutoff radius of the `n`th pseudo-atomic orbital at angular momentum `l` in real-space.
+"""
+function pseudo_orbital_cutoff_radius(psp::AbstractPsP, l::Int, n::Int) end
+
+"""
+Cutoff radius of the valence charge density in real-space.
+"""
+function valence_charge_density_cutoff_radius(psp::AbstractPsP) end
+
+"""
+Cutoff radius of the core charge density in real-space.
+"""
+function core_charge_density_cutoff_radius(psp::AbstractPsP) end
+
+"""
 Local part of the pseudopotential evaluated at real-space point `r`.
 """
 function local_potential_real(psp::AbstractPsP)
@@ -256,6 +282,46 @@ to the maximum angular momentum channel.
 """
 function n_pseudo_orbital_angulars(psp::AbstractPsP)
     return sum(l -> n_pseudo_orbtial_angulars(psp, l), 0:max_angular_momentum(psp); init=0)
+end
+
+function projector_cutoff_radius(psp::AbstractPsP, l::Int)
+    cutoff_radii = map(n -> projector_cutoff_radius(psp, l, n), 1:n_projector_radials(psp, l))
+    cutoff_radii = filter(!isnothing, cutoff_radii)
+    isempty(cutoff_radii) && return nothing
+    return minimum(cutoff_radii)
+end
+
+function projector_cutoff_radius(psp::AbstractPsP)
+    cutoff_radii = map(l -> projector_cutoff_radius(psp, l), 0:max_angular_momentum(psp))
+    cutoff_radii = filter(!isnothing, cutoff_radii)
+    isempty(cutoff_radii) && return nothing
+    return minimum(cutoff_radii)
+end
+
+function pseudo_orbital_cutoff_radius(psp::AbstractPsP, l::Int)
+    cutoff_radii = map(n -> pseudo_orbital_cutoff_radius(psp, l, n), 1:n_pseudo_orbital_radials(psp, l))
+    cutoff_radii = filter(!isnothing, cutoff_radii)
+    isempty(cutoff_radii) && return nothing
+    return minimum(cutoff_radii)
+end
+
+function pseudo_orbital_cutoff_radius(psp::AbstractPsP)
+    cutoff_radii = map(l -> pseudo_orbital_cutoff_radius(psp, l), 0:max_angular_momentum(psp))
+    cutoff_radii = filter(!isnothing, cutoff_radii)
+    isempty(cutoff_radii) && return nothing
+    return minimum(cutoff_radii)
+end
+
+function pseudo_cutoff_radius(psp::AbstractPsP)
+    cutoff_radii = [
+        local_potential_cutoff_radius(psp),
+        projector_cutoff_radius(psp),
+        pseudo_orbital_cutoff_radius(psp),
+        valence_charge_density_cutoff_radius(psp),
+        core_charge_density_cutoff_radius(psp)
+    ]
+    cutoff_radii = filter(!isnothing, cutoff_radii)
+    return minimum(cutoff_radii)
 end
 
 """

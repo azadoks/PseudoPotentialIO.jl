@@ -53,6 +53,12 @@ max_angular_momentum(psp::HghPsP)::Int = psp.lmax
 n_projector_radials(psp::HghPsP, l::Int)::Int = size(psp.D[l], 1)
 n_pseudo_orbital_radials(::HghPsP, ::Int)::Int = 0
 
+local_potential_cutoff_radius(::HghPsP) = Inf
+projector_cutoff_radius(::HghPsP, ::Int, ::Int) = Inf
+pseudo_orbital_cutoff_radius(::HghPsP, ::Int, ::Int) = Inf
+valence_charge_density_cutoff_radius(::HghPsP) = Inf
+core_charge_density_cutoff_radius(::HghPsP) = Inf
+
 projector_coupling(psp::HghPsP, l::Int) = psp.D[l]
 
 @doc raw"""
@@ -88,7 +94,7 @@ end
 # [GTH98] (1)
 function local_potential_real(psp::HghPsP)
     function Vloc(r::T) where {T}
-        r == 0 && return local_potential_real(psp, eps(T)) # quick hack for the division by zero below
+        r += iszero(r) ? eps(T) : zero(T)  # quick hack for the division by zero below
         cloc = psp.cloc
         rr = r / psp.rloc
         return convert(T,

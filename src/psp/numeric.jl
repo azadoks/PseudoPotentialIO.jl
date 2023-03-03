@@ -60,46 +60,54 @@ has_core_density(psp::NumericPsP)::Bool = !isnothing(psp.ρcore)
 has_valence_density(psp::NumericPsP)::Bool = !isnothing(psp.ρval)
 has_pseudo_orbitals(psp::NumericPsP)::Bool = !isnothing(psp.ϕ)
 
+function local_potential_cutoff_radius(psp::NumericPsP)
+    return psp.r[lastindex(psp.Vloc)]
+end
+
+function projector_cutoff_radius(psp::NumericPsP, l::Int, n::Int)
+    return psp.r[lastindex(psp.β[l][n])]
+end
+
+function pseudo_orbital_cutoff_radius(psp::NumericPsP, l::Int, n::Int)
+    !has_pseudo_orbitals(psp) && return nothing
+    return psp.r[lastindex(psp.ϕ[l][n])]
+end
+
+function valence_charge_density_cutoff_radius(psp::NumericPsP)
+    !has_valence_density(psp) && return nothing
+    return psp.r[lastindex(psp.ρval)]
+end
+
+function core_charge_density_cutoff_radius(psp::NumericPsP)
+    !has_core_density(psp) && return nothing
+    return psp.r[lastindex(psp.ρcore)]
+end
+
 function projector_coupling(psp::NumericPsP{T}, l::Int)::Matrix{T} where {T<:Real}
     return psp.D[l]
 end
 
 function local_potential_real(psp::NumericPsP)
-    itp = build_interpolator(psp.Vloc, psp.r)
-    Vloc(r) = itp(r)
-    Vloc(R::AbstractVector) = Vloc(norm(R))
-    return Vloc
+    return build_interpolator_real(psp.Vloc, psp.r)
 end
 
 function projector_real(psp::NumericPsP, l::Int, n::Int)
-    isnothing(psp.β[l][n]) && return _ -> nothing
-    itp = build_interpolator(psp.β[l][n], psp.r)
-    β(r) = itp(r)
-    β(R::AbstractVector) = β(norm(R))
-    return β
+    return build_interpolator_real(psp.β[l][n], psp.r)
 end
 
 function pseudo_orbital_real(psp::NumericPsP, l::Int, n::Int)
     isnothing(psp.ϕ) && return _ -> nothing
-    itp = build_interpolator(psp.ϕ[l][n], psp.r)
-    ϕ(r) = itp(r)
-    ϕ(R::AbstractVector) = ϕ(norm(R))
-    return ϕ
+    return build_interpolator_real(psp.ϕ[l][n], psp.r)
 end
 
 function valence_charge_density_real(psp::NumericPsP)
     isnothing(psp.ρval) && return _ -> nothing
-    itp = build_interpolator(psp.ρval, psp.r)
-    ρval(r) = itp(r)
-    ρval(R::AbstractVector) = ρval(norm(R))
-    return ρval
+    return build_interpolator_real(psp.ρval, psp.r)
 end
 
 function core_charge_density_real(psp::NumericPsP)
     isnothing(psp.ρcore) && return _ -> nothing
-    itp = build_interpolator(psp.ρcore, psp.r)
-    ρcore(r) = itp(r)
-    ρval(R::AbstractVector) = ρcore(norm(R))
+    return build_interpolator_real(psp.ρcore, psp.r)
 end
 
 @inbounds function local_potential_fourier(psp::NumericPsP; tol=nothing)
@@ -117,23 +125,23 @@ end
 
 @inbounds function projector_fourier(psp::NumericPsP, l::Int, n::Int; tol=nothing)
     i_stop = find_truncation_index(psp.β[l][n], tol)
-    return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.β[l][n]; i_stop)
+    return hankel_transform(psp.β[l][n], l, psp.r, psp.dr; i_stop)
 end
 
 @inbounds function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int; tol=nothing)
     isnothing(psp.ϕ) && return _ -> nothing
     i_stop = find_truncation_index(psp.ϕ[l][n], tol)
-    return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.ϕ[l][n]; i_stop)
+    return hankel_transform(psp.ϕ[l][n], l, psp.r, psp.dr; i_stop)
 end
 
 function valence_charge_density_fourier(psp::NumericPsP; tol=nothing)
     i_stop = find_truncation_index(psp.ρval, tol)
-    return hankel_transform(DensityLike(), psp.r, psp.dr, psp.ρval; i_stop)
+    return hankel_transform(psp.ρval, 0, psp.r, psp.dr; i_stop)
 end
 
 function core_charge_density_fourier(psp::NumericPsP; tol=nothing)
     i_stop = find_truncation_index(psp.ρcore, tol)
-    return hankel_transform(DensityLike(), psp.r, psp.dr, psp.ρcore; i_stop)
+    return hankel_transform(psp.ρcore, 0, psp.r, psp.dr; i_stop)
 end
 
 @inbounds function pseudo_energy_correction(T::Type, psp::NumericPsP; tol=nothing)

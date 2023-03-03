@@ -1,5 +1,5 @@
 import PseudoPotentialIO: fast_sphericalbesselj, fast_sphericalbesselj0
-import PseudoPotentialIO: build_interpolator
+import PseudoPotentialIO: build_interpolator_real
 
 #TODO work on tightening tolerances
 @testset "Numeric" begin
@@ -44,7 +44,7 @@ import PseudoPotentialIO: build_interpolator
 
             @testset "Nonlocal projector Fouriers agree with real" begin
                 for l in 0:(psp.lmax), n in eachindex(psp.β[l])
-                    itp = build_interpolator(psp.β[l][n], psp.r)
+                    itp = build_interpolator_real(psp.β[l][n], psp.r)
                     rmax = psp.r[lastindex(psp.β[l][n])]
                     β_fourier = projector_fourier(psp, l, n; tol)
                     for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
@@ -56,7 +56,7 @@ import PseudoPotentialIO: build_interpolator
 
             @testset "Core charge density Fourier agrees with real" begin
                 if !isnothing(psp.ρcore)
-                    itp = build_interpolator(psp.ρcore, psp.r)
+                    itp = build_interpolator_real(psp.ρcore, psp.r)
                     rmax = psp.r[lastindex(psp.ρcore)]
                     ρcore_fourier = core_charge_density_fourier(psp; tol)
                     for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
@@ -75,7 +75,7 @@ import PseudoPotentialIO: build_interpolator
             @testset "Pseudo-atomic wavefunction Fouriers agree with real" begin
                 if !isnothing(psp.ϕ)
                     for l in 0:(psp.lmax), n in eachindex(psp.ϕ[l])
-                        itp = build_interpolator(psp.ϕ[l][n], psp.r)
+                        itp = build_interpolator_real(psp.ϕ[l][n], psp.r)
                         rmax = psp.r[lastindex(psp.ϕ[l][n])]
                         ϕ_fourier = pseudo_orbital_fourier(psp, l, n; tol)
                         for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
@@ -88,7 +88,7 @@ import PseudoPotentialIO: build_interpolator
 
             @testset "Valence charge density Fouriers agree with real" begin
                 if !isnothing(psp.ρval)
-                    itp = build_interpolator(psp.ρval, psp.r)
+                    itp = build_interpolator_real(psp.ρval, psp.r)
                     rmax = psp.r[lastindex(psp.ρval)]
                     ρval_fourier = valence_charge_density_fourier(psp; tol)
                     for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)

@@ -14,15 +14,15 @@ struct NormConservingPsP{T} <: NumericPsP{T}
     dr::Union{T,Vector{T}}
     "Local part of the potential on the radial mesh (without an r² prefactor)."
     Vloc::Vector{T}
-    "Nonlocal projectors r²β[l][n] on the radial mesh."
+    "Nonlocal projectors β[l][n] on the radial mesh (with an r² prefactor)."
     β::OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}
     "Projector coupling coefficients D[l][n,m]."
     D::OffsetVector{Matrix{T},Vector{Matrix{T}}}
-    "Pseudo-atomic wavefunctions r²ϕ[l][n] on the radial mesh."
+    "Pseudo-atomic wavefunctions ϕ[l][n] on the radial mesh (with an r² prefactor)."
     ϕ::Union{Nothing,OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}}
-    "Model core charge density for non-linear core correction on the radial mesh (with an r² prefactor)."
+    "Model core charge density on the radial mesh (with an r² prefactor)."
     ρcore::Union{Nothing,Vector{T}}
-    "Valence charge density for charge density initialization on the radial mesh (with an r² prefactor)."
+    "Valence charge density on the radial mesh (with an r² prefactor)."
     ρval::Union{Nothing,Vector{T}}
 end
 

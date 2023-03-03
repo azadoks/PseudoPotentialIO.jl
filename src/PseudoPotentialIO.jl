@@ -85,6 +85,12 @@ export pseudo_orbital_fourier
 include("psp/psp.jl")
 
 export NumericPsP
+export local_potential_cutoff_radius
+export projector_cutoff_radius
+export pseudo_orbital_cutoff_radius
+export valence_charge_density_cutoff_radius
+export core_charge_density_cutoff_radius
+export pseudo_cutoff_radius
 include("psp/numeric.jl")
 
 export NormConservingPsP
