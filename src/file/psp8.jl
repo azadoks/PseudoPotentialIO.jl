@@ -278,7 +278,7 @@ function element(file::Psp8File)::String
     return PeriodicTable.elements[Int(file.header.zatom)].symbol
 end
 has_spin_orbit(file::Psp8File)::Bool = file.header.extension_switch in (2, 3)
-has_nlcc(file::Psp8File)::Bool = file.header.fchrg > 0
+has_core_density(file::Psp8File)::Bool = file.header.fchrg > 0
 is_norm_conserving(file::Psp8File)::Bool = true
 is_ultrasoft(file::Psp8File)::Bool = false
 is_paw(file::Psp8File)::Bool = false

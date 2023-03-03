@@ -89,7 +89,7 @@ function has_spin_orbit(file::PsPFile) end
 Whether the pseudopotential contains non-linear core correction data (model core charge
 density).
 """
-function has_nlcc(file::PsPFile) end
+function has_core_density(file::PsPFile) end
 
 #!!! Convenience functions !!!#
 """
@@ -170,7 +170,7 @@ function Base.show(io::IO, ::MIME"text/plain", file::PsPFile)
     @printf "%032s: %s\n" "element" element(file)
     @printf "%032s: %f\n" "valence charge" valence_charge(file)
     @printf "%032s: %s\n" "relativistic treatment" relativistic_treatment(file)
-    @printf "%032s: %s\n" "non-linear core correction" has_nlcc(file)
+    @printf "%032s: %s\n" "non-linear core correction" has_core_density(file)
     @printf "%032s: %d\n" "maximum angular momentum" max_angular_momentum(file)
     @printf "%032s: %d\n" "number of projectors" n_projector_radials(file)
     @printf "%032s: %d"   "number of pseudo-atomic orbitals" n_pseudo_orbital_radials(file)

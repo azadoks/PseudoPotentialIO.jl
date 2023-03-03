@@ -88,17 +88,17 @@ function has_spin_orbit(psp::AbstractPsP) end
 Whether the pseudopotential contains non-linear core correction data (model core charge
 density).
 """
-function has_nlcc(psp::AbstractPsP) end
+function has_core_density(psp::AbstractPsP) end
 
 """
 Whether the pseudopotential contains valence charge density data.
 """
-function has_ρval(psp::AbstractPsP) end
+function has_valence_density(psp::AbstractPsP) end
 
 """
 Whether the pseudopotential contains pseudoatomic orbitals.
 """
-function has_ϕ̃(psp::AbstractPsP) end
+function has_pseudo_orbitals(psp::AbstractPsP) end
 
 """
 Projector coupling matrix for angular momentum `l`.
@@ -278,7 +278,7 @@ function Base.show(io::IO, ::MIME"text/plain", psp::AbstractPsP)
     @printf "%032s: %s\n" "element" element(psp)
     @printf "%032s: %f\n" "valence charge" valence_charge(psp)
     @printf "%032s: %s\n" "relativistic treatment" relativistic_treatment(psp)
-    @printf "%032s: %s\n" "non-linear core correction" has_nlcc(psp)
+    @printf "%032s: %s\n" "non-linear core correction" has_core_density(psp)
     @printf "%032s: %d\n" "maximum angular momentum" max_angular_momentum(psp)
     @printf "%032s: %s\n" "number of projectors" n_projector_radials(psp)
     @printf "%032s: %s" "number of pseudo-atomic orbitals" n_pseudo_orbital_radials(psp)

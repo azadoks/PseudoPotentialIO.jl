@@ -38,7 +38,7 @@ export is_paw
 export formalism
 export has_spin_orbit
 export relativistic_treatment
-export has_nlcc
+export has_core_density
 export valence_charge
 export max_angular_momentum
 export n_projector_radials
@@ -62,7 +62,7 @@ export element
 export formalism
 export relativistic_treatment
 export has_spin_orbit
-export has_nlcc
+export has_core_density
 export valence_charge
 export atomic_charge
 export max_angular_momentum

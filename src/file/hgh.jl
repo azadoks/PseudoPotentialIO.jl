@@ -90,7 +90,7 @@ function element(psp::HghFile)::String
     return haskey(PeriodicTable.elements, Symbol(symbol)) ? symbol : "??"
 end
 has_spin_orbit(::HghFile)::Bool = false
-has_nlcc(::HghFile)::Bool = false
+has_core_density(::HghFile)::Bool = false
 is_norm_conserving(::HghFile)::Bool = true
 is_ultrasoft(::HghFile)::Bool = false
 is_paw(::HghFile)::Bool = false

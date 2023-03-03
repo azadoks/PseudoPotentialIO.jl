@@ -41,9 +41,9 @@ end
 element(psp::HghPsP)::String = isnothing(psp.Zatom) ? "unknown" :
                                PeriodicTable.elements[Int(psp.Zatom)].symbol
 has_spin_orbit(::HghPsP)::Bool = false
-has_nlcc(::HghPsP)::Bool = false
-has_ρval(::HghPsP)::Bool = false
-has_ϕ̃(::HghPsP)::Bool = false
+has_core_density(::HghPsP)::Bool = false
+has_valence_density(::HghPsP)::Bool = false
+has_pseudo_orbitals(::HghPsP)::Bool = false
 is_norm_conserving(::HghPsP)::Bool = true
 is_ultrasoft(::HghPsP)::Bool = false
 is_paw(::HghPsP)::Bool = false

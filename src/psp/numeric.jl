@@ -56,9 +56,9 @@ n_pseudo_orbital_radials(psp::NumericPsP, l::Int)::Int = isnothing(psp.ϕ̃) ? 0
 valence_charge(psp::NumericPsP) = psp.Zval
 atomic_charge(psp::NumericPsP) = psp.Ztot
 has_spin_orbit(::NumericPsP)::Bool = false  # This is a current limitation
-has_nlcc(psp::NumericPsP)::Bool = !isnothing(psp.ρcore)
-has_ρval(psp::NumericPsP)::Bool = !isnothing(psp.ρval)
-has_ϕ̃(psp::NumericPsP)::Bool = !isnothing(psp.ϕ̃)
+has_core_density(psp::NumericPsP)::Bool = !isnothing(psp.ρcore)
+has_valence_density(psp::NumericPsP)::Bool = !isnothing(psp.ρval)
+has_pseudo_orbitals(psp::NumericPsP)::Bool = !isnothing(psp.ϕ̃)
 
 function projector_coupling(psp::NumericPsP{T}, l::Int)::Matrix{T} where {T<:Real}
     return psp.D[l]
