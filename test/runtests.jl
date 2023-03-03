@@ -8,6 +8,7 @@ using SpecialFunctions
 using QuadGK
 using Interpolations
 using JSON
+using Quaternions
 
 Random.seed!(0)
 

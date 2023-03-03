@@ -64,26 +64,42 @@ function projector_coupling(psp::NumericPsP{T}, l::Int)::Matrix{T} where {T<:Rea
     return psp.D[l]
 end
 
-local_potential_real(psp::NumericPsP) = build_interpolator(psp.Vloc, psp.r)
+function local_potential_real(psp::NumericPsP)
+    itp = build_interpolator(psp.Vloc, psp.r)
+    Vloc(r) = itp(r)
+    Vloc(R::AbstractVector) = Vloc(norm(R))
+    return Vloc
+end
 
 function projector_real(psp::NumericPsP, l::Int, n::Int)
     isnothing(psp.β[l][n]) && return _ -> nothing
-    return build_interpolator(psp.Vloc, psp.r)
+    itp = build_interpolator(psp.β[l][n], psp.r)
+    β(r) = itp(r)
+    β(R::AbstractVector) = β(norm(R))
+    return β
 end
 
 function pseudo_orbital_real(psp::NumericPsP, l::Int, n::Int)
     isnothing(psp.ϕ̃) && return _ -> nothing
-    return build_interpolator(psp.ϕ̃[l][n], psp.r)
+    itp = build_interpolator(psp.ϕ̃[l][n], psp.r)
+    ϕ̃(r) = itp(r)
+    ϕ̃(R::AbstractVector) = ϕ̃(norm(R))
+    return ϕ̃
 end
 
 function valence_charge_density_real(psp::NumericPsP)
     isnothing(psp.ρval) && return _ -> nothing
-    return build_interpolator(psp.ρval, psp.r)
+    itp = build_interpolator(psp.ρval, psp.r)
+    ρval(r) = itp(r)
+    ρval(R::AbstractVector) = ρval(norm(R))
+    return ρval
 end
 
 function core_charge_density_real(psp::NumericPsP)
     isnothing(psp.ρcore) && return _ -> nothing
-    return build_interpolator(psp.ρcore, psp.r)
+    itp = build_interpolator(psp.ρcore, psp.r)
+    ρcore(r) = itp(r)
+    ρval(R::AbstractVector) = ρcore(norm(R))
 end
 
 @inbounds function local_potential_fourier(psp::NumericPsP; tol=nothing)

@@ -26,17 +26,18 @@ function hankel_transform(::DensityLike, r::AbstractVector, dr::Union{Real,Abstr
         integrand(i) = r[i]^2 * f[i] * fast_sphericalbesselj0(q * r[i])
         return 4π * simpson(integrand, i_start, i_stop, dr)
     end
+    f̃(Q::AbstractVector) = f̃(norm(Q))
     return f̃
 end
 
-@inline function hankel_transform(::HankelTransformQuantityType, ::Int, ::AbstractVector,
+@inline function hankel_transform(::OrbitalLike, ::Int, ::AbstractVector,
                                   ::Union{Real,AbstractVector}, ::Nothing; i_start=nothing,
                                   i_stop=nothing)
     return _ -> nothing
 end
 
-@inline function hankel_transform(::HankelTransformQuantityType, ::AbstractVector,
-                                  ::Union{Real,AbstractVector}, ::Nothing;
-                                  i_start=nothing, i_stop=nothing)
+@inline function hankel_transform(::DensityLike, ::AbstractVector,
+                                  ::Union{Real,AbstractVector}, ::Nothing; i_start=nothing,
+                                  i_stop=nothing)
     return _ -> nothing
 end

@@ -6,3 +6,5 @@
 end
 
 find_truncation_index(f::AbstractVector, ::Nothing) = lastindex(f)
+
+find_truncation_index(::Nothing, ::Nothing) = nothing

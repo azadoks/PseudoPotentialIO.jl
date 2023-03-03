@@ -108,55 +108,75 @@ function projector_coupling(psp::AbstractPsP, l) end
 """
 Local part of the pseudopotential evaluated at real-space point `r`.
 """
-function local_potential_real(psp::AbstractPsP) end
+function local_potential_real(psp::AbstractPsP)
+     _ -> nothing
+end
 
 """
 The `n`th nonlocal Kleinman-Bylander projector at angular momentum `l` evaluated at
 real-space point `r`.
 """
-function projector_real(psp::AbstractPsP, l::Integer, n::Integer) end
+function projector_real(psp::AbstractPsP, l::Integer, n::Integer)
+    _ -> nothing
+end
 
 """
 The `n`th pseudo-atomic orbital at angular momentum `l` evaulated at real-space point `r`.
 """
-function pseudo_orbital_real(psp::AbstractPsP, l::Integer, n::Integer) end
+function pseudo_orbital_real(psp::AbstractPsP, l::Integer, n::Integer)
+    _ -> nothing
+end
 
 """
 Pseudo-atomic valence charge density evaluated at real-space point `r`.
 """
-function valence_charge_density_real(psp::AbstractPsP) end
+function valence_charge_density_real(psp::AbstractPsP)
+    _ -> nothing
+end
 
 """
 Model core charge density evaluated at real-space point `r`.
 """
-function core_charge_density_real(psp::AbstractPsP) end
+function core_charge_density_real(psp::AbstractPsP)
+    _ -> nothing
+end
 
 """
 Local part of the pseudopotential evaluated at reciprocal-space point `q`.
 """
-function local_potential_fourier(psp::AbstractPsP) end
+function local_potential_fourier(psp::AbstractPsP)
+    _ -> nothing
+end
 
 """
 The `n`th nonlocal Kleinman-Bylander projector at angular momentum `l` evaluated at
 reciprocal-space point `q`.
 """
-function projector_fourier(psp::AbstractPsP, l::Integer, n::Integer) end
+function projector_fourier(psp::AbstractPsP, l::Integer, n::Integer)
+    _ -> nothing
+end
 
 """
 The `n`th pseudo-atomic orbital at angular momentum `l` evaulated at reciprocal-space
 point `q`.
 """
-function pseudo_orbital_fourier(psp::AbstractPsP, l::Integer, n::Integer) end
+function pseudo_orbital_fourier(psp::AbstractPsP, l::Integer, n::Integer)
+    _ -> nothing
+end
 
 """
 Pseudo-atomic valence charge density evaluated at reciprocal-space point `q`.
 """
-function valence_charge_density_fourier(psp::AbstractPsP) end
+function valence_charge_density_fourier(psp::AbstractPsP)
+    _ -> nothing 
+end
 
 """
 Model core charge density evaluated at reciprocal-space point `q`.
 """
-function core_charge_density_fourier(psp::AbstractPsP) end
+function core_charge_density_fourier(psp::AbstractPsP)
+    _ -> nothing
+end
 
 """
 Pseudopotential energy correction (the DC component of the Fourier transform of the
