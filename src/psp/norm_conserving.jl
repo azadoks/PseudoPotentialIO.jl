@@ -37,10 +37,6 @@ function NormConservingPsP(upf::UpfFile)
 end
 
 function _upf_construct_nc_internal(upf::UpfFile)
-    #TODO - Consider interpolating log meshes to linear meshes, see the note in the ABINIT
-    #TODO   PSP8 documentation
-    #TODO - Consider always extrapolating to r=0 so that corrected trapezoid quadrature can
-    #TODO   always be used
     # There are two possible units schemes for the projectors and coupling coefficients:
     # β [Ry Bohr^{-1/2}]  D [Ry^{-1}]
     # β [Bohr^{-1/2}]     D [Ry]
@@ -53,7 +49,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
     lmax = upf.header.l_max
     r = upf.mesh.r
     Vloc = upf.local_ ./ 2  # Ry -> Ha
-    ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc  # _truncate(upf.nlcc; atol=1e-12)   # TODO decide where / if to truncate
+    ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc
 
     # Guess the mesh type to choose scalar or vector `dr`
     mesh_type, _, _ = guess_mesh_type(r, upf.mesh.rab)
@@ -87,14 +83,13 @@ function _upf_construct_nc_internal(upf::UpfFile)
         map(iβ_upf[l]) do n
             βln = upf.nonlocal.betas[n].beta
             βln = βln .* @view r[1:length(βln)]
-            # return _truncate(βln; atol=1e-12)   # TODO decide where / if to truncate
         end
     end
     β = OffsetVector(β, 0:lmax) ./ 2  # Ry -> Ha
 
     # UPFs store the pseudo-atomic valence charge density with a prefactor of 4π r^2.
     # For consistency, we remove the 4π prefactor.
-    ρval = upf.rhoatom ./ 4π  # _truncate(upf.rhoatom ./ 4π; atol=1e-12)   # TODO decide where / if to truncate
+    ρval = upf.rhoatom ./ 4π
 
     if !isnothing(upf.pswfc)
         # Collect the indices in upf.pswfc for projectors at each angular momentum
@@ -110,7 +105,6 @@ function _upf_construct_nc_internal(upf::UpfFile)
                 χln = upf.pswfc[i].chi
                 χln = χln .* @view r[1:length(χln)]
                 return χln
-                # return _truncate(χln; atol=1e-12)  # TODO decide where / if to truncate
             end
         end
         ϕ̃ = OffsetVector(ϕ̃, 0:lmax)
@@ -119,23 +113,6 @@ function _upf_construct_nc_internal(upf::UpfFile)
     end
 
     return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, D, ϕ̃, ρcore, ρval)
-end
-
-"""
-Truncate the function `f` on a radial grid at the first point where all the following values
-are within `atol` of 0. If fewer than `length_min` values remain or the function is within
-`atol` of 0 everywhere, return the first `length_min` values.
-"""
-function _truncate(f::AbstractVector{Float64}; atol=sqrt(eps(Float64)), length_min=6)
-    # Find the first index after which the absolute value of the function is always less
-    # than the tolerance
-    icut = findfirst(i -> maximum(abs, @view f[i:end]) < atol, eachindex(f))
-    # If such an index does not exist, set the cutoff index to the last index of the
-    # function vector
-    icut = something(icut, lastindex(f))
-    # If `icut` gives too few values, set it to give the minimum number of values
-    icut = (icut - firstindex(f)) < length_min ? firstindex(f) + length_min : icut
-    return f[firstindex(f):icut]
 end
 
 function NormConservingPsP(psp8::Psp8File)
@@ -165,7 +142,7 @@ function NormConservingPsP(psp8::Psp8File)
     ϕ̃ = nothing  # PSP8 doesn't support pseudo-atomic wavefunctions
     # PSP8s store the core charge density with a prefactor of 4π, which we remove for
     # consistency.
-    ρcore = isnothing(psp8.rhoc) ? nothing : psp8.rhoc ./ 4π  # _truncate(psp8.rhoc ./ 4π; atol=1e-12)
+    ρcore = isnothing(psp8.rhoc) ? nothing : psp8.rhoc ./ 4π
     ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
     return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, D, ϕ̃, ρcore, ρval)
 end
