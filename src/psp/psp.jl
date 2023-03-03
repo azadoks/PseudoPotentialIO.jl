@@ -10,22 +10,31 @@ Required methods:
 function elemental_symbol(psp::AbstractPsP)::AbstractString end
 # The maximum angular momentum channel
 function max_angular_momentum(psp::AbstractPsP)::Integer end
-# The number of non-local projectors for angular momentum `l`
+# The number of non-local projector radial parts for angular momentum `l`
 function n_projector_radials(psp::AbstractPsP, l::Integer)::Integer end
-# The number of pseudo-atomic orbitals for angular momentum `l`
+# The number of pseudo-atomic orbital radial parts for angular momentum `l`
 function n_pseudo_orbital_radials(psp::AbstractPsP, l::Integer)::Integer end
 # The pseudo-atomic valence charge
 function valence_charge(psp::AbstractPsP)::Real end
-# Whether pseudopotential is a norm-conserving pseudopotential
+# The charge of the atom which was pseudized (e.g. 8 for Oxygen)
+function atomic_charge(psp::AbstractPsP)::Real end
+# Whether the pseudopotential is a norm-conserving pseudopotential
 function is_norm_conserving(psp::AbstractPsP)::Bool end
-# Whether pseudopotential is an ultrasoft pseudopotential
+# Whether the pseudopotential is an ultrasoft pseudopotential
 function is_ultrasoft(psp::AbstractPsP)::Bool end
-# Whether pseudopotential is a projector-augmented wave pseudopotential
+# Whether the pseudopotential is a projector-augmented wave pseudopotential
 function is_paw(psp::AbstractPsP)::Bool end
-# Whether pseudopotential supports spin-orbit coupled calculations
+# Whether the pseudopotential supports spin-orbit coupled calculations
 function has_spin_orbit(psp::AbstractPsP)::Bool end
-# Whether pseudopotential supports non-linear core corrections
-function has_nlcc(psp::AbstractPsP)::Bool end
+# Whether the pseudopotential contains a core charge density (i.e. supports non-linear core
+# correction)
+function has_core_density(psp::AbstractPsP)::Bool end
+# Whether the pseudopotential contains a valence charge density (i.e. has support for
+# constructing a tailored guess charge density)
+function has_valence_density(psp::AbstractPsP)::Bool end
+# Whether pseudopotential contains pseudo-atomic orbitals for the valence electrons (i.e.
+# has support for computing tailored orbital-projected quantitites)
+function has_pseudo_orbitals(psp:AbstractPsP)::Bool end
 # The projector coupling coefficients for angular momentum `l`
 function projector_coupling(psp::AbstractPsP, l::Integer)::Matrix{Real} end
 ```

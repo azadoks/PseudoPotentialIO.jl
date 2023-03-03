@@ -34,7 +34,7 @@ is_paw
 formalism
 has_spin_orbit
 relativistic_treatment
-has_nlcc
+has_core_density
 valence_charge
 max_angular_momentum
 n_projector_radials

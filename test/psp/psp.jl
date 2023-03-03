@@ -34,7 +34,7 @@ end
             @test isa(is_ultrasoft(psp), Bool)
             @test isa(is_paw(psp), Bool)
             @test isa(has_spin_orbit(psp), Bool)
-            @test isa(has_nlcc(psp), Bool)
+            @test isa(has_core_density(psp), Bool)
 
             for l in 0:max_angular_momentum(psp)
                 @test size(projector_coupling(psp, l)) ==

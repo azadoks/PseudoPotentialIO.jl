@@ -28,7 +28,7 @@ function is_paw(file::PsPFile)::Bool end
 # Whether the file contains a pseudopotential supporting spin-orbit coupled calculations
 function has_spin_orbit(file::PsPFile)::Bool end
 # Whether the file contains a pseudopotential supporting non-linear core corrections
-function has_nlcc(file::PsPFile)::Bool end
+function has_core_density(file::PsPFile)::Bool end
 ```
 """
 abstract type PsPFile end

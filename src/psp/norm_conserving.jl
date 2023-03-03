@@ -3,7 +3,7 @@ Type representing a numeric norm-conserving pseudopotential.
 """
 struct NormConservingPsP{T} <: NumericPsP{T}
     "Total charge."
-    Ztot::T
+    Zatom::T
     "Valence charge."
     Zval::T
     "Maximum angular momentum."
@@ -12,17 +12,17 @@ struct NormConservingPsP{T} <: NumericPsP{T}
     r::Vector{T}
     "Radial mesh spacing."
     dr::Union{T,Vector{T}}
-    "Local part of the potential on the radial mesh."
+    "Local part of the potential on the radial mesh (without an r² prefactor)."
     Vloc::Vector{T}
-    "Nonlocal projectors β[l][n] on the radial mesh."
+    "Nonlocal projectors r²β[l][n] on the radial mesh."
     β::OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}
     "Projector coupling coefficients D[l][n,m]."
     D::OffsetVector{Matrix{T},Vector{Matrix{T}}}
-    "Pseudo-atomic wavefunctions ϕ̃[l][n] on the radial mesh."
-    ϕ̃::Union{Nothing,OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}}
-    "Model core charge density for non-linear core correction on the radial mesh."
+    "Pseudo-atomic wavefunctions r²ϕ[l][n] on the radial mesh."
+    ϕ::Union{Nothing,OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}}
+    "Model core charge density for non-linear core correction on the radial mesh (with an r² prefactor)."
     ρcore::Union{Nothing,Vector{T}}
-    "Valence charge density for charge density initialization on the radial mesh."
+    "Valence charge density for charge density initialization on the radial mesh (with an r² prefactor)."
     ρval::Union{Nothing,Vector{T}}
 end
 
@@ -40,16 +40,19 @@ function _upf_construct_nc_internal(upf::UpfFile)
     # There are two possible units schemes for the projectors and coupling coefficients:
     # β [Ry Bohr^{-1/2}]  D [Ry^{-1}]
     # β [Bohr^{-1/2}]     D [Ry]
-    # The quantity that's used in calculations is β D β, so the units don't practically
+    # The quantity that's used in calculations is ⟨β|D|β⟩, so the units don't practically
     # matter. However, HGH pseudos in UPF format use the first units, so we assume them
     # to facilitate comparison of the intermediate quantities with analytical HGH.
 
-    Ztot = PeriodicTable.elements[Symbol(upf.header.element)].number
+    Zatom = PeriodicTable.elements[Symbol(upf.header.element)].number
     Zval = upf.header.z_valence
     lmax = upf.header.l_max
     r = upf.mesh.r
     Vloc = upf.local_ ./ 2  # Ry -> Ha
-    ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc
+
+    # UPFs store the core charge density as a true charge (without 4πr² as a prefactor),
+    # so we multiply by r² for consistency
+    ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc .* (@view r[1:length(upf.nlcc)]).^2
 
     # Guess the mesh type to choose scalar or vector `dr`
     mesh_type, _, _ = guess_mesh_type(r, upf.mesh.rab)
@@ -87,7 +90,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
     end
     β = OffsetVector(β, 0:lmax) ./ 2  # Ry -> Ha
 
-    # UPFs store the pseudo-atomic valence charge density with a prefactor of 4π r^2.
+    # UPFs store the pseudo-atomic valence charge density with a prefactor of 4πr².
     # For consistency, we remove the 4π prefactor.
     ρval = upf.rhoatom ./ 4π
 
@@ -99,20 +102,20 @@ function _upf_construct_nc_internal(upf::UpfFile)
         iχ_upf = OffsetVector(iχ_upf, 0:lmax)
 
         # UPFs store the wavefunctions multiplied by the radial grid, so we multiply again
-        # by the grid for consistency.
-        ϕ̃ = map(0:lmax) do l
+        # by r (to get r²ϕ) for consistency.
+        ϕ = map(0:lmax) do l
             map(iχ_upf[l]) do i
                 χln = upf.pswfc[i].chi
                 χln = χln .* @view r[1:length(χln)]
                 return χln
             end
         end
-        ϕ̃ = OffsetVector(ϕ̃, 0:lmax)
+        ϕ = OffsetVector(ϕ, 0:lmax)
     else
-        ϕ̃ = nothing
+        ϕ = nothing
     end
 
-    return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, D, ϕ̃, ρcore, ρval)
+    return NormConservingPsP{Float64}(Zatom, Zval, lmax, r, dr, Vloc, β, D, ϕ, ρcore, ρval)
 end
 
 function NormConservingPsP(psp8::Psp8File)
@@ -120,31 +123,30 @@ function NormConservingPsP(psp8::Psp8File)
         error("Fully relativistic pseudos are not supported")
     end
 
-    Ztot = psp8.header.zatom
+    Zatom = psp8.header.zatom
     Zval = psp8.header.zion
     lmax = psp8.header.lmax
     r = psp8.rgrid
     dr = mean(diff(r))
     Vloc = psp8.v_local
 
-    # PSP8s store the projectors without any prefactor, so we multiply by the grid squared
-    # for consistency.
+    # PSP8s store the projectors without any prefactor, so we multiply by r² for consitency
     β = map(0:lmax) do l
         map(eachindex(psp8.projectors[l + 1])) do n
             βln = psp8.projectors[l + 1][n]
-            βln = βln .* (@view r[1:length(βln)]).^2
-            return βln  # _truncate(βln; atol=1e-12)
+            βln = βln .* r.^2
+            return βln
         end
     end
     β = OffsetVector(β, 0:lmax)
 
     D = OffsetVector(map(l -> diagm(psp8.ekb[l + 1]), 0:lmax), 0:lmax)
-    ϕ̃ = nothing  # PSP8 doesn't support pseudo-atomic wavefunctions
-    # PSP8s store the core charge density with a prefactor of 4π, which we remove for
-    # consistency.
-    ρcore = isnothing(psp8.rhoc) ? nothing : psp8.rhoc ./ 4π
+    ϕ = nothing  # PSP8 doesn't support pseudo-atomic wavefunctions
+    # PSP8s store the core charge density with a prefactor of 4π, so we remove it and
+    # multiply by r² for consistency.
+    ρcore = isnothing(psp8.rhoc) ? nothing : psp8.rhoc .* r.^2 ./ 4π
     ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
-    return NormConservingPsP{Float64}(Ztot, Zval, lmax, r, dr, Vloc, β, D, ϕ̃, ρcore, ρval)
+    return NormConservingPsP{Float64}(Zatom, Zval, lmax, r, dr, Vloc, β, D, ϕ, ρcore, ρval)
 end
 
 is_norm_conserving(::NormConservingPsP)::Bool = true

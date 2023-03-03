@@ -3,7 +3,7 @@ Type representing a numeric ultrasoft pseudopotential.
 """
 struct UltrasoftPsP{T} <: NumericPsP{T}
     "Total charge"
-    Ztot::T
+    Zatom::T
     "Valence charge"
     Zval::T
     "Maximum angular momentum"
@@ -18,8 +18,8 @@ struct UltrasoftPsP{T} <: NumericPsP{T}
     β::OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}
     "Projector coupling coefficients D[l][n,m]"
     D::OffsetVector{Matrix{T},Vector{Matrix{T}}}
-    "Pseudo-atomic wavefunctions ϕ̃[l][n] on the radial mesh."
-    ϕ̃::OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}
+    "Pseudo-atomic wavefunctions ϕ[l][n] on the radial mesh."
+    ϕ::OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}
     "Augmentation charge density functions Q[l][n,m] on the radial mesh"
     Q::OffsetVector{Matrix{Vector{T}},Vector{Matrix{Vector{T}}}}
     "Augmentation charges q[l][n,m]"
@@ -123,8 +123,8 @@ function _upf_construct_us_internal(upf::UpfFile)
     else
         error("q_with_l == false and nqf == 0, unsure what to do...")
     end
-    return UltrasoftPsP{Float64}(nc.Ztot, nc.Zval, nc.lmax, nc.r, nc.dr, nc.Vloc, nc.β,
-                                 nc.D, nc.ϕ̃, Q, q, nc.ρcore, nc.ρval)
+    return UltrasoftPsP{Float64}(nc.Zatom, nc.Zval, nc.lmax, nc.r, nc.dr, nc.Vloc, nc.β,
+                                 nc.D, nc.ϕ, Q, q, nc.ρcore, nc.ρval)
 end
 
 is_norm_conserving(::UltrasoftPsP)::Bool = false

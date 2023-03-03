@@ -17,7 +17,7 @@ Required fields:
 
 ```julia
 # Atomic total charge in units of electron charge
-Ztot::Number
+Zatom::Number
 # Pseudo-atomic valence charge in units of electron charge
 Zval::Number
 # Maximum angular momentum
@@ -26,39 +26,39 @@ lmax::Integer
 r::AbstractVector{Real}
 # Radial mesh spacing in units of Bohr
 dr::Union{Real, AbstractVector{Real}}
-# Local potential on the radial mesh in units of Hartree
+# Local potential on the radial mesh in units of Hartree (without r² prefactor)
 Vloc::AbstractVector{Real}
-## The units of `D` and `β` should be such that `⟨ βˡₙ | Dˡₙₘ | βˡₘ ⟩` gives Hartree
-# Nonlocal projector coupling constants D[l][n,m]
+## The units of `D` and `β` should be such that `⟨ βˡₙ | Dˡₙₙ | βˡₙ ⟩` gives Hartree
+# Nonlocal projector coupling constants D[l][n,n']
 D::OffsetVector{AbstractMatrix{Real}}
-# Nonlocal projectors on the radial mesh, multiplied by the mesh squared r^2 β[l][n]
+# Nonlocal projectors on the radial mesh, multiplied by the mesh squared: r²β[l][n]
 β::OffsetVector{AbstractVector{AbstractVector{Real}}}
 
 ## "Optional" fields (must still exist, but could be Union{Nothing})
 # Model core charge density (non-linear core correction) on the radial mesh, multiplied by
-# the mesh squared r^2 ρcore
+# the mesh squared: r²ρcore
 ρcore::Union{Nothing,AbstractVector{Real}}
-# Pseudo-atomic valence charge density on the radial mesh, multiplied by the mesh squared
-# r^2 ρval
+# Pseudo-atomic valence charge density on the radial mesh, multiplied by the mesh squared:
+# r²ρval
 ρval::Union{Nothing,AbstractVector{Real}}
-# Pseudo-atomic orbitals on the radial mesh, multiplied by the mesh squared r^2 ϕ̃[l][n]
-ϕ̃::Union{Nothing,OffsetVector{AbstractVector{AbstractVector{Real}}}}
+# Pseudo-atomic orbitals on the radial mesh, multiplied by the mesh squared: r²ϕ[l][n]
+ϕ::Union{Nothing,OffsetVector{AbstractVector{AbstractVector{Real}}}}
 ```
 """
 abstract type NumericPsP{T} <: AbstractPsP end
 
 function element(psp::NumericPsP)::String
-    return PeriodicTable.elements[Int(psp.Ztot)].symbol
+    return PeriodicTable.elements[Int(psp.Zatom)].symbol
 end
 max_angular_momentum(psp::NumericPsP)::Int = psp.lmax
 n_projector_radials(psp::NumericPsP, l::Int)::Int = length(psp.β[l])
-n_pseudo_orbital_radials(psp::NumericPsP, l::Int)::Int = isnothing(psp.ϕ̃) ? 0 : length(psp.ϕ̃[l])
+n_pseudo_orbital_radials(psp::NumericPsP, l::Int)::Int = isnothing(psp.ϕ) ? 0 : length(psp.ϕ[l])
 valence_charge(psp::NumericPsP) = psp.Zval
-atomic_charge(psp::NumericPsP) = psp.Ztot
+atomic_charge(psp::NumericPsP) = psp.Zatom
 has_spin_orbit(::NumericPsP)::Bool = false  # This is a current limitation
 has_core_density(psp::NumericPsP)::Bool = !isnothing(psp.ρcore)
 has_valence_density(psp::NumericPsP)::Bool = !isnothing(psp.ρval)
-has_pseudo_orbitals(psp::NumericPsP)::Bool = !isnothing(psp.ϕ̃)
+has_pseudo_orbitals(psp::NumericPsP)::Bool = !isnothing(psp.ϕ)
 
 function projector_coupling(psp::NumericPsP{T}, l::Int)::Matrix{T} where {T<:Real}
     return psp.D[l]
@@ -80,11 +80,11 @@ function projector_real(psp::NumericPsP, l::Int, n::Int)
 end
 
 function pseudo_orbital_real(psp::NumericPsP, l::Int, n::Int)
-    isnothing(psp.ϕ̃) && return _ -> nothing
-    itp = build_interpolator(psp.ϕ̃[l][n], psp.r)
-    ϕ̃(r) = itp(r)
-    ϕ̃(R::AbstractVector) = ϕ̃(norm(R))
-    return ϕ̃
+    isnothing(psp.ϕ) && return _ -> nothing
+    itp = build_interpolator(psp.ϕ[l][n], psp.r)
+    ϕ(r) = itp(r)
+    ϕ(R::AbstractVector) = ϕ(norm(R))
+    return ϕ
 end
 
 function valence_charge_density_real(psp::NumericPsP)
@@ -121,9 +121,9 @@ end
 end
 
 @inbounds function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int; tol=nothing)
-    isnothing(psp.ϕ̃) && return _ -> nothing
-    i_stop = find_truncation_index(psp.ϕ̃[l][n], tol)
-    return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.ϕ̃[l][n]; i_stop)
+    isnothing(psp.ϕ) && return _ -> nothing
+    i_stop = find_truncation_index(psp.ϕ[l][n], tol)
+    return hankel_transform(OrbitalLike(), l, psp.r, psp.dr, psp.ϕ[l][n]; i_stop)
 end
 
 function valence_charge_density_fourier(psp::NumericPsP; tol=nothing)

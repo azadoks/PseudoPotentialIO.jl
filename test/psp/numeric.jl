@@ -24,7 +24,7 @@ import PseudoPotentialIO: build_interpolator
     end
 
     function charge_density_integrand(::NumericPsP, itp, q)
-        return r -> 4π * r^2 * fast_sphericalbesselj0(q * r) * itp(r)
+        return r -> 4π * fast_sphericalbesselj0(q * r) * itp(r)
     end
 
     @testset "$(splitpath(filepath)[end])" for filepath in filepaths
@@ -73,14 +73,14 @@ import PseudoPotentialIO: build_interpolator
             end
 
             @testset "Pseudo-atomic wavefunction Fouriers agree with real" begin
-                if !isnothing(psp.ϕ̃)
-                    for l in 0:(psp.lmax), n in eachindex(psp.ϕ̃[l])
-                        itp = build_interpolator(psp.ϕ̃[l][n], psp.r)
-                        rmax = psp.r[lastindex(psp.ϕ̃[l][n])]
-                        ϕ̃_fourier = pseudo_orbital_fourier(psp, l, n; tol)
+                if !isnothing(psp.ϕ)
+                    for l in 0:(psp.lmax), n in eachindex(psp.ϕ[l])
+                        itp = build_interpolator(psp.ϕ[l][n], psp.r)
+                        rmax = psp.r[lastindex(psp.ϕ[l][n])]
+                        ϕ_fourier = pseudo_orbital_fourier(psp, l, n; tol)
                         for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
                             ref = quadgk(wavefunction_like_integrand(psp, itp, l, q), rmin, rmax)[1]
-                            @test ref ≈ ϕ̃_fourier(q) rtol = 1e-1 atol = 1e-1
+                            @test ref ≈ ϕ_fourier(q) rtol = 1e-1 atol = 1e-1
                         end
                     end
                 end

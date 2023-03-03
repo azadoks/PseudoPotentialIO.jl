@@ -23,6 +23,6 @@
         @test formalism(file) in (NormConservingPsP, UltrasoftPsP, ProjectorAugmentedWavePsP)
         @test isa(has_spin_orbit(file), Bool)
         @test relativistic_treatment(file) in (:scalar, :full)
-        @test isa(has_nlcc(file), Bool)
+        @test isa(has_core_density(file), Bool)
     end
 end

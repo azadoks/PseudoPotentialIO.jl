@@ -23,7 +23,7 @@ end
 function hankel_transform(::DensityLike, r::AbstractVector, dr::Union{Real,AbstractVector},
                           f::AbstractVector; i_start=firstindex(f), i_stop=lastindex(f))
     function f̃(q)
-        integrand(i) = r[i]^2 * f[i] * fast_sphericalbesselj0(q * r[i])
+        integrand(i) = f[i] * fast_sphericalbesselj0(q * r[i])
         return 4π * simpson(integrand, i_start, i_stop, dr)
     end
     f̃(Q::AbstractVector) = f̃(norm(Q))
