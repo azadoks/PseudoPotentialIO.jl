@@ -9,6 +9,7 @@ using QuadGK
 using Interpolations
 using JSON
 using Quaternions
+using LinearAlgebra
 
 Random.seed!(0)
 
