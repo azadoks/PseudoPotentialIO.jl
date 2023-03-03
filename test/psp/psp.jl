@@ -51,9 +51,12 @@ end
             end
 
             R = rand(3)
+            r = norm(R)
+            R̂ = R ./ norm(r)
             if isfinite(pseudo_cutoff_radius(psp))
-                R = R .* pseudo_cutoff_radius(psp)
+                r = r / sqrt(3) .* pseudo_cutoff_radius(psp)
             end
+            R = R̂ * r
             R_rot = rotate_vector(random_versor(), R)
 
             @test local_potential_real(psp)(R) ≈ local_potential_real(psp)(R_rot)

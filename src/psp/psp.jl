@@ -110,7 +110,7 @@ Whether the pseudopotential contains pseudoatomic orbitals.
 function has_pseudo_orbitals(psp::AbstractPsP) end
 
 """
-Projector coupling matrix for angular momentum `l`.
+Projector coupling matrix at angular momentum `l`.
 """
 function projector_coupling(psp::AbstractPsP, l) end
 
