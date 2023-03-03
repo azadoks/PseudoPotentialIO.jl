@@ -16,6 +16,7 @@ function hankel_transform(::OrbitalLike, l::Int, r::AbstractVector,
                           i_start=firstindex(f), i_stop=lastindex(f))
     jₗ = fast_sphericalbesselj(l)
     f̃(q) = 4π * simpson(i -> f[i] * jₗ(q * r[i]), i_start, i_stop, dr)
+    f̃(Q::AbstractVector) = f̃(norm(Q))
     return f̃
 end
 

@@ -51,9 +51,10 @@ function element(psp::NumericPsP)::String
     return PeriodicTable.elements[Int(psp.Ztot)].symbol
 end
 max_angular_momentum(psp::NumericPsP)::Int = psp.lmax
-n_projectors(psp::NumericPsP, l::Int)::Int = length(psp.β[l])
-n_pseudo_orbitals(psp::NumericPsP, l::Int)::Int = isnothing(psp.ϕ̃) ? 0 : length(psp.ϕ̃[l])
+n_projector_radials(psp::NumericPsP, l::Int)::Int = length(psp.β[l])
+n_pseudo_orbital_radials(psp::NumericPsP, l::Int)::Int = isnothing(psp.ϕ̃) ? 0 : length(psp.ϕ̃[l])
 valence_charge(psp::NumericPsP) = psp.Zval
+atomic_charge(psp::NumericPsP) = psp.Ztot
 has_spin_orbit(::NumericPsP)::Bool = false  # This is a current limitation
 has_nlcc(psp::NumericPsP)::Bool = !isnothing(psp.ρcore)
 has_ρval(psp::NumericPsP)::Bool = !isnothing(psp.ρval)
@@ -94,6 +95,7 @@ end
         integral = dotprod(integrand, i_start, i_stop, psp.dr)
         4π * (integral - psp.Zval / q^2)
     end
+    Vloc(Q::AbstractVector) = Vloc(norm(Q))
     return Vloc
 end
 

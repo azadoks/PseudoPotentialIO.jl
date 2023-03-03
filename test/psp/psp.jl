@@ -15,8 +15,8 @@
             psp = load_psp(file)
             @test isa(element(psp), AbstractString)
             @test -1 <= max_angular_momentum(psp) <= 5
-            @test 0 <= n_projectors(psp)
-            @test 0 <= n_pseudo_orbitals(psp)
+            @test 0 <= n_projector_radials(psp)
+            @test 0 <= n_pseudo_orbital_radials(psp)
             @test 0 <= valence_charge(file)  # <= element(file).number
             @test isa(is_norm_conserving(psp), Bool)
             @test isa(is_ultrasoft(psp), Bool)
@@ -26,11 +26,11 @@
 
             for l in 0:max_angular_momentum(psp)
                 @test size(projector_coupling(psp, l)) ==
-                      (n_projectors(psp, l), n_projectors(psp, l))
+                      (n_projector_radials(psp, l), n_projector_radials(psp, l))
                 @test eltype(projector_coupling(psp, l)) <: Real
-                for n in 1:n_projectors(psp, l)
+                for n in 1:n_projector_radials(psp, l)
                     @test projector_coupling(psp, l, n, n) == projector_coupling(psp, l, n)
-                    for m in (n + 1):n_projectors(psp, l)
+                    for m in (n + 1):n_projector_radials(psp, l)
                         @test isa(projector_coupling(psp, l, n, m), Real)
                         @test projector_coupling(psp, l, n, m) ==
                               projector_coupling(psp, l, m, n)

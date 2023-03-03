@@ -38,7 +38,8 @@ function HghPsP(file::HghFile)
                            rnl, D)
 end
 
-element(psp::HghPsP)::String = PeriodicTable.elements[Int(psp.Zatom)].symbol
+element(psp::HghPsP)::String = isnothing(psp.Zatom) ? "unknown" :
+                               PeriodicTable.elements[Int(psp.Zatom)].symbol
 has_spin_orbit(::HghPsP)::Bool = false
 has_nlcc(::HghPsP)::Bool = false
 has_ρval(::HghPsP)::Bool = false
@@ -46,12 +47,13 @@ has_ϕ̃(::HghPsP)::Bool = false
 is_norm_conserving(::HghPsP)::Bool = true
 is_ultrasoft(::HghPsP)::Bool = false
 is_paw(::HghPsP)::Bool = false
-valence_charge(psp::HghPsP)::Float64 = psp.Zval
+valence_charge(psp::HghPsP) = psp.Zval
+atomic_charge(psp::HghPsP) = psp.Zatom
 max_angular_momentum(psp::HghPsP)::Int = psp.lmax
-n_projectors(psp::HghPsP, l::Int)::Int = size(psp.D[l], 1)
-n_pseudo_orbitals(::HghPsP, l::Int)::Int = 0
+n_projector_radials(psp::HghPsP, l::Int)::Int = size(psp.D[l], 1)
+n_pseudo_orbital_radials(::HghPsP, ::Int)::Int = 0
 
-projector_coupling(psp::HghPsP, l::Int)::Matrix{Float64} = psp.D[l]
+projector_coupling(psp::HghPsP, l::Int) = psp.D[l]
 
 @doc raw"""
 The local potential of a HGH pseudopotentials in reciprocal space
@@ -79,6 +81,7 @@ function local_potential_fourier(psp::HghPsP)
         x = q * psp.rloc
         return local_potential_polynomial_fourier(psp, x) * exp(-x^2 / 2) / x^2
     end
+    Vloc(Q::AbstractVector) = Vloc(norm(Q))
     return Vloc
 end
 
@@ -93,6 +96,7 @@ function local_potential_real(psp::HghPsP)
                        exp(-rr^2 / 2) *
                        (cloc[1] + cloc[2] * rr^2 + cloc[3] * rr^4 + cloc[4] * rr^6))
     end
+    Vloc(R::AbstractVector) = Vloc(norm(R)) 
     return Vloc
 end
 
@@ -133,6 +137,7 @@ function projector_fourier(psp::HghPsP, l::Int, n::Int)
         x::T = q * psp.rnl[l]
         return projector_polynomial_fourier(psp, l, n, x) * exp(-x^2 / 2)
     end
+    β(Q::AbstractVector) = β(norm(Q))
     return β
 end
 
@@ -144,6 +149,7 @@ function projector_real(psp::HghPsP, l::Int, n::Int)
         return sqrt(T(2)) * r^(l + 2(n - 1)) * exp(-r^2 / 2rnl^2) / rnl^(l + ired) /
                sqrt(gamma(l + ired))
     end
+    β(R::AbstractVector) = β(norm(R))
     return β
 end
 

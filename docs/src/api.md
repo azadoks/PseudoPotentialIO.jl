@@ -37,8 +37,8 @@ relativistic_treatment
 has_nlcc
 valence_charge
 max_angular_momentum
-n_projectors
-n_pseudo_orbitals
+n_projector_radials
+n_pseudo_orbital_radials
 local_potential_real
 local_potential_fourier
 projector_coupling

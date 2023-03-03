@@ -39,7 +39,7 @@ import PseudoPotentialIO: fast_sphericalbesselj, fast_sphericalbesselj0
         end
 
         @testset "Nonlocal projector Fouriers agree with real" begin
-            for l in 0:max_angular_momentum(psp), n in 1:n_projectors(psp, l)
+            for l in 0:max_angular_momentum(psp), n in 1:n_projector_radials(psp, l)
                 β̃ = projector_fourier(psp, l, n)
                 for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
                     ref = quadgk(projector_integrand(psp, l, n, q), 0, Inf)[1]

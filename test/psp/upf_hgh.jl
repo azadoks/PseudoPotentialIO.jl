@@ -15,7 +15,7 @@
             lmax = min(max_angular_momentum(upf2), max_angular_momentum(hgh))
             @testset for q in (0.0, 0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
                 for l in 0:lmax
-                    nmax = min(n_projectors(upf2, l), n_projectors(hgh, l))
+                    nmax = min(n_projector_radials(upf2, l), n_projector_radials(hgh, l))
                     for n in 1:nmax
                         @test projector_fourier(upf2, l, n)(q) ≈
                               projector_fourier(hgh, l, n)(q) atol = 1e-3 rtol = 1e-3
@@ -27,7 +27,7 @@
         @testset "Projector coupling coefficients agree" begin
             lmax = min(max_angular_momentum(upf2), max_angular_momentum(hgh))
             for l in 0:lmax
-                nmax = min(n_projectors(upf2, l), n_projectors(hgh, l))
+                nmax = min(n_projector_radials(upf2, l), n_projector_radials(hgh, l))
                 for n in 1:nmax, m in n:nmax
                     @test projector_coupling(upf2, l, n, m) ≈
                           projector_coupling(hgh, l, n, m) atol = 1e-8 rtol = 1e-8

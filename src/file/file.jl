@@ -14,9 +14,9 @@ function elemental_symbol(file::PsPFile)::AbstractString end
 # The maximum angular momentum channel contained in the file
 function max_angular_momentum(file::PsPFile)::Integer end
 # The number of non-local projectors for angular momentum `l` contained in the file
-function n_projectors(file::PsPFile, l::Integer)::Integer end
+function n_projector_radials(file::PsPFile, l::Integer)::Integer end
 # The number of pseudo-atomic orbitals for angular momentum `l` contained in the file
-function n_pseudo_orbitals(file::PsPFile, l::Integer)::Integer end
+function n_pseudo_orbital_radials(file::PsPFile, l::Integer)::Integer end
 # The pseudo-atomic valence charge
 function valence_charge(file::PsPFile)::Real end
 # Whether the file contains a norm-conserving pseudopotential
@@ -53,12 +53,12 @@ function max_angular_momentum(file::PsPFile) end
 Number of radial parts of the Kleinman-Bylander projectors `Rl(r)` at a given angular
 momentum.
 """
-function n_projectors(file::PsPFile, l) end
+function n_projector_radials(file::PsPFile, l) end
 
 """
 Number of radial parts of the pseudo-atomic wavefunctions with angular momentum `l`.
 """
-function n_pseudo_orbitals(file::PsPFile, l) end
+function n_pseudo_orbital_radials(file::PsPFile, l) end
 
 """
 Pseudo-atomic valence charge.
@@ -110,16 +110,49 @@ relativistic_treatment(file::PsPFile)::Symbol = has_spin_orbit(file) ? :full : :
 Number of radial parts of the Kleinman-Bylander nonlocal projectors at all angular momenta
 up to the maximum angular momentum channel.
 """
-function n_projectors(file::PsPFile)
-    return sum(l -> n_projectors(file, l), 0:max_angular_momentum(file); init=0)
+function n_projector_radials(file::PsPFile)
+    return sum(l -> n_projector_radials(file, l), 0:max_angular_momentum(file); init=0)
+end
+
+"""
+Number of angular parts `Yₗₘ(r̂)` of the Kleinman-Bylander projectors `Rₗₙ(|r|)Yₗₘ(r̂)` at a
+given angular momentum `l`.
+"""
+function n_projector_angulars(file::PsPFile, l)
+    # for angular momentum l, magnetic q.n. m ∈ -l:l
+    return n_projector_radials(file, l) * (2l + 1)
+end
+
+"""
+Number of angular parts of the Kleinman-Bylander projectors at all angular momenta up
+to the maximum angular momentum channel.
+"""
+function n_projector_angulars(file::PsPFile)
+    return sum(l -> n_projector_angulars(file, l), 0:max_angular_momentum(file); init=0)
 end
 
 """
 Number pseudo-atomic wavefunctions at all angular momenta up to the maximum angular momentum
 channel.
 """
-function n_pseudo_orbitals(file::PsPFile)
-    return sum(l -> n_pseudo_orbitals(file, l), 0:max_angular_momentum(file); init=0)
+function n_pseudo_orbital_radials(file::PsPFile)
+    return sum(l -> n_pseudo_orbital_radials(file, l), 0:max_angular_momentum(file); init=0)
+end
+
+"""
+Number of angular parts of the pseudo-atomic wavefunctions with angular momentum `l`.
+"""
+function n_pseudo_orbital_angulars(file::PsPFile, l)
+    # for angular momentum l, magnetic q.n. m ∈ -l:l
+    return n_pseudo_orbital_radials(file, l) * (2l + 1)
+end
+
+"""
+Number of angular parts of the pseudo-atomic wavefunctions at all angular momenta up
+to the maximum angular momentum channel.
+"""
+function n_pseudo_orbital_angulars(file::PsPFile)
+    return sum(l -> n_pseudo_orbtial_angulars(file, l), 0:max_angular_momentum(file); init=0)
 end
 
 Base.Broadcast.broadcastable(file::PsPFile) = Ref(file)
@@ -139,6 +172,6 @@ function Base.show(io::IO, ::MIME"text/plain", file::PsPFile)
     @printf "%032s: %s\n" "relativistic treatment" relativistic_treatment(file)
     @printf "%032s: %s\n" "non-linear core correction" has_nlcc(file)
     @printf "%032s: %d\n" "maximum angular momentum" max_angular_momentum(file)
-    @printf "%032s: %d\n" "number of projectors" n_projectors(file)
-    @printf "%032s: %d"   "number of pseudo-atomic orbitals" n_pseudo_orbitals(file)
+    @printf "%032s: %d\n" "number of projectors" n_projector_radials(file)
+    @printf "%032s: %d"   "number of pseudo-atomic orbitals" n_pseudo_orbital_radials(file)
 end

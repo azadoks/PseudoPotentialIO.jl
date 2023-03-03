@@ -11,7 +11,7 @@ using SpecialFunctions
 using Statistics
 
 import Base.Broadcast.broadcastable
-using PeriodicTable: PeriodicTable
+import PeriodicTable
 
 ## DocStringExtensions Templates
 # TODO they don't seem to be working at the moment
@@ -41,8 +41,8 @@ export relativistic_treatment
 export has_nlcc
 export valence_charge
 export max_angular_momentum
-export n_projectors
-export n_pseudo_orbitals
+export n_projector_radials
+export n_pseudo_orbital_radials
 include("file/file.jl")
 
 export UpfFile
@@ -64,9 +64,12 @@ export relativistic_treatment
 export has_spin_orbit
 export has_nlcc
 export valence_charge
+export atomic_charge
 export max_angular_momentum
-export n_projectors
-export n_pseudo_orbitals
+export n_projector_radials
+export n_projector_angulars
+export n_pseudo_orbital_radials
+export n_pseudo_orbital_angulars
 export local_potential_real
 export local_potential_fourier
 export projector_coupling
