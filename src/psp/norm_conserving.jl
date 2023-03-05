@@ -133,7 +133,7 @@ function NormConservingPsP(psp8::Psp8File)
     Zval = psp8.header.zion
     lmax = psp8.header.lmax
 
-    r = range(first(psp8.rgrid), last(psp8.rgrid), length(psp8.rgrid))
+    r = range(first(psp8.rgrid), last(psp8.rgrid), length=length(psp8.rgrid))
     dr = mean(diff(psp8.rgrid))
 
     Vloc = psp8.v_local
