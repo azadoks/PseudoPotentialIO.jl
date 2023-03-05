@@ -15,18 +15,40 @@ end
 
 load_psp_file(dir::AbstractString, filename::AbstractString) = load_psp_file(joinpath(dir, filename))
 
-
 """
-Parse pseudopotential file contents into an `AbstractPsP` struct.
+Load a pseudopotential file into its corresponding `AbstractPsP` subtype.
 """
 load_psp(file::PsPFile) = formalism(file)(file)
 load_psp(file::HghFile) = HghPsP(file)
-
-"""
-Load a pseudopotential file on disk directly into its corresponding `AbstractPsP` subtype.
-"""
 load_psp(path::AbstractString) = return load_psp(load_psp_file(path))
 load_psp(dir::AbstractString, filename::AbstractString) = load_psp(joinpath(dir, filename))
 
+"""
+List all known pseudopotential families.
+"""
 function list_families()
+    artifacts_toml_path = Artifacts.find_artifacts_toml(pathof(PseudoPotentialIO))
+    artifacts = Artifacts.load_artifacts_toml(artifacts_toml_path)
+    artifact_names = keys(artifacts)
+    return artifact_names
+end
+
+"""
+List all known pseudopotential files in a given `family`, which can either be a path to 
+a directory containing pseudopotential files or the name of a known pseudopotential family
+artifact.
+"""
+function list_psp(family::AbstractString)
+    if isdir(family)
+        (_, _, files) = first(walkdir(family))
+        psp_filenames = filter(f -> !startswith(f, "."), files)
+        return psp_filenames
+    else
+        try
+            family_path = @artifact_str(family)
+            list_psp(family_path)
+        catch
+            error("PsP family $family does not exist")
+        end
+    end
 end
