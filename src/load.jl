@@ -13,6 +13,9 @@ function load_psp_file(path::AbstractString)
     error("Unsupported file extension $(ext)")
 end
 
+load_psp_file(dir::AbstractString, filename::AbstractString) = load_psp_file(joinpath(dir, filename))
+
+
 """
 Parse pseudopotential file contents into an `AbstractPsP` struct.
 """
@@ -24,3 +27,6 @@ Load a pseudopotential file on disk directly into its corresponding `AbstractPsP
 """
 load_psp(path::AbstractString) = return load_psp(load_psp_file(path))
 load_psp(dir::AbstractString, filename::AbstractString) = load_psp(joinpath(dir, filename))
+
+function list_families()
+end

@@ -9,7 +9,7 @@ struct NormConservingPsP{T} <: NumericPsP{T}
     "Maximum angular momentum."
     lmax::Int
     "Radial mesh."
-    r::Vector{T}
+    r::Union{StepRangeLen{T},Vector{T}}
     "Radial mesh spacing."
     dr::Union{T,Vector{T}}
     "Local part of the potential on the radial mesh (without an r² prefactor)."
@@ -47,17 +47,23 @@ function _upf_construct_nc_internal(upf::UpfFile)
     Zatom = PeriodicTable.elements[Symbol(upf.header.element)].number
     Zval = upf.header.z_valence
     lmax = upf.header.l_max
-    r = upf.mesh.r
+
+    # Guess the mesh type to choose scalar or vector `dr`
+    mesh_type, _, _ = guess_mesh_type(upf.mesh.r, upf.mesh.rab)
+    mesh_type == "unknown" && error("Unknown mesh type")
+    if mesh_type == "linear"
+        dr = first(upf.mesh.rab)
+        r = first(upf.mesh.r):dr:last(upf.mesh.r)
+    else
+        dr = upf.mesh.rab
+        r = upf.mesh.r
+    end
+
     Vloc = upf.local_ ./ 2  # Ry -> Ha
 
     # UPFs store the core charge density as a true charge (without 4πr² as a prefactor),
     # so we multiply by r² for consistency
     ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc .* (@view r[1:length(upf.nlcc)]).^2
-
-    # Guess the mesh type to choose scalar or vector `dr`
-    mesh_type, _, _ = guess_mesh_type(r, upf.mesh.rab)
-    mesh_type == "unknown" && error("Unknown mesh type")
-    dr = mesh_type == "linear" ? upf.mesh.rab[1] : upf.mesh.rab
 
     # Indices in upf.nonlocal.betas for projectors at each angular momentum
     iβ_upf = map(0:lmax) do l
@@ -126,8 +132,10 @@ function NormConservingPsP(psp8::Psp8File)
     Zatom = psp8.header.zatom
     Zval = psp8.header.zion
     lmax = psp8.header.lmax
-    r = psp8.rgrid
-    dr = mean(diff(r))
+
+    r = range(first(psp8.rgrid), last(psp8.rgrid), length(psp8.rgrid))
+    dr = mean(diff(psp8.rgrid))
+
     Vloc = psp8.v_local
 
     # PSP8s store the projectors without any prefactor, so we multiply by r² for consitency

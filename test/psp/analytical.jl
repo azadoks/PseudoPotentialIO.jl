@@ -1,5 +1,3 @@
-import PseudoPotentialIO: fast_sphericalbesselj, fast_sphericalbesselj0
-
 @testset "Analytical" begin
     dirs = [artifact"hgh_lda_hgh", artifact"hgh_pbe_hgh"]
 
@@ -17,13 +15,12 @@ import PseudoPotentialIO: fast_sphericalbesselj, fast_sphericalbesselj0
 
     function local_potential_integrand(psp::AnalyticalPsP, q)
         Vloc = local_potential_real(psp)
-        return r -> 4π * r * fast_sphericalbesselj0(q * r) * (r * Vloc(r) + valence_charge(psp))
+        return r -> 4π * r * sphericalbesselj(0, q * r) * (r * Vloc(r) + valence_charge(psp))
     end
 
     function projector_integrand(psp::AnalyticalPsP, l::Int, n::Int, q)
-        jₗ = fast_sphericalbesselj(l)
         β = projector_real(psp, l, n)
-        return r -> 4π * r^2 * jₗ(q * r) * β(r)
+        return r -> 4π * r^2 * sphericalbesselj(l, q * r) * β(r)
     end
 
     @testset "$(splitpath(filepath)[end])" for filepath in filepaths

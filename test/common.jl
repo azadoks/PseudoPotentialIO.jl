@@ -1,6 +1,6 @@
-import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
-import PseudoPotentialIO: guess_mesh_type, fast_sphericalbesselj
+import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2, guess_mesh_type
 import PseudoPotentialIO: simpson, dotprod
+import PseudoPotentialIO: fast_sphericalbesselj
 
 @testset "common" begin
     @testset "guess_mesh_type" begin
