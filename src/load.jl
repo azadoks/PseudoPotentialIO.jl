@@ -23,6 +23,9 @@ load_psp(file::HghFile) = HghPsP(file)
 load_psp(path::AbstractString) = return load_psp(load_psp_file(path))
 load_psp(dir::AbstractString, filename::AbstractString) = load_psp(joinpath(dir, filename))
 
+# TODO: Try to guess the pseudopotential format of the families, get the number of
+# TODO: pseudopotentials in each family, and list which elements the family contains
+# TODO: (e.g. by using an improved `list_psp`, see TODOs below)
 """
 List all known pseudopotential families.
 """
@@ -33,6 +36,9 @@ function list_families()
     return artifact_names
 end
 
+# TODO: Try loading each psp file by its file extension to retreive basic information
+# TODO: like pseusized element, z-valence, availability/number of quantities, etc.
+# TODO: Print the information in a pretty table
 """
 List all known pseudopotential files in a given `family`, which can either be a path to 
 a directory containing pseudopotential files or the name of a known pseudopotential family
