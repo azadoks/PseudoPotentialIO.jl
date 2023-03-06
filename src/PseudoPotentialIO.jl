@@ -12,6 +12,7 @@ using Statistics
 
 import Base.Broadcast.broadcastable
 import PeriodicTable
+import DataFrames: DataFrame
 
 ## DocStringExtensions Templates
 # TODO they don't seem to be working at the moment
@@ -111,6 +112,8 @@ include("psp/hgh.jl")
 ## Core functions
 export load_psp_file
 export load_psp
+export list_families
+export list_psp
 include("load.jl")
 
 ## Deprecated loaders
