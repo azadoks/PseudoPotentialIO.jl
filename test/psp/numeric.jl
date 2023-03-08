@@ -2,16 +2,6 @@ import PseudoPotentialIO: build_interpolator_real
 
 #TODO work on tightening tolerances
 @testset "Numeric" begin
-    filepaths = [upf1_filepaths["B_pbe_v1.01.uspp.F.UPF"],
-                 upf1_filepaths["si_pbesol_v1.uspp.F.UPF"],
-                 upf2_filepaths["He.pbe-hgh.UPF"],
-                 upf2_filepaths["Al.pbe-hgh.UPF"],
-                 upf2_filepaths["Si.pbe-n-rrkjus_psl.1.0.0.UPF"],
-                 upf2_filepaths["H.upf"],
-                 upf2_filepaths["Fe.upf"],
-                 psp8_filepaths["H.psp8"],
-                 psp8_filepaths["Fe.psp8"]]
-
     function local_potential_integrand(psp::NumericPsP, q)
         Vloc = local_potential_real(psp)
         return r -> 4π * r * sphericalbesselj(0, q * r) * (r * Vloc(r) + psp.Zval)
@@ -21,7 +11,7 @@ import PseudoPotentialIO: build_interpolator_real
         return r -> 4π * sphericalbesselj(l, q * r) * f(r)
     end
 
-    @testset "$(splitpath(filepath)[end])" for filepath in filepaths
+    @testset "$(name)" for (name, filepath) in NUMERIC_CASE_FILEPATHS
         @testset "Truncation tol=$(tol)" for tol in [nothing, 1e-10, 1e-8, 1e-6]
             psp = load_psp(filepath)
             rmin = max(first(psp.r), eps(eltype(psp.r)))

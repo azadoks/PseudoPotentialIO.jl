@@ -73,15 +73,19 @@ function load_upf(io::IO)
         ) for beta in new_upf.nonlocal.betas
     ]
     old_upf["D_ion"] = new_upf.nonlocal.dij
-
-    old_upf["atomic_wave_functions"] = [
-        Dict(
-            "label" => chi.label,
-            "angular_momentum" => chi.l,
-            "occupation" => chi.occupation,
-            "radial_function" => chi.chi
-        ) for chi in new_upf.pswfc
-    ]
+    
+    if isnothing(new_upf.pswfc)
+        old_upf["atomic_wave_functions"] = []
+    else
+        old_upf["atomic_wave_functions"] = [
+            Dict(
+                "label" => chi.label,
+                "angular_momentum" => chi.l,
+                "occupation" => chi.occupation,
+                "radial_function" => chi.chi
+            ) for chi in new_upf.pswfc
+        ]
+    end
 
     old_upf["total_charge_density"] = new_upf.rhoatom
 

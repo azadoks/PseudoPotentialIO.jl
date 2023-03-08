@@ -1,6 +1,6 @@
 #TODO work on tightening tolerances
 @testset "UPF-PSP8 agreement" begin
-    @testset "$(splitpath(psp8_path)[end])" for (upf2_path, psp8_path) in upf2_psp8_pairs
+    @testset "$(splitpath(psp8_path)[end])" for (upf2_path, psp8_path) in UPF2_PSP8_FILEPATHS
         upf2 = load_psp(upf2_path)
         psp8 = load_psp(psp8_path)
 

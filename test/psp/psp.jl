@@ -11,17 +11,7 @@ function rotate_vector(q::Quaternion, u::AbstractVector)
 end
 
 @testset "AbstractPsP" begin
-    filepaths = []
-    for dir in families
-        (_, _, files) = first(walkdir(dir))
-        for file in files
-            if file[1] != '.'  # Hack to avoid hidden files
-                push!(filepaths, joinpath(dir, file))
-            end
-        end
-    end
-
-    @testset "$(splitpath(filepath)[end])" for filepath in filepaths
+    @testset "$(splitpath(filepath)[end])" for filepath in TEST_FILEPATHS
         file = load_psp_file(filepath)
         if (is_norm_conserving(file) | is_ultrasoft(file)) & !has_spin_orbit(file)
             psp = load_psp(file)

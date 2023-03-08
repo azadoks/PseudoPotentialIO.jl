@@ -1,15 +1,5 @@
 @testset "AbstractPsPFile" begin
-    filepaths = []
-    for dir in families
-        (_, _, files) = first(walkdir(dir))
-        for file in files
-            if file[1] != '.'  # Hack to avoid hidden files
-                push!(filepaths, joinpath(dir, file))
-            end
-        end
-    end
-
-    for filepath in filepaths
+    for filepath in TEST_FILEPATHS
         file = load_psp_file(filepath)
         @test isa(format(file), AbstractString)
         @test isa(element(file), AbstractString)

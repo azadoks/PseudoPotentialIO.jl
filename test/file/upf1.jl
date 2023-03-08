@@ -1,6 +1,6 @@
 @testset "UPF v1.old" begin
     @testset "Internal data consistency" begin
-        for filepath in values(upf1_filepaths)
+        for filepath in values(UPF1_CASE_FILEPATHS)
             file = load_psp_file(filepath)
 
             @test format(file) == "UPF v1.old"
@@ -32,7 +32,7 @@
 
     @testset "ag_lda_v1.4.uspp.F.UPF" begin
         filename = "ag_lda_v1.4.uspp.F.UPF"
-        file = load_psp_file(upf1_filepaths[filename])
+        file = load_psp_file(UPF1_CASE_FILEPATHS[filename])
 
         header = file.header
         @test isnothing(header.generated)
@@ -204,7 +204,7 @@
 
     @testset "B_pbe_v1.01.uspp.F.UPF" begin
         filename = "B_pbe_v1.01.uspp.F.UPF"
-        file = load_psp_file(upf1_filepaths[filename])
+        file = load_psp_file(UPF1_CASE_FILEPATHS[filename])
 
         header = file.header
         @test isnothing(header.generated)
@@ -372,7 +372,7 @@
 
     @testset "si_pbesol_v1.uspp.F.UPF" begin
         filename = "si_pbesol_v1.uspp.F.UPF"
-        file = load_psp_file(upf1_filepaths[filename])
+        file = load_psp_file(UPF1_CASE_FILEPATHS[filename])
 
         header = file.header
         @test isnothing(header.generated)
@@ -544,7 +544,7 @@
 
     @testset "mg_pbe_v1.4.uspp.F.UPF" begin
         filename = "mg_pbe_v1.4.uspp.F.UPF"
-        file = load_psp_file(upf1_filepaths[filename])
+        file = load_psp_file(UPF1_CASE_FILEPATHS[filename])
 
         header = file.header
         @test isnothing(header.generated)

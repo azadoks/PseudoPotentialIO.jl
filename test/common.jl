@@ -5,7 +5,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
 @testset "common" begin
     @testset "guess_mesh_type" begin
         @testset "[linear] Mg.upf" begin
-            psp = load_psp_file(upf2_filepaths["Mg.upf"])
+            psp = load_psp_file(UPF2_CASE_FILEPATHS["Mg.upf"])
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "linear"
             @test a_guess ≈ 0.01
@@ -13,7 +13,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
         end
 
         @testset "[logarithmic type 1] Al.pbe-n-kjpaw_psl.1.0.0.UPF" begin
-            psp = load_psp_file(upf2_filepaths["Al.pbe-n-kjpaw_psl.1.0.0.UPF"])
+            psp = load_psp_file(UPF2_CASE_FILEPATHS["Al.pbe-n-kjpaw_psl.1.0.0.UPF"])
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "log_1"
             @test a_guess ≈ psp.mesh.dx
@@ -21,7 +21,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
         end
 
         @testset "[logarithmic type 1] He.pbe-hgh.UPF" begin
-            psp = load_psp_file(upf2_filepaths["He.pbe-hgh.UPF"])
+            psp = load_psp_file(UPF2_CASE_FILEPATHS["He.pbe-hgh.UPF"])
             type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
             @test type_guess == "log_1"
             @test a_guess ≈ psp.mesh.dx

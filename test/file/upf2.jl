@@ -1,6 +1,6 @@
 @testset "UPF v2.0.1" begin
     @testset "Internal data consistency" begin
-        for filepath in values(upf2_filepaths)
+        for filepath in values(UPF2_CASE_FILEPATHS)
             psp = load_psp_file(filepath)
 
             @test format(psp) == "UPF v2.0.1"
@@ -21,7 +21,7 @@
 
     @testset "Mg.upf" begin
         filename = "Mg.upf"
-        file = load_psp_file(upf2_filepaths[filename])
+        file = load_psp_file(UPF2_CASE_FILEPATHS[filename])
 
         header = file.header
         @test header.generated == "Generated using ONCVPSP code by D. R. Hamann"
@@ -183,7 +183,7 @@
 
     @testset "Si.pbe-n-rrkjus_psl.1.0.0.UPF" begin
         filename = "Si.pbe-n-rrkjus_psl.1.0.0.UPF"
-        file = load_psp_file(upf2_filepaths[filename])
+        file = load_psp_file(UPF2_CASE_FILEPATHS[filename])
 
         header = file.header
         @test header.generated == "Generated using \"atomic\" code by A. Dal Corso  v.5.1"
@@ -355,7 +355,7 @@
 
     @testset "Al.pbe-n-kjpaw_psl.1.0.0.UPF" begin
         filename = "Al.pbe-n-kjpaw_psl.1.0.0.UPF"
-        file = load_psp_file(upf2_filepaths[filename])
+        file = load_psp_file(UPF2_CASE_FILEPATHS[filename])
 
         header = file.header
         @test header.generated == "Generated using \"atomic\" code by A. Dal Corso  v.5.1"
@@ -603,7 +603,7 @@
 
     @testset "He.pbe-hgh.UPF" begin
         filename = "He.pbe-hgh.UPF"
-        file = load_psp_file(upf2_filepaths[filename])
+        file = load_psp_file(UPF2_CASE_FILEPATHS[filename])
 
         header = file.header
         @test header.generated == "Generated in analytical, separable form"

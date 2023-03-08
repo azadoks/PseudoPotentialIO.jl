@@ -1,6 +1,6 @@
 #TODO work on tightening tolerances
 @testset "UPF-HGH agreement" begin
-    @testset "$(splitpath(hgh_path)[end])" for (upf2_path, hgh_path) in upf2_hgh_pairs
+    @testset "$(splitpath(hgh_path)[end])" for (upf2_path, hgh_path) in UPF2_HGH_FILEPATHS
         upf2 = load_psp(upf2_path)
         hgh = load_psp(hgh_path)
 

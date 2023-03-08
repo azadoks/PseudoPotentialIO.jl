@@ -1,19 +1,6 @@
 @testset "UPF" begin
-    dirs = [artifact"gbrv_pbe_1.5_upf", artifact"hgh_lda_upf",
-            artifact"sg15_2022.02.06_upf", artifact"sssp_pbe_efficiency_1.1.2_upf"]
-
-    filepaths = []
-    for dir in dirs
-        (_, _, files) = first(walkdir(dir))
-        for file in files
-            if file[1] != '.'  # Hack to avoid hidden files
-                push!(filepaths, joinpath(dir, file))
-            end
-        end
-    end
-
     @testset "Internal data consistency" begin
-        @testset "$filepath" for filepath in filepaths
+        @testset "$filepath" for filepath in UPF_FILEPATHS
             file = load_psp_file(filepath)
 
             @test haskey(PeriodicTable.elements, Symbol(file.header.element))

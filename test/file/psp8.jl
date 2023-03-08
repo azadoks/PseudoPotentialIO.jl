@@ -1,6 +1,6 @@
 @testset "PSP8" begin
     @testset "Internal data consistency" begin
-        for filepath in values(psp8_filepaths)
+        for filepath in values(PSP8_FILEPATHS)
             file = load_psp_file(filepath)
 
             @test format(file) == "PSP8"
@@ -55,7 +55,7 @@
 
     @testset "H.psp8" begin
         filename = "H.psp8"
-        file = load_psp_file(psp8_filepaths[filename])
+        file = load_psp_file(PSP8_CASE_FILEPATHS[filename])
 
         @test file.header.zatom == 1.0000
         @test file.header.zion == 1.0000
@@ -82,7 +82,7 @@
 
     @testset "Ti.psp8" begin
         filename = "Ti.psp8"
-        file = load_psp_file(psp8_filepaths[filename])
+        file = load_psp_file(PSP8_CASE_FILEPATHS[filename])
 
         @test file.header.zatom == 22.0000
         @test file.header.zion == 12.0000
@@ -119,7 +119,7 @@
 
     @testset "Zn.psp8" begin
         filename = "Zn.psp8"
-        file = load_psp_file(psp8_filepaths[filename])
+        file = load_psp_file(PSP8_CASE_FILEPATHS[filename])
 
         @test file.header.zatom == 30.0000
         @test file.header.zion == 20.0000

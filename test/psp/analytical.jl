@@ -1,18 +1,4 @@
 @testset "Analytical" begin
-    dirs = [artifact"hgh_lda_hgh", artifact"hgh_pbe_hgh"]
-
-    filepaths = []
-    for dir in dirs
-        (_, _, files) = first(walkdir(dir))
-        for file in files
-            if file[1] != '.'  # Hack to avoid hidden files
-                push!(filepaths, joinpath(dir, file))
-            end
-        end
-    end
-
-    filepaths = filepaths[randperm(length(filepaths))][1:10]
-
     function local_potential_integrand(psp::AnalyticalPsP, q)
         Vloc = local_potential_real(psp)
         return r -> 4π * r * sphericalbesselj(0, q * r) * (r * Vloc(r) + valence_charge(psp))
@@ -23,7 +9,7 @@
         return r -> 4π * r^2 * sphericalbesselj(l, q * r) * β(r)
     end
 
-    @testset "$(splitpath(filepath)[end])" for filepath in filepaths
+    @testset "$(splitpath(filepath)[end])" for filepath in HGH_FILEPATHS[1:10]
         psp = load_psp(filepath)
 
         @testset "Local potential Fourier agrees with real" begin
