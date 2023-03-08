@@ -7,12 +7,13 @@ using LinearAlgebra
 using OffsetArrays
 using Polynomials
 using Printf
-using SpecialFunctions
 using Statistics
 
 import Base.Broadcast.broadcastable
-import PeriodicTable
+import Bessels: gamma
 import DataFrames: DataFrame
+import PeriodicTable
+import SpecialFunctions: erf
 
 ## DocStringExtensions Templates
 # TODO they don't seem to be working at the moment

@@ -4,12 +4,13 @@ using Aqua
 using LazyArtifacts
 using Random
 using PeriodicTable
-using SpecialFunctions
+using Bessels
 using QuadGK
 using Interpolations
 using JSON
 using Quaternions
 using LinearAlgebra
+import SpecialFunctions: erfi
 
 Random.seed!(0)
 

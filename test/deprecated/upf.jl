@@ -5,7 +5,6 @@
         "mesh_size", "number_of_wfc"
     ]
 
-    # pseudos = [load_upf.(values(UPF1_CASE_FILEPATHS))..., load_upf.(values(UPF2_CASE_FILEPATHS))...]
     pseudos = load_upf.(UPF_FILEPATHS)
 
     @testset "mesh" begin
