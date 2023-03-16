@@ -22,15 +22,15 @@ Example:
          EOF
 """
 function read_until(io::IO, tag::AbstractString)
-	while true
-		line = readline(io; keep=true)
-		if isempty(line)
-			throw(EOFError())
-		end
-		if occursin(tag, line)
-			return
-		end
-	end
+    while true
+        line = readline(io; keep=true)
+        if isempty(line)
+            throw(EOFError())
+        end
+        if occursin(tag, line)
+            return
+        end
+    end
 end
 
 """
@@ -133,7 +133,7 @@ function upf1_parse_header(io::IO)
     # space-separated string like:
     #     SLA PW PBX PBC PBE
     s = strip.(split(strip(readline(io))))
-    functional = join(filter(s_i -> length(s_i) <= 6 , s), ' ')
+    functional = join(filter(s_i -> length(s_i) <= 6, s), ' ')
 
     # Line 6 contains the pseudo-ionic valence charge
     s = split(readline(io))
@@ -380,7 +380,7 @@ function upf1_parse_pswfc(io::IO, mesh_size::Int, number_of_wfc::Int)
         label = s[1]
         l = parse(Int, s[2])
         occupation = parse(Float64, s[3])
-        
+
         chi = read_mesh_data(Float64, io, mesh_size)
 
         # These values are (sometimes) given by UPF v2 but not by UPF v2
@@ -417,7 +417,7 @@ function upf1_parse_addinfo(io::IO, number_of_proj::Int, number_of_wfc::Int)
         lchi = parse(Int, s[3])  # Angular momentum quantum number
         jchi = parse(Float64, s[4])  # Total angular momentum quantum number
         oc = parse(Float64, s[5])  # Occupation
-        relwfcs[index] = UpfRelWfc(jchi, index, els, nn, lchi, oc) 
+        relwfcs[index] = UpfRelWfc(jchi, index, els, nn, lchi, oc)
     end
     relbetas = Vector{UpfRelBeta}(undef, number_of_proj)
     for index in 1:number_of_proj
@@ -431,6 +431,8 @@ function upf1_parse_addinfo(io::IO, number_of_proj::Int, number_of_wfc::Int)
 end
 
 function upf1_parse_psp(io::IO)
+    checksum = SHA.sha1(io)
+    seek(io, 0)
     version = "1.old"
     info = upf1_parse_info(io)
     header = upf1_parse_header(io)
@@ -457,6 +459,6 @@ function upf1_parse_psp(io::IO)
     end
     paw = nothing  # Not supported by UPF v1
     gipaw = nothing  # Not supported by UPF v1
-    return UpfFile(version, info, header, mesh, nlcc, local_, nonlocal, pswfc, full_wfc,
-                   rhoatom, spinorb, paw, gipaw)
+    return UpfFile(checksum, version, info, header, mesh, nlcc, local_, nonlocal, pswfc,
+                   full_wfc, rhoatom, spinorb, paw, gipaw)
 end

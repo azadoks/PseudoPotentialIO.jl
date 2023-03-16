@@ -1,10 +1,8 @@
-#TODO Implement the recursive algorithm to compare performance and accuracy
-#TODO Try to remove branching in `fast_sphericalbesselj`
 @doc raw"""
 Spherical Bessel function of the first kind jₗ(x).
     
 Consistent with https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions
-and with `SpecialFunctions.sphericalbesselj`.
+and with `SpecialFunctions.sphericalbesselj` and `Bessels.sphericalbesselj`.
 
 Specialized for integer `l` in the range`0 <= l <= 5`.
 """

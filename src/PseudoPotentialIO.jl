@@ -8,11 +8,12 @@ using OffsetArrays
 using Polynomials
 using Printf
 using Statistics
+using SHA
 
 import Base.Broadcast.broadcastable
 import Bessels: gamma
 import DataFrames: DataFrame
-import PeriodicTable
+using PeriodicTable: PeriodicTable
 import SpecialFunctions: erf
 
 ## DocStringExtensions Templates
@@ -68,8 +69,11 @@ export has_core_density
 export valence_charge
 export atomic_charge
 export max_angular_momentum
+export angular_momenta
+export projector_radial_indices
 export n_projector_radials
 export n_projector_angulars
+export pseudo_orbital_radial_indices
 export n_pseudo_orbital_radials
 export n_pseudo_orbital_angulars
 export local_potential_real

@@ -16,6 +16,8 @@ both computation and indexing.
 Required fields:
 
 ```julia
+# Checksum
+checksum::Vector{UInt8}
 # Atomic total charge in units of electron charge
 Zatom::Number
 # Pseudo-atomic valence charge in units of electron charge
@@ -47,12 +49,14 @@ D::OffsetVector{AbstractMatrix{Real}}
 """
 abstract type NumericPsP{T} <: AbstractPsP end
 
+identifier(psp::NumericPsP)::String = bytes2hex(psp.checksum)
 function element(psp::NumericPsP)::String
     return PeriodicTable.elements[Int(psp.Zatom)].symbol
 end
 max_angular_momentum(psp::NumericPsP)::Int = psp.lmax
 n_projector_radials(psp::NumericPsP, l::Int)::Int = length(psp.β[l])
-n_pseudo_orbital_radials(psp::NumericPsP, l::Int)::Int = isnothing(psp.ϕ) ? 0 : length(psp.ϕ[l])
+n_pseudo_orbital_radials(psp::NumericPsP, l::Int)::Int = isnothing(psp.ϕ) ? 0 :
+                                                         length(psp.ϕ[l])
 valence_charge(psp::NumericPsP) = psp.Zval
 atomic_charge(psp::NumericPsP) = psp.Zatom
 has_spin_orbit(::NumericPsP)::Bool = false  # This is a current limitation
@@ -60,27 +64,32 @@ has_core_density(psp::NumericPsP)::Bool = !isnothing(psp.ρcore)
 has_valence_density(psp::NumericPsP)::Bool = !isnothing(psp.ρval)
 has_pseudo_orbitals(psp::NumericPsP)::Bool = !isnothing(psp.ϕ)
 
-function local_potential_cutoff_radius(psp::NumericPsP)
-    return psp.r[lastindex(psp.Vloc)]
+function local_potential_cutoff_radius(psp::NumericPsP; tol=nothing)
+    ir_cut = find_truncation_index(psp.Vloc, tol)
+    return psp.r[ir_cut]
 end
 
-function projector_cutoff_radius(psp::NumericPsP, l::Int, n::Int)
-    return psp.r[lastindex(psp.β[l][n])]
+function projector_cutoff_radius(psp::NumericPsP, l::Int, n::Int; tol=nothing)
+    ir_cut = find_truncation_index(psp.β[l][n], tol)
+    return psp.r[ir_cut]
 end
 
-function pseudo_orbital_cutoff_radius(psp::NumericPsP, l::Int, n::Int)
+function pseudo_orbital_cutoff_radius(psp::NumericPsP, l::Int, n::Int; tol=nothing)
     !has_pseudo_orbitals(psp) && return nothing
-    return psp.r[lastindex(psp.ϕ[l][n])]
+    ir_cut = find_truncation_index(psp.ϕ[l][n], tol)
+    return psp.r[ir_cut]
 end
 
-function valence_charge_density_cutoff_radius(psp::NumericPsP)
+function valence_charge_density_cutoff_radius(psp::NumericPsP; tol=nothing)
     !has_valence_density(psp) && return nothing
-    return psp.r[lastindex(psp.ρval)]
+    ir_cut = find_truncation_index(psp.ρval, tol)
+    return psp.r[ir_cut]
 end
 
-function core_charge_density_cutoff_radius(psp::NumericPsP)
+function core_charge_density_cutoff_radius(psp::NumericPsP; tol=nothing)
     !has_core_density(psp) && return nothing
-    return psp.r[lastindex(psp.ρcore)]
+    ir_cut = find_truncation_index(psp.ρcore, tol)
+    return psp.r[ir_cut]
 end
 
 function projector_coupling(psp::NumericPsP{T}, l::Int)::Matrix{T} where {T<:Real}
@@ -114,10 +123,12 @@ end
     i_start = firstindex(psp.Vloc)
     i_stop = find_truncation_index(psp.Vloc, tol)
     function Vloc(q)
-        integrand(i::Int) = psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
-            (psp.r[i] * psp.Vloc[i] + psp.Zval)
+        function integrand(i::Int)
+            return psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
+                   (psp.r[i] * psp.Vloc[i] + psp.Zval)
+        end
         integral = dotprod(integrand, i_start, i_stop, psp.dr)
-        4π * (integral - psp.Zval / q^2)
+        return 4π * (integral - psp.Zval / q^2)
     end
     Vloc(Q::AbstractVector) = Vloc(norm(Q))
     return Vloc

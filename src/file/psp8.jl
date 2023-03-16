@@ -42,6 +42,8 @@ and the meaning of the quantities within the file can be found on the
 ["psp8" page](https://docs.abinit.org/developers/psp8_info/) of the ABINIT documentation.
 """
 struct Psp8File <: PsPFile
+    "SHA1 Checksum"
+    checksum::Vector{UInt8}
     "Various pseudopotential metadata"
     header::Psp8Header
     "Uniform radial grid starting at `r = 0.0`"
@@ -237,6 +239,8 @@ function psp8_parse_nlcc_block(io, mmax)
 end
 
 function Psp8File(io::IO)
+    checksum = SHA.sha1(io)
+    seek(io, 0)
     # NOTE: parsing _must_ be done in order because it is done by reading the file
     # incrementally and depends on the order of the lines in the file
     header = psp8_parse_header(io)
@@ -257,10 +261,10 @@ function Psp8File(io::IO)
         nlcc = (rhoc=nothing, d_rhoc_dr=nothing, d2_rhoc_dr2=nothing, d3_rhoc_dr3=nothing,
                 d4_rhoc_dr4=nothing)
     end
-    return Psp8File(header, main_blocks.rgrid, main_blocks.v_local, main_blocks.projectors,
-                   main_blocks.ekb, spin_orbit.projectors, spin_orbit.ekb,
-                   nlcc.rhoc, nlcc.d_rhoc_dr, nlcc.d2_rhoc_dr2, nlcc.d3_rhoc_dr3,
-                   nlcc.d4_rhoc_dr4)
+    return Psp8File(checksum, header, main_blocks.rgrid, main_blocks.v_local,
+                    main_blocks.projectors, main_blocks.ekb, spin_orbit.projectors,
+                    spin_orbit.ekb, nlcc.rhoc, nlcc.d_rhoc_dr, nlcc.d2_rhoc_dr2,
+                    nlcc.d3_rhoc_dr3, nlcc.d4_rhoc_dr4)
 end
 
 function Psp8File(path::AbstractString)
@@ -273,6 +277,7 @@ function _parse_fortran(::Type{T}, x::AbstractString) where {T<:Real}
     return parse(T, replace(lowercase(x), "d" => "e"))
 end
 
+identifier(psp::Psp8File)::String = bytes2hex(psp.checksum)
 format(::Psp8File)::String = "PSP8"
 function element(file::Psp8File)::String
     return PeriodicTable.elements[Int(file.header.zatom)].symbol

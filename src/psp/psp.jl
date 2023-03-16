@@ -6,6 +6,8 @@ The structure of the data should facilitate efficient computations.
 Required methods:
 
 ```julia
+# A unique string, usually a hash or checksum.
+function identifier(file::AbstractPsP)::AbstractString end
 # The symbol of the element for which the pseudopotential is constructed (e.g. `"Ag"`)
 function elemental_symbol(psp::AbstractPsP)::AbstractString end
 # The maximum angular momentum channel
@@ -43,12 +45,17 @@ abstract type AbstractPsP end
 
 #!!! Required functions !!!#
 """
+Identifying data (preferably unique).
+"""
+function identifier(psp::AbstractPsP) end
+
+"""
 Element which the pseudopotential was constructed to reproduce.
 """
 function element(psp::AbstractPsP) end
 
 """
-Maximum angular momentum channel in the local part of the pseudopotential.
+Maximum angular momentum channel of the pseudopotential.
 """
 function max_angular_momentum(psp::AbstractPsP) end
 
@@ -144,7 +151,7 @@ function core_charge_density_cutoff_radius(psp::AbstractPsP) end
 Local part of the pseudopotential evaluated at real-space point `r`.
 """
 function local_potential_real(psp::AbstractPsP)
-     _ -> nothing
+    return _ -> nothing
 end
 
 """
@@ -152,35 +159,35 @@ The `n`th nonlocal Kleinman-Bylander projector at angular momentum `l` evaluated
 real-space point `r`.
 """
 function projector_real(psp::AbstractPsP, l::Integer, n::Integer)
-    _ -> nothing
+    return _ -> nothing
 end
 
 """
 The `n`th pseudo-atomic orbital at angular momentum `l` evaulated at real-space point `r`.
 """
 function pseudo_orbital_real(psp::AbstractPsP, l::Integer, n::Integer)
-    _ -> nothing
+    return _ -> nothing
 end
 
 """
 Pseudo-atomic valence charge density evaluated at real-space point `r`.
 """
 function valence_charge_density_real(psp::AbstractPsP)
-    _ -> nothing
+    return _ -> nothing
 end
 
 """
 Model core charge density evaluated at real-space point `r`.
 """
 function core_charge_density_real(psp::AbstractPsP)
-    _ -> nothing
+    return _ -> nothing
 end
 
 """
 Local part of the pseudopotential evaluated at reciprocal-space point `q`.
 """
 function local_potential_fourier(psp::AbstractPsP)
-    _ -> nothing
+    return _ -> nothing
 end
 
 """
@@ -188,7 +195,7 @@ The `n`th nonlocal Kleinman-Bylander projector at angular momentum `l` evaluated
 reciprocal-space point `q`.
 """
 function projector_fourier(psp::AbstractPsP, l::Integer, n::Integer)
-    _ -> nothing
+    return _ -> nothing
 end
 
 """
@@ -196,21 +203,21 @@ The `n`th pseudo-atomic orbital at angular momentum `l` evaulated at reciprocal-
 point `q`.
 """
 function pseudo_orbital_fourier(psp::AbstractPsP, l::Integer, n::Integer)
-    _ -> nothing
+    return _ -> nothing
 end
 
 """
 Pseudo-atomic valence charge density evaluated at reciprocal-space point `q`.
 """
 function valence_charge_density_fourier(psp::AbstractPsP)
-    _ -> nothing 
+    return _ -> nothing
 end
 
 """
 Model core charge density evaluated at reciprocal-space point `q`.
 """
 function core_charge_density_fourier(psp::AbstractPsP)
-    _ -> nothing
+    return _ -> nothing
 end
 
 """
@@ -220,6 +227,11 @@ local part of the pseudopotential).
 function pseudo_energy_correction(T::Type, psp::AbstractPsP) end
 
 #!!! Convenience functions !!!#
+"""
+Angular momenta values of the pseudopotential.
+"""
+angular_momenta(psp::AbstractPsP) = 0:max_angular_momentum(psp)
+
 """
 Type of relativistic treatment (fully relativistic or scalar-relativistic).
 """
@@ -236,11 +248,16 @@ function formalism(psp::AbstractPsP)::Type
 end
 
 """
+Indices of projector radial parts at a given angular momentum.
+"""
+projector_radial_indices(psp::AbstractPsP, l) = 1:n_projector_radials(psp, l)
+
+"""
 Number of radial parts of the Kleinman-Bylander projectors at all angular momenta up
 to the maximum angular momentum channel.
 """
 function n_projector_radials(psp::AbstractPsP)
-    return sum(l -> n_projector_radials(psp, l), 0:max_angular_momentum(psp); init=0)
+    return sum(l -> n_projector_radials(psp, l), angular_momenta(psp); init=0)
 end
 
 """
@@ -257,15 +274,20 @@ Number of angular parts of the Kleinman-Bylander projectors at all angular momen
 to the maximum angular momentum channel.
 """
 function n_projector_angulars(psp::AbstractPsP)
-    return sum(l -> n_projector_angulars(psp, l), 0:max_angular_momentum(psp); init=0)
+    return sum(l -> n_projector_angulars(psp, l), angular_momenta(psp); init=0)
 end
+
+"""
+Indices of pseudo-atomic wavefunction radial parts at a given angular momentum.
+"""
+pseudo_orbital_radial_indices(psp::AbstractPsP, l) = 1:n_pseudo_orbital_radials(psp, l)
 
 """
 Number pseudo-atomic wavefunctions `Rₗₙ(|r|) * Yₗₘ(r̂)` at angular momenta `l` up to the
 maximum angular momentum channel.
 """
 function n_pseudo_orbital_radials(psp::AbstractPsP)
-    return sum(l -> n_pseudo_orbital_radials(psp, l), 0:max_angular_momentum(psp); init=0)
+    return sum(l -> n_pseudo_orbital_radials(psp, l), angular_momenta(psp); init=0)
 end
 
 """
@@ -281,47 +303,49 @@ Number of angular parts of the pseudo-atomic wavefunctions at all angular moment
 to the maximum angular momentum channel.
 """
 function n_pseudo_orbital_angulars(psp::AbstractPsP)
-    return sum(l -> n_pseudo_orbtial_angulars(psp, l), 0:max_angular_momentum(psp); init=0)
+    return sum(l -> n_pseudo_orbtial_angulars(psp, l), angular_momenta(psp); init=0)
 end
 
-function projector_cutoff_radius(psp::AbstractPsP, l::Int)
-    cutoff_radii = map(n -> projector_cutoff_radius(psp, l, n), 1:n_projector_radials(psp, l))
+function projector_cutoff_radius(psp::AbstractPsP, l::Int; f=minimum, tol=nothing)
+    cutoff_radii = map(n -> projector_cutoff_radius(psp, l, n; tol),
+                       projector_radial_indices(psp, l))
     cutoff_radii = filter(!isnothing, cutoff_radii)
     isempty(cutoff_radii) && return nothing
-    return minimum(cutoff_radii)
+    return f(cutoff_radii)
 end
 
-function projector_cutoff_radius(psp::AbstractPsP)
-    cutoff_radii = map(l -> projector_cutoff_radius(psp, l), 0:max_angular_momentum(psp))
+function projector_cutoff_radius(psp::AbstractPsP; f=minimum, tol=nothing)
+    cutoff_radii = map(l -> projector_cutoff_radius(psp, l; tol),
+                       angular_momenta(psp))
     cutoff_radii = filter(!isnothing, cutoff_radii)
     isempty(cutoff_radii) && return nothing
-    return minimum(cutoff_radii)
+    return f(cutoff_radii)
 end
 
-function pseudo_orbital_cutoff_radius(psp::AbstractPsP, l::Int)
-    cutoff_radii = map(n -> pseudo_orbital_cutoff_radius(psp, l, n), 1:n_pseudo_orbital_radials(psp, l))
+function pseudo_orbital_cutoff_radius(psp::AbstractPsP, l::Int; f=minimum, tol=nothing)
+    cutoff_radii = map(n -> pseudo_orbital_cutoff_radius(psp, l, n; tol),
+                       pseudo_orbital_radial_indices(psp, l))
     cutoff_radii = filter(!isnothing, cutoff_radii)
     isempty(cutoff_radii) && return nothing
-    return minimum(cutoff_radii)
+    return f(cutoff_radii)
 end
 
-function pseudo_orbital_cutoff_radius(psp::AbstractPsP)
-    cutoff_radii = map(l -> pseudo_orbital_cutoff_radius(psp, l), 0:max_angular_momentum(psp))
+function pseudo_orbital_cutoff_radius(psp::AbstractPsP; f=minimum, tol=nothing)
+    cutoff_radii = map(l -> pseudo_orbital_cutoff_radius(psp, l; tol),
+                       angular_momenta(psp))
     cutoff_radii = filter(!isnothing, cutoff_radii)
     isempty(cutoff_radii) && return nothing
-    return minimum(cutoff_radii)
+    return f(cutoff_radii)
 end
 
-function pseudo_cutoff_radius(psp::AbstractPsP)
-    cutoff_radii = [
-        local_potential_cutoff_radius(psp),
-        projector_cutoff_radius(psp),
-        pseudo_orbital_cutoff_radius(psp),
-        valence_charge_density_cutoff_radius(psp),
-        core_charge_density_cutoff_radius(psp)
-    ]
+function pseudo_cutoff_radius(psp::AbstractPsP; f=minimum, tol=nothing)
+    cutoff_radii = [local_potential_cutoff_radius(psp; tol),
+                    projector_cutoff_radius(psp; f, tol),
+                    pseudo_orbital_cutoff_radius(psp; f, tol),
+                    valence_charge_density_cutoff_radius(psp; tol),
+                    core_charge_density_cutoff_radius(psp; tol)]
     cutoff_radii = filter(!isnothing, cutoff_radii)
-    return minimum(cutoff_radii)
+    return f(cutoff_radii)
 end
 
 """
@@ -340,6 +364,9 @@ end
 
 Base.Broadcast.broadcastable(psp::AbstractPsP) = Ref(psp)
 
+Base.:(==)(psp1::AbstractPsP, psp2::AbstractPsP) = identifier(psp1) == identifier(psp2)
+Base.hash(psp::AbstractPsP) = hash(psp.checksum)
+
 function Base.show(io::IO, psp::AbstractPsP)
     typename = string(typeof(psp))
     el = element(psp)
@@ -349,6 +376,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", psp::AbstractPsP)
     println(io, typeof(psp))
+    @printf "%032s: %s\n" "identifier" identifier(psp)
     @printf "%032s: %s\n" "formalism" formalism(psp)
     @printf "%032s: %s\n" "element" element(psp)
     @printf "%032s: %f\n" "valence charge" valence_charge(psp)

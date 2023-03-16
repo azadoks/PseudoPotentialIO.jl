@@ -277,6 +277,8 @@ end
 Universal Pseudopotential Format file contents.
 """
 struct UpfFile <: PsPFile
+    "SHA1 Checksum"
+    checksum::Vector{UInt8}
     "UPF format version"
     version::String
     "Optional general information about the pseudopotential, often generation input"
@@ -317,13 +319,9 @@ function UpfFile(io::IO)
         return upf1_parse_psp(io)
     end
     if version == 2
-        text = read(io, String)
-        # Remove end-of-file junk (input data, etc.)
-        text = string(split(text, "</UPF>")[1], "</UPF>")
-        # Clean any errant `&` characters
-        text = replace(text, "&" => "")
-        return upf2_parse_psp(parsexml(text))
+        return upf2_parse_psp(io)
     end
+    error("Unknown UPF version.")
 end
 
 function _get_upf_version(io::IO)::Int
@@ -348,6 +346,7 @@ function _get_upf_version(path::AbstractString)::Int
     end
 end
 
+identifier(psp::UpfFile)::String = bytes2hex(psp.checksum)
 format(file::UpfFile)::String = "UPF v$(file.version)"
 element(file::UpfFile)::String = file.header.element
 is_norm_conserving(file::UpfFile)::Bool = file.header.pseudo_type == "NC"

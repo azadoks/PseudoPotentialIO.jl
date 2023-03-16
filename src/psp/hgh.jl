@@ -5,6 +5,8 @@ Analytical Hartwigsen-Goedecker-Hutter pseudopotential.
 *Pys. Rev. B* **58**, 3641 (1998)](https://doi.org/10.1103/PhysRevB.58.3641)
 """
 struct HghPsP{T} <: AnalyticalPsP
+    "SHA1 Checksum"
+    checksum::Vector{UInt8}
     "Atomic charge"
     Zatom::Union{Nothing,T}
     "Valence charge"
@@ -34,10 +36,11 @@ function HghPsP(file::HghFile)
     rnl = OffsetVector(file.rp, 0:(file.lmax))
     D = OffsetVector(file.h, 0:(file.lmax))
 
-    return HghPsP{Float64}(Zatom, sum(Float64.(file.zion)), file.lmax, file.rloc, cloc,
-                           rnl, D)
+    return HghPsP{Float64}(file.checksum, Zatom, sum(Float64.(file.zion)), file.lmax,
+                           file.rloc, cloc, rnl, D)
 end
 
+identifier(psp::HghPsP)::String = bytes2hex(psp.checksum)
 element(psp::HghPsP)::String = isnothing(psp.Zatom) ? "unknown" :
                                PeriodicTable.elements[Int(psp.Zatom)].symbol
 has_spin_orbit(::HghPsP)::Bool = false
@@ -53,11 +56,11 @@ max_angular_momentum(psp::HghPsP)::Int = psp.lmax
 n_projector_radials(psp::HghPsP, l::Int)::Int = size(psp.D[l], 1)
 n_pseudo_orbital_radials(::HghPsP, ::Int)::Int = 0
 
-local_potential_cutoff_radius(::HghPsP) = Inf
-projector_cutoff_radius(::HghPsP, ::Int, ::Int) = Inf
-pseudo_orbital_cutoff_radius(::HghPsP, ::Int, ::Int) = Inf
-valence_charge_density_cutoff_radius(::HghPsP) = Inf
-core_charge_density_cutoff_radius(::HghPsP) = Inf
+local_potential_cutoff_radius(::HghPsP; tol=nothing) = Inf
+projector_cutoff_radius(::HghPsP, ::Int, ::Int; tol=nothing) = Inf
+pseudo_orbital_cutoff_radius(::HghPsP, ::Int, ::Int; tol=nothing) = Inf
+valence_charge_density_cutoff_radius(::HghPsP; tol=nothing) = Inf
+core_charge_density_cutoff_radius(::HghPsP; tol=nothing) = Inf
 
 projector_coupling(psp::HghPsP, l::Int) = psp.D[l]
 
@@ -102,7 +105,7 @@ function local_potential_real(psp::HghPsP)
                        exp(-rr^2 / 2) *
                        (cloc[1] + cloc[2] * rr^2 + cloc[3] * rr^4 + cloc[4] * rr^6))
     end
-    Vloc(R::AbstractVector) = Vloc(norm(R)) 
+    Vloc(R::AbstractVector) = Vloc(norm(R))
     return Vloc
 end
 

@@ -1,11 +1,12 @@
 parse_bool(s::AbstractString)::Bool = occursin("T", uppercase(s)) ? true : false
 parse_bool(s::Char)::Bool = uppercase(s) == 'T' ? true : false
 
-function get_attr(::Type{T}, node::EzXML.Node, key; default=nothing)::Union{Nothing,T} where {T<:Number}
+function get_attr(::Type{T}, node::EzXML.Node, key;
+                  default=nothing)::Union{Nothing,T} where {T<:Number}
     if haskey(node, key)
         value = strip(node[key])
         value = replace(uppercase(value), "D" => "E")
-        attr =  parse(T, value)
+        attr = parse(T, value)
     else
         attr = default
     end
@@ -20,7 +21,7 @@ end
 function get_attr(::Type{Bool}, node::EzXML.Node, key; default=nothing)::Union{Nothing,Bool}
     return haskey(node, key) ? parse_bool(strip(node[key])) : default
 end
-    
+
 function upf2_parse_header(node::EzXML.Node)
     generated = get_attr(String, node, "generated")
     author = get_attr(String, node, "author")
@@ -213,7 +214,9 @@ function upf2_parse_nonlocal(node::EzXML.Node)
 
     return UpfNonlocal(betas, dij, augmentation)
 end
-upf2_parse_nonlocal(doc::EzXML.Document) = upf2_parse_nonlocal(findfirst("PP_NONLOCAL", root(doc)))
+function upf2_parse_nonlocal(doc::EzXML.Document)
+    return upf2_parse_nonlocal(findfirst("PP_NONLOCAL", root(doc)))
+end
 
 function upf2_parse_chi(node::EzXML.Node)
     # Metadata
@@ -257,7 +260,9 @@ function upf2_parse_spin_orb(node::EzXML.Node)
 
     return UpfSpinOrb(relwfcs, relbetas)
 end
-upf2_parse_spin_orb(doc::EzXML.Document) = upf2_parse_spin_orb(findfirst("PP_SPIN_ORB", root(doc)))
+function upf2_parse_spin_orb(doc::EzXML.Document)
+    return upf2_parse_spin_orb(findfirst("PP_SPIN_ORB", root(doc)))
+end
 
 function upf2_parse_wfc(node::EzXML.Node)
     index = get_attr(Int, node, "index")
@@ -281,7 +286,9 @@ function upf2_parse_full_wfc(node::EzXML.Node)
 
     return UpfFullWfc(aewfcs, pswfcs)
 end
-upf2_parse_full_wfc(doc::EzXML.Document) = upf2_parse_full_wfc(findfirst("PP_FULL_WFC", root(doc)))
+function upf2_parse_full_wfc(doc::EzXML.Document)
+    return upf2_parse_full_wfc(findfirst("PP_FULL_WFC", root(doc)))
+end
 
 function upf2_parse_paw(node::EzXML.Node)
     paw_data_format = get_attr(Int, node, "paw_data_format")
@@ -302,7 +309,8 @@ function upf2_parse_paw(node::EzXML.Node)
     pswfc_nodes = [n for n in eachnode(node) if occursin("PP_PSWFC", nodename(n))]
     pswfcs = upf2_parse_wfc.(pswfc_nodes)
 
-    return UpfPaw(paw_data_format, core_energy, occupations, ae_nlcc, ae_vloc, aewfcs, pswfcs)
+    return UpfPaw(paw_data_format, core_energy, occupations, ae_nlcc, ae_vloc, aewfcs,
+                  pswfcs)
 end
 upf2_parse_paw(doc::EzXML.Document) = upf2_parse_paw(findfirst("PP_PAW", root(doc)))
 
@@ -319,14 +327,25 @@ end
 function upf2_parse_gipaw(node::EzXML.Node)
     gipaw_data_format = get_attr(Int, node, "gipaw_data_format")
     core_orbitals_node = findfirst("PP_GIPAW_CORE_ORBITALS", node)
-    core_orbital_nodes = [n for n in eachnode(core_orbitals_node)
+    core_orbital_nodes = [n
+                          for n in eachnode(core_orbitals_node)
                           if occursin("PP_GIPAW_CORE_ORBITAL.", nodename(n))]
     core_orbitals = upf2_parse_gipaw_core_orbital.(core_orbital_nodes)
     return UpfGipaw(gipaw_data_format, core_orbitals)
 end
 upf2_parse_gipaw(doc::EzXML.Document) = upf2_parse_gipaw(findfirst("PP_GIPAW", root(doc)))
 
-function upf2_parse_psp(doc::EzXML.Document)
+function upf2_parse_psp(io::IO)
+    checksum = SHA.sha1(io)
+    seek(io, 0)
+
+    text = read(io, String)
+    # Remove end-of-file junk (input data, etc.)
+    text = string(split(text, "</UPF>")[1], "</UPF>")
+    # Clean any errant `&` characters
+    text = replace(text, "&" => "")
+    doc = parsexml(text)
+
     root_node = root(doc)
     version = get_attr(String, root_node, "version")
     #* PP_INFO
@@ -354,7 +373,8 @@ function upf2_parse_psp(doc::EzXML.Document)
     nonlocal = upf2_parse_nonlocal(doc)
     #* PP_PSWFC
     pswfc_node = findfirst("PP_PSWFC", root_node)
-    pswfc = [upf2_parse_chi(n) for n in eachnode(pswfc_node) if occursin("PP_CHI.", nodename(n))]
+    pswfc = [upf2_parse_chi(n)
+             for n in eachnode(pswfc_node) if occursin("PP_CHI.", nodename(n))]
     pswfc = isempty(pswfc) ? nothing : pswfc  # Sometimes the section exists but is empty
     #* PP_FULL_WFC
     if isnothing(findfirst("PP_FULL_WFC", root_node))
@@ -384,6 +404,6 @@ function upf2_parse_psp(doc::EzXML.Document)
         gipaw = upf2_parse_gipaw(doc)
     end
 
-    return UpfFile(version, info, header, mesh, nlcc, local_, nonlocal, pswfc, full_wfc,
-                  rhoatom, spinorb, paw, gipaw)
+    return UpfFile(checksum, version, info, header, mesh, nlcc, local_, nonlocal, pswfc,
+                   full_wfc, rhoatom, spinorb, paw, gipaw)
 end

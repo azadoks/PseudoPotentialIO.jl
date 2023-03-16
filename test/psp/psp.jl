@@ -1,7 +1,7 @@
 function random_versor()
     r, i, j, k = randn(4)
-    quat_inorm = inv(sqrt(r*r + i*i + j*j + k*k))
-    return quat(r*quat_inorm, i*quat_inorm, j*quat_inorm, k*quat_inorm)
+    quat_inorm = inv(sqrt(r * r + i * i + j * j + k * k))
+    return quat(r * quat_inorm, i * quat_inorm, j * quat_inorm, k * quat_inorm)
 end
 
 function rotate_vector(q::Quaternion, u::AbstractVector)
@@ -26,11 +26,11 @@ end
             @test isa(has_spin_orbit(psp), Bool)
             @test isa(has_core_density(psp), Bool)
 
-            for l in 0:max_angular_momentum(psp)
+            for l in angular_momenta(psp)
                 @test size(projector_coupling(psp, l)) ==
                       (n_projector_radials(psp, l), n_projector_radials(psp, l))
                 @test eltype(projector_coupling(psp, l)) <: Real
-                for n in 1:n_projector_radials(psp, l)
+                for n in projector_radial_indices(psp, l)
                     @test projector_coupling(psp, l, n, n) == projector_coupling(psp, l, n)
                     for m in (n + 1):n_projector_radials(psp, l)
                         @test isa(projector_coupling(psp, l, n, m), Real)
@@ -50,10 +50,10 @@ end
             R_rot = rotate_vector(random_versor(), R)
 
             @test local_potential_real(psp)(R) ≈ local_potential_real(psp)(R_rot)
-            for l in 0:max_angular_momentum(psp), n in 1:n_projector_radials(psp, l)
+            for l in angular_momenta(psp), n in projector_radial_indices(psp, l)
                 @test projector_real(psp, l, n)(R) ≈ projector_real(psp, l, n)(R_rot)
             end
-            for l in 0:max_angular_momentum(psp), n in 1:n_pseudo_orbital_radials(psp, l)
+            for l in angular_momenta(psp), n in pseudo_orbital_radial_indices(psp, l)
                 @test pseudo_orbital_real(psp, l, n)(R) ≈
                       pseudo_orbital_real(psp, l, n)(R_rot)
             end
@@ -72,10 +72,10 @@ end
             K_rot = rotate_vector(random_versor(), K)
 
             @test local_potential_fourier(psp)(K) ≈ local_potential_fourier(psp)(K_rot)
-            for l in 0:max_angular_momentum(psp), n in 1:n_projector_radials(psp, l)
+            for l in angular_momenta(psp), n in projector_radial_indices(psp, l)
                 @test projector_fourier(psp, l, n)(K) ≈ projector_fourier(psp, l, n)(K_rot)
             end
-            for l in 0:max_angular_momentum(psp), n in 1:n_pseudo_orbital_radials(psp, l)
+            for l in angular_momenta(psp), n in pseudo_orbital_radial_indices(psp, l)
                 @test pseudo_orbital_fourier(psp, l, n)(K) ≈
                       pseudo_orbital_fourier(psp, l, n)(K_rot)
             end
@@ -91,7 +91,8 @@ end
             end
 
             @test relativistic_treatment(psp) in (:scalar, :full)
-            @test formalism(psp) in (NormConservingPsP, UltrasoftPsP, ProjectorAugmentedWavePsP)
+            @test formalism(psp) in
+                  (NormConservingPsP, UltrasoftPsP, ProjectorAugmentedWavePsP)
         end
     end
 end

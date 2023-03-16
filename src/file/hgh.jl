@@ -2,6 +2,8 @@
 Hartwigsen-Goedecker-Hutter pseudopotential file contents.
 """
 struct HghFile <: PsPFile
+    "SHA1 Checksum"
+    checksum::Vector{UInt8}
     "Description"
     title::String
     "Pseudo-atomic (valence) charge"
@@ -20,7 +22,11 @@ struct HghFile <: PsPFile
     h::Vector{Matrix{Float64}}
 end
 
-function HghFile(lines::AbstractVector{T}) where {T<:AbstractString}
+function HghFile(io::IO)
+    checksum = SHA.sha1(io)
+    seek(io, 0)
+
+    lines = readlines(io)
     title = strip(lines[1])
     # lines[2] contains the number of electrons (and the AM channel in which they sit)
     m = match(r"^ *(([0-9]+ *)+)", lines[2])
@@ -76,12 +82,16 @@ function HghFile(lines::AbstractVector{T}) where {T<:AbstractString}
             hcoeff = [parse(Float64, part) for part in split(m[1])]
         end
     end
-    HghFile(title, zion, rloc, nloc, cloc, lmax, rp, h)
+    return HghFile(checksum, title, zion, rloc, nloc, cloc, lmax, rp, h)
 end
 
-HghFile(path::AbstractString) = HghFile(readlines(path))
-HghFile(io::IO) = HghFile(readlines(io))
+function HghFile(path::AbstractString)
+    open(path, "r") do io
+        return HghFile(io)
+    end
+end
 
+identifier(psp::HghFile)::String = bytes2hex(psp.checksum)
 format(::HghFile)::String = "HGH"
 function element(psp::HghFile)::String
     title = split(psp.title)

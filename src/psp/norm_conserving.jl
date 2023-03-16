@@ -2,6 +2,8 @@
 Type representing a numeric norm-conserving pseudopotential.
 """
 struct NormConservingPsP{T} <: NumericPsP{T}
+    "SHA1 Checksum"
+    checksum::Vector{UInt8}
     "Total charge."
     Zatom::T
     "Valence charge."
@@ -121,7 +123,8 @@ function _upf_construct_nc_internal(upf::UpfFile)
         ϕ = nothing
     end
 
-    return NormConservingPsP{Float64}(Zatom, Zval, lmax, r, dr, Vloc, β, D, ϕ, ρcore, ρval)
+    return NormConservingPsP{Float64}(upf.checksum, Zatom, Zval, lmax, r, dr, Vloc, β, D,
+                                      ϕ, ρcore, ρval)
 end
 
 function NormConservingPsP(psp8::Psp8File)
@@ -154,7 +157,8 @@ function NormConservingPsP(psp8::Psp8File)
     # multiply by r² for consistency.
     ρcore = isnothing(psp8.rhoc) ? nothing : psp8.rhoc .* r.^2 ./ 4π
     ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
-    return NormConservingPsP{Float64}(Zatom, Zval, lmax, r, dr, Vloc, β, D, ϕ, ρcore, ρval)
+    return NormConservingPsP{Float64}(psp8.checksum, Zatom, Zval, lmax, r, dr, Vloc, β, D,
+                                      ϕ, ρcore, ρval)
 end
 
 is_norm_conserving(::NormConservingPsP)::Bool = true

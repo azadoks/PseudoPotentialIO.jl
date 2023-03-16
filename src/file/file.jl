@@ -7,6 +7,8 @@ of quantities should be exactly those found in the file.
 Required methods:
 
 ```julia
+# A unique string, usually a hash or checksum.
+function identifier(file::PsPFile)::AbstractString end
 # A short string listing the file format (e.g. `"PSP8"`)
 function format(file::PsPFile)::AbstractString end
 # The symbol of the element for which the file contains a pseudopotential (e.g. `"Ag"`)
@@ -34,6 +36,11 @@ function has_core_density(file::PsPFile)::Bool end
 abstract type PsPFile end
 
 #!!! Required functions !!!#
+"""
+Identifying data (preferably unique).
+"""
+function identifier(file::PsPFile) end
+
 """
 Pseudopotential file format.
 """
@@ -152,10 +159,14 @@ Number of angular parts of the pseudo-atomic wavefunctions at all angular moment
 to the maximum angular momentum channel.
 """
 function n_pseudo_orbital_angulars(file::PsPFile)
-    return sum(l -> n_pseudo_orbtial_angulars(file, l), 0:max_angular_momentum(file); init=0)
+    return sum(l -> n_pseudo_orbtial_angulars(file, l), 0:max_angular_momentum(file);
+               init=0)
 end
 
 Base.Broadcast.broadcastable(file::PsPFile) = Ref(file)
+
+Base.:(==)(file1::PsPFile, file2::PsPFile) = identifier(file1) == identifier(file2)
+Base.hash(file::PsPFile) = hash(file.checksum)
 
 function Base.show(io::IO, file::PsPFile)
     typename = string(typeof(file))
@@ -166,6 +177,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", file::PsPFile)
     println(io, typeof(file))
+    @printf "%032s: %s\n" "identifier" identifier(file)
     @printf "%032s: %s\n" "formalism" formalism(file)
     @printf "%032s: %s\n" "element" element(file)
     @printf "%032s: %f\n" "valence charge" valence_charge(file)
@@ -173,5 +185,5 @@ function Base.show(io::IO, ::MIME"text/plain", file::PsPFile)
     @printf "%032s: %s\n" "non-linear core correction" has_core_density(file)
     @printf "%032s: %d\n" "maximum angular momentum" max_angular_momentum(file)
     @printf "%032s: %d\n" "number of projectors" n_projector_radials(file)
-    @printf "%032s: %d"   "number of pseudo-atomic orbitals" n_pseudo_orbital_radials(file)
+    @printf "%032s: %d" "number of pseudo-atomic orbitals" n_pseudo_orbital_radials(file)
 end
