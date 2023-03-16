@@ -40,7 +40,7 @@ function list_families(with_info=false)
     artifacts_toml_path = Artifacts.find_artifacts_toml(pathof(PseudoPotentialIO))
     artifacts = Artifacts.load_artifacts_toml(artifacts_toml_path)
     if with_info
-        df = DataFrame(; name=[], n_psp=[], format=[])
+        df = DataFrames.DataFrame(; name=[], n_psp=[], format=[])
         for (name, artifact) in artifacts
             if artifact_exists(Base.SHA1(artifact["git-tree-sha1"]))
                 psps = list_psp.(name)
@@ -57,6 +57,43 @@ function list_families(with_info=false)
     return df
 end
 
+function show_family_table(family_or_dir::AbstractString)
+    psp_df = _show_family_header(family_or_dir)
+    elements = [PeriodicTable.elements[Symbol(element)] for element in psp_df.Element]
+    elements_struct = PeriodicTable.Elements(elements)
+
+    println()
+    show(Core.stdout, MIME("text/plain"), elements_struct)
+    return nothing
+end
+
+function show_family_list(family_or_dir::AbstractString; elements=[])
+    psp_df = _show_family_header(family_or_dir)
+    if !isempty(elements)
+        psp_df = DataFrames.subset(psp_df, :Element => e -> in.(e, Ref(elements)))
+    end
+    hlines = [0, 1]
+    for i in 2:length(psp_df.Element)
+        if psp_df.Element[i-1] != psp_df.Element[i]
+            push!(hlines, i)
+        end
+    end
+    push!(hlines, DataFrames.nrow(psp_df) + 1)
+    show(psp_df; summary=false, allrows=true, eltypes=false, show_row_number=false,
+         vlines=:all, hlines=hlines)
+    println()
+    return nothing
+end
+
+function _show_family_header(family_or_dir::AbstractString)
+    psp_df = list_psp(family_or_dir)
+    @printf "%10s: %s\n" "Family" family_or_dir
+    @printf "%10s: %s\n" "Directory" _resolve_family(family_or_dir)
+    @printf "%10s: %s\n" "Formalism" join(string.(unique(psp_df.Formalism)), ", ") 
+    @printf "%10s: %d\n" "Pseudos" size(psp_df, 1)
+    return psp_df
+end
+
 """
 List all known pseudopotential files in a given `family`, which can either be a path to 
 a directory containing pseudopotential files or the name of a known pseudopotential family
@@ -70,10 +107,12 @@ function list_psp(family_or_dir::AbstractString)
                            psp_filenames)
     psp_paths = map(f -> joinpath(dir, f), psp_filenames)
     psp_files = load_psp_file.(psp_paths)
-    df = DataFrame(; filename=psp_filenames, element=element.(psp_files),
-                   valence_charge=valence_charge.(psp_files),
+    df = DataFrame(; Element=element.(psp_files), Filename=psp_filenames,
+                   Valence_Charge=valence_charge.(psp_files),
                    NLCC=has_core_density.(psp_files),
-                   spin_orbit=has_spin_orbit.(psp_files), format=typeof.(psp_files))
+                   Spin_Orbit=has_spin_orbit.(psp_files),
+                   Format=typeof.(psp_files),
+                   Formalism=formalism.(psp_files))
     return df
 end
 

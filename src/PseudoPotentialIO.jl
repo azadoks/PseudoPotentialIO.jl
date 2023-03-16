@@ -10,10 +10,10 @@ using Printf
 using Statistics
 using SHA
 
+using DataFrames: DataFrames
+using PeriodicTable: PeriodicTable
 import Base.Broadcast.broadcastable
 import Bessels: gamma
-import DataFrames: DataFrame
-using PeriodicTable: PeriodicTable
 import SpecialFunctions: erf
 
 ## DocStringExtensions Templates
@@ -118,6 +118,8 @@ include("psp/hgh.jl")
 export load_psp_file
 export load_psp
 export list_families
+export show_family_table
+export show_family_list
 export list_psp
 include("load.jl")
 
