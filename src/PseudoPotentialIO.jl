@@ -61,48 +61,56 @@ include("file/hgh.jl")
 
 ## Pseudopotential datastructures and interface
 export AbstractPsP
+export identifier
 export element
-export formalism
-export relativistic_treatment
-export has_spin_orbit
-export has_core_density
-export valence_charge
-export atomic_charge
 export max_angular_momentum
-export angular_momenta
-export projector_radial_indices
 export n_projector_radials
 export n_projector_angulars
-export pseudo_orbital_radial_indices
 export n_pseudo_orbital_radials
 export n_pseudo_orbital_angulars
-export local_potential_real
-export local_potential_fourier
+export valence_charge
+export atomic_charge
+export is_norm_conserving
+export is_ultrasoft
+export is_paw
+export has_spin_orbit
+export has_core_density
+export has_valence_density
+export has_pseudo_orbitals
 export projector_coupling
-export projector_real
-export projector_fourier
-export pseudo_energy_correction
-export core_charge_density_real
-export core_charge_density_fourier
-export valence_charge_density_real
-export valence_charge_density_fourier
-export pseudo_orbital_real
-export pseudo_orbital_fourier
-include("psp/psp.jl")
-
-export NumericPsP
 export local_potential_cutoff_radius
 export projector_cutoff_radius
 export pseudo_orbital_cutoff_radius
 export valence_charge_density_cutoff_radius
 export core_charge_density_cutoff_radius
-export pseudo_cutoff_radius
+export local_potential_real
+export projector_real
+export pseudo_orbital_real
+export valence_charge_density_real
+export core_charge_density_real
+export local_potential_fourier
+export projector_fourier
+export pseudo_orbital_fourier
+export valence_charge_density_fourier
+export core_charge_density_fourier
+export pseudo_energy_correction
+export angular_momenta
+export relativistic_treatment
+export formalism
+export projector_radial_indices
+export pseudo_orbital_radial_indices
+include("psp/psp.jl")
+
+export NumericPsP
 include("psp/numeric.jl")
 
 export NormConservingPsP
 include("psp/norm_conserving.jl")
 
 export UltrasoftPsP
+export augmentation_coupling
+export augmentation_real
+export augmentation_fourier
 include("psp/ultrasoft.jl")
 
 export ProjectorAugmentedWavePsP
@@ -114,7 +122,7 @@ include("psp/analytical.jl")
 export HghPsP
 include("psp/hgh.jl")
 
-## Core functions
+## Loading/listing functions
 export load_psp_file
 export load_psp
 export list_families

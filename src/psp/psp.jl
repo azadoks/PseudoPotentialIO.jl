@@ -124,28 +124,28 @@ function projector_coupling(psp::AbstractPsP, l) end
 """
 Cutoff radius of the local potential in real-space.
 """
-function local_potential_cutoff_radius(psp::AbstractPsP) end
+function local_potential_cutoff_radius(psp::AbstractPsP; tol=nothing) end
 
 """
 Cutoff radius of the `n`th Kleinman-Bylander non-local projector at angular momentum `l` in
 real-space.
 """
-function projector_cutoff_radius(psp::AbstractPsP, l::Int, n::Int) end
+function projector_cutoff_radius(psp::AbstractPsP, l::Int, n::Int; tol=nothing) end
 
 """
 Cutoff radius of the `n`th pseudo-atomic orbital at angular momentum `l` in real-space.
 """
-function pseudo_orbital_cutoff_radius(psp::AbstractPsP, l::Int, n::Int) end
+function pseudo_orbital_cutoff_radius(psp::AbstractPsP, l::Int, n::Int; tol=nothing) end
 
 """
 Cutoff radius of the valence charge density in real-space.
 """
-function valence_charge_density_cutoff_radius(psp::AbstractPsP) end
+function valence_charge_density_cutoff_radius(psp::AbstractPsP; tol=nothing) end
 
 """
 Cutoff radius of the core charge density in real-space.
 """
-function core_charge_density_cutoff_radius(psp::AbstractPsP) end
+function core_charge_density_cutoff_radius(psp::AbstractPsP; tol=nothing) end
 
 """
 Local part of the pseudopotential evaluated at real-space point `r`.

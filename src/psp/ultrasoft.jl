@@ -146,9 +146,9 @@ function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int, m::Int)::T 
 end
 
 function augmentation_real(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
-    return interpolate((psp.r,), psp.Q[l][n, m], (Gridded(Linear()),))
+    return build_interpolator_real(psp.Q[l][n,m], psp.r)
 end
 
 function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
-    return hankel_transform(DensityLike(), psp.r, psp.dr, psp.Q[l][n, m])
+    return hankel_transform(psp.Q[l][n,m], 0, psp.r, psp.dr)
 end
