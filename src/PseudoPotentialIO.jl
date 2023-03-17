@@ -9,8 +9,8 @@ using Polynomials
 using Printf
 using Statistics
 using SHA
+using PrettyTables
 
-using DataFrames: DataFrames
 using PeriodicTable: PeriodicTable
 import Base.Broadcast.broadcastable
 import Bessels: gamma

@@ -13,7 +13,7 @@ TEST_FAMILIES = (
 TEST_FILEPATHS = []
 for family in TEST_FAMILIES
     family_dir = _resolve_family(family)
-    psp_filenames = load_family(family).Filename
+    psp_filenames = load_family(family)["Filename"]
     psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
     append!(TEST_FILEPATHS, psp_filepaths)
 end
@@ -27,7 +27,7 @@ UPF_FAMILIES = (
 UPF_FILEPATHS = []
 for family in UPF_FAMILIES
     family_dir = _resolve_family(family)
-    psp_filenames = load_family(family).Filename
+    psp_filenames = load_family(family)["Filename"]
     psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
     append!(UPF_FILEPATHS, psp_filepaths)
 end
@@ -39,7 +39,7 @@ HGH_FAMILIES = (
 HGH_FILEPATHS = []
 for family in HGH_FAMILIES
     family_dir = _resolve_family(family)
-    psp_filenames = load_family(family).Filename
+    psp_filenames = load_family(family)["Filename"]
     psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
     append!(HGH_FILEPATHS, psp_filepaths)
 end
@@ -51,7 +51,7 @@ PSP8_FAMILIES = (
 PSP8_FILEPATHS = []
 for family in PSP8_FAMILIES
     family_dir = _resolve_family(family)
-    psp_filenames = load_family(family).Filename
+    psp_filenames = load_family(family)["Filename"]
     psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
     append!(PSP8_FILEPATHS, psp_filepaths)
 end
