@@ -57,6 +57,7 @@ projector_cutoff_radius
 chi_function_cutoff_radius
 valence_charge_density_cutoff_radius
 core_charge_density_cutoff_radius
+pseudo_cutoff_radius
 projector_radial_indices
 chi_function_radial_indices
 projector_coupling

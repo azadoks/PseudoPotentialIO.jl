@@ -381,6 +381,11 @@ function chi_function_cutoff_radius(psp::AbstractPsP; f=minimum, tol=nothing)
     return f(cutoff_radii)
 end
 
+"""
+Find the cutoff radius for the pseudopotential. Supply a function `f` to determine what kind
+of reduction over cutoff radii for different quantities is performed. Supply `tol` if
+you'd like to truncate the quantities where they decay to `|f| < tol`.
+"""
 function pseudo_cutoff_radius(psp::AbstractPsP; f=minimum, tol=nothing)
     cutoff_radii = [local_potential_cutoff_radius(psp; tol),
                     projector_cutoff_radius(psp; f, tol),

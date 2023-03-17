@@ -83,6 +83,7 @@ export projector_cutoff_radius
 export chi_function_cutoff_radius
 export valence_charge_density_cutoff_radius
 export core_charge_density_cutoff_radius
+export pseudo_cutoff_radius
 export local_potential_real
 export projector_real
 export chi_function_real

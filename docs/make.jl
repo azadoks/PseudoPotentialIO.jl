@@ -15,6 +15,7 @@ makedocs(;
                                 assets=String[]),
          pages=["Home" => "index.md",
                 "Quantities" => "quantities.md",
+                "Formats" => "formats.md",
                 "api.md"],
          checkdocs=:exports,
          strict=true)
