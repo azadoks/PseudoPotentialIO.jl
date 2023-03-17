@@ -39,6 +39,49 @@ function has_valence_density(psp::AbstractPsP)::Bool end
 function has_pseudo_orbitals(psp:AbstractPsP)::Bool end
 # The projector coupling coefficients for angular momentum `l`
 function projector_coupling(psp::AbstractPsP, l::Integer)::Matrix{Real} end
+# Radial distance where the local potential decays to zero within a tolerance `tol`
+function local_potential_cutoff_radius(psp::AbstractPsP; tol) end
+# Radial distance where the `n`th non-local projector at angular momentum `l` decays to
+# zero within a tolerance `tol`
+function projector_cutoff_radius(psp::AbstractPsP, l, n; tol) end
+# Radial distance where the `n`th pseudo-atomic orbital at angular momentum `l` decays to
+# zero within a tolerance `tol`
+function pseudo_orbital_cutoff_radius(psp::AbstractPsP, l, n; tol) end
+# Radial distance where the valence charge density decays to zero within a tolerance `tol`
+function valence_charge_density_cutoff_radius(psp::AbstractPsP; tol) end
+# Radial distance where the core charge density decays to zero within a tolerance `tol`
+function core_charge_density_cutoff_radius(psp::AbstractPsP; tol) end
+# Returns a function which evaulates the local potential at a real-space radial coordinate
+function local_potential_real(psp::AbstractPsP) end
+# Returns a function which evaulates the `n`th non-local projector with angular momentum
+# `l` at a real-space radial coordinate
+function projector_real(psp::AbstractPsP, l, n) end
+# Returns a function which evaulates the `n`th pseudo-atomic orbital with angular momentum
+# `l` at a real-space radial coordinate
+function pseudo_orbital_real(psp::AbstractPsP, l, n) end
+# Returns a function which evaulates the valence charge density at a real-space
+# radial coordinate
+function valence_charge_density_real(psp::AbstractPsP) end
+# Returns a function which evaulates the core charge density at a real-space
+# radial coordinate
+function core_charge_density_real(psp::AbstractPsP) end
+# Returns a function which evaulates the local potential at a fourier-space radial
+# coordinate
+function local_potential_fourier(psp::AbstractPsP) end
+# Returns a function which evaulates the `n`th non-local projector with angular momentum
+# `l` at a fourier-space radial coordinate
+function projector_fourier(psp::AbstractPsP, l, n) end
+# Returns a function which evaulates the `n`th pseudo-atomic orbital with angular momentum
+# `l` at a fourier-space radial coordinate
+function pseudo_orbital_fourier(psp::AbstractPsP, l, n) end
+# Returns a function which evaulates the valence charge density at a fourier-space
+# radial coordinate
+function valence_charge_density_fourier(psp::AbstractPsP) end
+# Returns a function which evaulates the core charge density at a fourier-space
+# radial coordinate
+function core_charge_density_fourier(psp::AbstractPsP) end
+# The pseudo-potential energy correction
+function pseudo_energy_correction(psp::AbstractPsP) end
 ```
 """
 abstract type AbstractPsP end

@@ -1,83 +1,34 @@
-"""
-Read through the `io` line-by-line until a line contains the `tag` then return. The `io`
-read head will then be at the line following the `tag`.
-
-Example:
-    >    <tag1>
-            some content
-        <\tag1>
-        <tag2>
-            some content
-        <\tag2>
-        EOF
-
-    read_until(io, "tag2")
-
-         <tag1>
-             some content
-         <\tag1>
-         <tag2>
-    >        some content
-         <\tag2>
-         EOF
-"""
-function read_until(io::IO, tag::AbstractString)
-    while true
-        line = readline(io; keep=true)
-        if isempty(line)
-            throw(EOFError())
-        end
-        if occursin(tag, line)
-            return
-        end
+function upf1_parse_psp(io::IO)
+    checksum = SHA.sha1(io)
+    seek(io, 0)
+    version = "1.old"
+    info = upf1_parse_info(io)
+    header = upf1_parse_header(io)
+    mesh = upf1_parse_mesh(io, header.mesh_size)
+    if header.core_correction
+        nlcc = upf1_parse_nlcc(io, header.mesh_size)
+    else
+        nlcc = nothing
     end
-end
-
-"""
-Check if the `tag` occurs in the file contents of `io`. On return, the `io` read haed will
-be returned to the same position as at call time.
-"""
-function has_tag(io::IO, tag::AbstractString)::Bool
-    pos = position(io)
-    try
-        read_until(io, tag)
-        return true
-    catch e
-        !isa(e, EOFError) && rethrow(e)
-        return false
-    finally
-        seek(io, pos)
+    if !header.is_coulomb
+        local_ = upf1_parse_local(io, header.mesh_size)
+    else
+        local_ = nothing
     end
-end
-
-"""
-Read and parse vector data on an `n`-length mesh as type `T` from `io` regardless of whether
-the data are wrapped (i.e. separated by spaces/tabs _or_ newlines). Note that the data are
-read line-by-line, so partially reading lines is _not_ supported.
-
-Example:
-    >    1.0 2.0 3.0
-         4.0 5.0
-         6.0 7.0 8.0
-         EOF
-
-    read_mesh_data(Int, io, 5)
-
-    [1, 2, 3, 4, 5]
-
-         1.0 2.0 3.0
-         4.0 5.0
-    >    6.0 7.0 8.0
-         EOF
-"""
-function read_mesh_data(T::Type, io::IO, n::Integer)
-    mesh_data = T[]
-    while length(mesh_data) < n
-        line_data = parse.(T, split(readline(io)))
-        append!(mesh_data, line_data)
+    nonlocal = upf1_parse_nonlocal(io, header.pseudo_type, header.mesh_size,
+                                   header.number_of_proj, header.l_max)
+    pswfc = upf1_parse_pswfc(io, header.mesh_size, header.number_of_wfc)
+    full_wfc = nothing  # Not supported by UPF v1
+    rhoatom = upf1_parse_rhoatom(io, header.mesh_size)
+    if has_tag(io, "<PP_ADDINFO>")
+        spinorb = upf1_parse_addinfo(io, header.number_of_proj, header.number_of_wfc)
+    else
+        spinorb = nothing
     end
-    length(mesh_data) != n && error("Too many values.")
-    return mesh_data
+    paw = nothing  # Not supported by UPF v1
+    gipaw = nothing  # Not supported by UPF v1
+    return UpfFile(checksum, version, info, header, mesh, nlcc, local_, nonlocal, pswfc,
+                   full_wfc, rhoatom, spinorb, paw, gipaw)
 end
 
 """
@@ -430,35 +381,84 @@ function upf1_parse_addinfo(io::IO, number_of_proj::Int, number_of_wfc::Int)
     return UpfSpinOrb(relwfcs, relbetas)
 end
 
-function upf1_parse_psp(io::IO)
-    checksum = SHA.sha1(io)
-    seek(io, 0)
-    version = "1.old"
-    info = upf1_parse_info(io)
-    header = upf1_parse_header(io)
-    mesh = upf1_parse_mesh(io, header.mesh_size)
-    if header.core_correction
-        nlcc = upf1_parse_nlcc(io, header.mesh_size)
-    else
-        nlcc = nothing
+"""
+Read through the `io` line-by-line until a line contains the `tag` then return. The `io`
+read head will then be at the line following the `tag`.
+
+Example:
+    >    <tag1>
+            some content
+        <\tag1>
+        <tag2>
+            some content
+        <\tag2>
+        EOF
+
+    read_until(io, "tag2")
+
+         <tag1>
+             some content
+         <\tag1>
+         <tag2>
+    >        some content
+         <\tag2>
+         EOF
+"""
+function read_until(io::IO, tag::AbstractString)
+    while true
+        line = readline(io; keep=true)
+        if isempty(line)
+            throw(EOFError())
+        end
+        if occursin(tag, line)
+            return
+        end
     end
-    if !header.is_coulomb
-        local_ = upf1_parse_local(io, header.mesh_size)
-    else
-        local_ = nothing
+end
+
+"""
+Check if the `tag` occurs in the file contents of `io`. On return, the `io` read haed will
+be returned to the same position as at call time.
+"""
+function has_tag(io::IO, tag::AbstractString)::Bool
+    pos = position(io)
+    try
+        read_until(io, tag)
+        return true
+    catch e
+        !isa(e, EOFError) && rethrow(e)
+        return false
+    finally
+        seek(io, pos)
     end
-    nonlocal = upf1_parse_nonlocal(io, header.pseudo_type, header.mesh_size,
-                                   header.number_of_proj, header.l_max)
-    pswfc = upf1_parse_pswfc(io, header.mesh_size, header.number_of_wfc)
-    full_wfc = nothing  # Not supported by UPF v1
-    rhoatom = upf1_parse_rhoatom(io, header.mesh_size)
-    if has_tag(io, "<PP_ADDINFO>")
-        spinorb = upf1_parse_addinfo(io, header.number_of_proj, header.number_of_wfc)
-    else
-        spinorb = nothing
+end
+
+"""
+Read and parse vector data on an `n`-length mesh as type `T` from `io` regardless of whether
+the data are wrapped (i.e. separated by spaces/tabs _or_ newlines). Note that the data are
+read line-by-line, so partially reading lines is _not_ supported.
+
+Example:
+    >    1.0 2.0 3.0
+         4.0 5.0
+         6.0 7.0 8.0
+         EOF
+
+    read_mesh_data(Int, io, 5)
+
+    [1, 2, 3, 4, 5]
+
+         1.0 2.0 3.0
+         4.0 5.0
+    >    6.0 7.0 8.0
+         EOF
+"""
+function read_mesh_data(T::Type, io::IO, n::Integer)
+    mesh_data = T[]
+    while length(mesh_data) < n
+        line_data = parse.(T, split(readline(io)))
+        append!(mesh_data, line_data)
     end
-    paw = nothing  # Not supported by UPF v1
-    gipaw = nothing  # Not supported by UPF v1
-    return UpfFile(checksum, version, info, header, mesh, nlcc, local_, nonlocal, pswfc,
-                   full_wfc, rhoatom, spinorb, paw, gipaw)
+    length(mesh_data) != n && error("Too many values.")
+    return mesh_data
 end

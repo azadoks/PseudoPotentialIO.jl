@@ -1,25 +1,74 @@
-parse_bool(s::AbstractString)::Bool = occursin("T", uppercase(s)) ? true : false
-parse_bool(s::Char)::Bool = uppercase(s) == 'T' ? true : false
+function upf2_parse_psp(io::IO)
+    checksum = SHA.sha1(io)
+    seek(io, 0)
 
-function get_attr(::Type{T}, node::EzXML.Node, key;
-                  default=nothing)::Union{Nothing,T} where {T<:Number}
-    if haskey(node, key)
-        value = strip(node[key])
-        value = replace(uppercase(value), "D" => "E")
-        attr = parse(T, value)
+    text = read(io, String)
+    # Remove end-of-file junk (input data, etc.)
+    text = string(split(text, "</UPF>")[1], "</UPF>")
+    # Clean any errant `&` characters
+    text = replace(text, "&" => "")
+    doc = parsexml(text)
+
+    root_node = root(doc)
+    version = get_attr(String, root_node, "version")
+    #* PP_INFO
+    info_node = findfirst("PP_INFO", root_node)
+    info = isnothing(info_node) ? nothing : nodecontent(info_node)
+    #* PP_HEADER
+    header = upf2_parse_header(doc)
+    #* PP_MESH
+    mesh = upf2_parse_mesh(doc)
+    #* PP_NLCC
+    nlcc_node = findfirst("PP_NLCC", root_node)
+    if isnothing(nlcc_node)
+        nlcc = nothing
     else
-        attr = default
+        nlcc = parse.(Float64, split(strip(nodecontent(nlcc_node))))
     end
-    return attr
-end
+    #* PP_LOCAL
+    local_node = findfirst("PP_LOCAL", root_node)
+    if isnothing(local_node) | header.is_coulomb
+        local_ = nothing
+    else
+        local_ = parse.(Float64, split(strip(nodecontent(local_node))))
+    end
+    #* PP_NONLOCAL
+    nonlocal = upf2_parse_nonlocal(doc)
+    #* PP_PSWFC
+    pswfc_node = findfirst("PP_PSWFC", root_node)
+    pswfc = [upf2_parse_chi(n)
+             for n in eachnode(pswfc_node) if occursin("PP_CHI.", nodename(n))]
+    pswfc = isempty(pswfc) ? nothing : pswfc  # Sometimes the section exists but is empty
+    #* PP_FULL_WFC
+    if isnothing(findfirst("PP_FULL_WFC", root_node))
+        full_wfc = nothing
+    else
+        full_wfc = upf2_parse_full_wfc(doc)
+    end
+    #* PP_RHOATOM
+    rhoatom_node = findfirst("PP_RHOATOM", root_node)
+    rhoatom = parse.(Float64, split(strip(nodecontent(rhoatom_node))))
+    #* PP_SPINORB
+    if isnothing(findfirst("PP_SPIN_ORB", root_node))
+        spinorb = nothing
+    else
+        spinorb = upf2_parse_spin_orb(doc)
+    end
+    #* PP_PAW
+    if isnothing(findfirst("PP_PAW", root_node))
+        paw = nothing
+    else
+        paw = upf2_parse_paw(doc)
+    end
+    #* PP_GIPAW
+    if isnothing(findfirst("PP_GIPAW", root_node))
+        gipaw = nothing
+    else
+        gipaw = upf2_parse_gipaw(doc)
+    end
 
-function get_attr(::Type{T}, node::EzXML.Node, key;
-                  default=nothing)::Union{Nothing,T} where {T<:AbstractString}
-    return haskey(node, key) ? T(strip(node[key])) : default
-end
-
-function get_attr(::Type{Bool}, node::EzXML.Node, key; default=nothing)::Union{Nothing,Bool}
-    return haskey(node, key) ? parse_bool(strip(node[key])) : default
+    return UpfFile(checksum, version, info, header, mesh, nlcc, local_, nonlocal, pswfc,
+                   full_wfc, rhoatom, spinorb, paw, gipaw)
 end
 
 function upf2_parse_header(node::EzXML.Node)
@@ -335,75 +384,26 @@ function upf2_parse_gipaw(node::EzXML.Node)
 end
 upf2_parse_gipaw(doc::EzXML.Document) = upf2_parse_gipaw(findfirst("PP_GIPAW", root(doc)))
 
-function upf2_parse_psp(io::IO)
-    checksum = SHA.sha1(io)
-    seek(io, 0)
+parse_bool(s::AbstractString)::Bool = occursin("T", uppercase(s)) ? true : false
+parse_bool(s::Char)::Bool = uppercase(s) == 'T' ? true : false
 
-    text = read(io, String)
-    # Remove end-of-file junk (input data, etc.)
-    text = string(split(text, "</UPF>")[1], "</UPF>")
-    # Clean any errant `&` characters
-    text = replace(text, "&" => "")
-    doc = parsexml(text)
+function get_attr(::Type{T}, node::EzXML.Node, key;
+                  default=nothing)::Union{Nothing,T} where {T<:Number}
+    if haskey(node, key)
+        value = strip(node[key])
+        value = replace(uppercase(value), "D" => "E")
+        attr = parse(T, value)
+    else
+        attr = default
+    end
+    return attr
+end
 
-    root_node = root(doc)
-    version = get_attr(String, root_node, "version")
-    #* PP_INFO
-    info_node = findfirst("PP_INFO", root_node)
-    info = isnothing(info_node) ? nothing : nodecontent(info_node)
-    #* PP_HEADER
-    header = upf2_parse_header(doc)
-    #* PP_MESH
-    mesh = upf2_parse_mesh(doc)
-    #* PP_NLCC
-    nlcc_node = findfirst("PP_NLCC", root_node)
-    if isnothing(nlcc_node)
-        nlcc = nothing
-    else
-        nlcc = parse.(Float64, split(strip(nodecontent(nlcc_node))))
-    end
-    #* PP_LOCAL
-    local_node = findfirst("PP_LOCAL", root_node)
-    if isnothing(local_node) | header.is_coulomb
-        local_ = nothing
-    else
-        local_ = parse.(Float64, split(strip(nodecontent(local_node))))
-    end
-    #* PP_NONLOCAL
-    nonlocal = upf2_parse_nonlocal(doc)
-    #* PP_PSWFC
-    pswfc_node = findfirst("PP_PSWFC", root_node)
-    pswfc = [upf2_parse_chi(n)
-             for n in eachnode(pswfc_node) if occursin("PP_CHI.", nodename(n))]
-    pswfc = isempty(pswfc) ? nothing : pswfc  # Sometimes the section exists but is empty
-    #* PP_FULL_WFC
-    if isnothing(findfirst("PP_FULL_WFC", root_node))
-        full_wfc = nothing
-    else
-        full_wfc = upf2_parse_full_wfc(doc)
-    end
-    #* PP_RHOATOM
-    rhoatom_node = findfirst("PP_RHOATOM", root_node)
-    rhoatom = parse.(Float64, split(strip(nodecontent(rhoatom_node))))
-    #* PP_SPINORB
-    if isnothing(findfirst("PP_SPIN_ORB", root_node))
-        spinorb = nothing
-    else
-        spinorb = upf2_parse_spin_orb(doc)
-    end
-    #* PP_PAW
-    if isnothing(findfirst("PP_PAW", root_node))
-        paw = nothing
-    else
-        paw = upf2_parse_paw(doc)
-    end
-    #* PP_GIPAW
-    if isnothing(findfirst("PP_GIPAW", root_node))
-        gipaw = nothing
-    else
-        gipaw = upf2_parse_gipaw(doc)
-    end
+function get_attr(::Type{T}, node::EzXML.Node, key;
+                  default=nothing)::Union{Nothing,T} where {T<:AbstractString}
+    return haskey(node, key) ? T(strip(node[key])) : default
+end
 
-    return UpfFile(checksum, version, info, header, mesh, nlcc, local_, nonlocal, pswfc,
-                   full_wfc, rhoatom, spinorb, paw, gipaw)
+function get_attr(::Type{Bool}, node::EzXML.Node, key; default=nothing)::Union{Nothing,Bool}
+    return haskey(node, key) ? parse_bool(strip(node[key])) : default
 end
