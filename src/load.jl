@@ -82,7 +82,7 @@ function show_family_list(family_or_dir::AbstractString; elements=[])
     end
     hlines = [0, 1]
     for i in 2:length(psp_df.Element)
-        if psp_df.Element[i-1] != psp_df.Element[i]
+        if psp_df.Element[i - 1] != psp_df.Element[i]
             push!(hlines, i)
         end
     end
@@ -97,7 +97,7 @@ function _show_family_header(family_or_dir::AbstractString)
     psp_df = list_psp(family_or_dir)
     @printf "%10s: %s\n" "Family" family_or_dir
     @printf "%10s: %s\n" "Directory" _resolve_family(family_or_dir)
-    @printf "%10s: %s\n" "Formalism" join(string.(unique(psp_df.Formalism)), ", ") 
+    @printf "%10s: %s\n" "Formalism" join(string.(unique(psp_df.Formalism)), ", ")
     @printf "%10s: %d\n" "Pseudos" size(psp_df, 1)
     return psp_df
 end
@@ -115,12 +115,12 @@ function list_psp(family_or_dir::AbstractString)
                            psp_filenames)
     psp_paths = map(f -> joinpath(dir, f), psp_filenames)
     psp_files = load_psp_file.(psp_paths)
-    df = DataFrame(; Element=element.(psp_files), Filename=psp_filenames,
-                   Valence_Charge=valence_charge.(psp_files),
-                   NLCC=has_core_density.(psp_files),
-                   Spin_Orbit=has_spin_orbit.(psp_files),
-                   Format=typeof.(psp_files),
-                   Formalism=formalism.(psp_files))
+    df = DataFrames.DataFrame(; Element=element.(psp_files), Filename=psp_filenames,
+                              Valence_Charge=valence_charge.(psp_files),
+                              NLCC=has_core_density.(psp_files),
+                              Spin_Orbit=has_spin_orbit.(psp_files),
+                              Format=typeof.(psp_files),
+                              Formalism=formalism.(psp_files))
     return df
 end
 
