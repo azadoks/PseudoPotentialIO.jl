@@ -3,6 +3,7 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://azadoks.github.io/PseudoPotentialIO.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://azadoks.github.io/PseudoPotentialIO.jl/dev)
 [![Build Status](https://github.com/azadoks/PseudoPotentialIO.jl/workflows/CI/badge.svg)](https://github.com/azadoks/PseudoPotentialIO.jl/actions)
+[![Coverage](https://codecov.io/gh/azadoks/PseudoPotentialIO.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/azadoks/PseudoPotentialIO.jl)
 
 PseudoPotentialIO aims to provide parsers for common pseudopotential file formats used by density functional theory codes and an interface for accesssing the quantities that they contain.
 
