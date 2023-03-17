@@ -115,7 +115,7 @@ struct PSPData
         v::PSPMeshFunction # Pseudo-potential on a radial mesh
 
     # Non-local projectors
-    n_projectors::Int,                   # Number of non-local projectors
+    n_projector_radials::Int,                   # Number of non-local projectors
     projector_energies::Vector{Float64}, # Dij terms for interactions between projectors
     projectors::Vector{PSPProjector},    # Non-local projectors
         qn::QuantumNumber,    # Quantum numbers for the non-local projector
