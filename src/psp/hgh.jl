@@ -46,7 +46,7 @@ element(psp::HghPsP)::String = isnothing(psp.Zatom) ? "unknown" :
 has_spin_orbit(::HghPsP)::Bool = false
 has_core_density(::HghPsP)::Bool = false
 has_valence_density(::HghPsP)::Bool = false
-has_pseudo_orbitals(::HghPsP)::Bool = false
+has_chi_functions(::HghPsP)::Bool = false
 is_norm_conserving(::HghPsP)::Bool = true
 is_ultrasoft(::HghPsP)::Bool = false
 is_paw(::HghPsP)::Bool = false
@@ -54,11 +54,11 @@ valence_charge(psp::HghPsP) = psp.Zval
 atomic_charge(psp::HghPsP) = psp.Zatom
 max_angular_momentum(psp::HghPsP)::Int = psp.lmax
 n_projector_radials(psp::HghPsP, l::Int)::Int = size(psp.D[l], 1)
-n_pseudo_orbital_radials(::HghPsP, ::Int)::Int = 0
+n_chi_function_radials(::HghPsP, ::Int)::Int = 0
 
 local_potential_cutoff_radius(::HghPsP; tol=nothing) = Inf
 projector_cutoff_radius(::HghPsP, ::Int, ::Int; tol=nothing) = Inf
-pseudo_orbital_cutoff_radius(::HghPsP, ::Int, ::Int; tol=nothing) = Inf
+chi_function_cutoff_radius(::HghPsP, ::Int, ::Int; tol=nothing) = Inf
 valence_charge_density_cutoff_radius(::HghPsP; tol=nothing) = Inf
 core_charge_density_cutoff_radius(::HghPsP; tol=nothing) = Inf
 

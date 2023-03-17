@@ -46,7 +46,7 @@ struct UpfHeader <: PsPFile
     l_local::Union{Nothing,Int}
     "Number of points in the radial grid"
     mesh_size::Int
-    "Number of pseudo-atomic wavefunctions"
+    "Number of chi-functions"
     number_of_wfc::Int
     "Number of Kleinman-Bylander nonlocal projectors"
     number_of_proj::Int
@@ -359,6 +359,6 @@ max_angular_momentum(file::UpfFile)::Int = file.header.l_max
 function n_projector_radials(file::UpfFile, l::Int)::Int
     return count(beta -> beta.angular_momentum == l, file.nonlocal.betas)
 end
-function n_pseudo_orbital_radials(file::UpfFile, l::Int)::Int
+function n_chi_function_radials(file::UpfFile, l::Int)::Int
     return file.header.number_of_wfc == 0 ? 0 : count(chi -> chi.l == l, file.pswfc)
 end

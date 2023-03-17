@@ -57,14 +57,14 @@ import PseudoPotentialIO: build_interpolator_real
             end
 
             @testset "Pseudo-atomic wavefunction Fouriers agree with real" begin
-                if !isnothing(psp.ϕ)
-                    for l in 0:(psp.lmax), n in eachindex(psp.ϕ[l])
-                        itp = build_interpolator_real(psp.ϕ[l][n], psp.r)
-                        rmax = pseudo_orbital_cutoff_radius(psp, l, n)
-                        ϕ_fourier = pseudo_orbital_fourier(psp, l, n; tol)
+                if !isnothing(psp.χ)
+                    for l in 0:(psp.lmax), n in eachindex(psp.χ[l])
+                        itp = build_interpolator_real(psp.χ[l][n], psp.r)
+                        rmax = chi_function_cutoff_radius(psp, l, n)
+                        χ_fourier = chi_function_fourier(psp, l, n; tol)
                         for q in (0.01, 0.5, 2.5, 5.0, 10.0, 50.0)
                             ref = quadgk(radial_quantity_integrand(psp, itp, l, q), rmin, rmax)[1]
-                            @test ref ≈ ϕ_fourier(q) rtol = 1e-1 atol = 1e-1
+                            @test ref ≈ χ_fourier(q) rtol = 1e-1 atol = 1e-1
                         end
                     end
                 end

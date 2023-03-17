@@ -108,7 +108,7 @@ function upf1_parse_header(io::IO)
     s = split(readline(io))
     mesh_size = parse(Int, s[1])
 
-    # Line 11 contains the number of pseudo-atomic wavefunctions and the number of KB
+    # Line 11 contains the number of chi-functions and the number of KB
     # non-local projectors
     s = split(readline(io))
     number_of_wfc = parse(Int, s[1])

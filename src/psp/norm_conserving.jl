@@ -20,8 +20,8 @@ struct NormConservingPsP{T} <: NumericPsP{T}
     β::OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}
     "Projector coupling coefficients D[l][n,m]."
     D::OffsetVector{Matrix{T},Vector{Matrix{T}}}
-    "Pseudo-atomic wavefunctions ϕ[l][n] on the radial mesh (with an r² prefactor)."
-    ϕ::Union{Nothing,OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}}
+    "Pseudo-atomic wavefunctions χ[l][n] on the radial mesh (with an r² prefactor)."
+    χ::Union{Nothing,OffsetVector{Vector{Vector{T}},Vector{Vector{Vector{T}}}}}
     "Model core charge density on the radial mesh (with an r² prefactor)."
     ρcore::Union{Nothing,Vector{T}}
     "Valence charge density on the radial mesh (with an r² prefactor)."
@@ -110,21 +110,21 @@ function _upf_construct_nc_internal(upf::UpfFile)
         iχ_upf = OffsetVector(iχ_upf, 0:lmax)
 
         # UPFs store the wavefunctions multiplied by the radial grid, so we multiply again
-        # by r (to get r²ϕ) for consistency.
-        ϕ = map(0:lmax) do l
+        # by r (to get r²χ) for consistency.
+        χ = map(0:lmax) do l
             map(iχ_upf[l]) do i
                 χln = upf.pswfc[i].chi
                 χln = χln .* @view r[1:length(χln)]
                 return χln
             end
         end
-        ϕ = OffsetVector(ϕ, 0:lmax)
+        χ = OffsetVector(χ, 0:lmax)
     else
-        ϕ = nothing
+        χ = nothing
     end
 
     return NormConservingPsP{Float64}(upf.checksum, Zatom, Zval, lmax, r, dr, Vloc, β, D,
-                                      ϕ, ρcore, ρval)
+                                      χ, ρcore, ρval)
 end
 
 function NormConservingPsP(psp8::Psp8File)
@@ -152,13 +152,13 @@ function NormConservingPsP(psp8::Psp8File)
     β = OffsetVector(β, 0:lmax)
 
     D = OffsetVector(map(l -> diagm(psp8.ekb[l + 1]), 0:lmax), 0:lmax)
-    ϕ = nothing  # PSP8 doesn't support pseudo-atomic wavefunctions
+    χ = nothing  # PSP8 doesn't support chi-functions
     # PSP8s store the core charge density with a prefactor of 4π, so we remove it and
     # multiply by r² for consistency.
     ρcore = isnothing(psp8.rhoc) ? nothing : psp8.rhoc .* r.^2 ./ 4π
     ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
     return NormConservingPsP{Float64}(psp8.checksum, Zatom, Zval, lmax, r, dr, Vloc, β, D,
-                                      ϕ, ρcore, ρval)
+                                      χ, ρcore, ρval)
 end
 
 is_norm_conserving(::NormConservingPsP)::Bool = true

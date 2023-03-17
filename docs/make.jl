@@ -14,6 +14,7 @@ makedocs(;
                                 canonical="https://azadoks.github.io/PseudoPotentialIO.jl",
                                 assets=String[]),
          pages=["Home" => "index.md",
+                "Quantities" => "quantities.md",
                 "api.md"],
          checkdocs=:exports,
          strict=true)

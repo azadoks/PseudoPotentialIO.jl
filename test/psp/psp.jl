@@ -18,7 +18,7 @@ end
             @test isa(element(psp), AbstractString)
             @test -1 <= max_angular_momentum(psp) <= 5
             @test 0 <= n_projector_radials(psp)
-            @test 0 <= n_pseudo_orbital_radials(psp)
+            @test 0 <= n_chi_function_radials(psp)
             @test 0 <= valence_charge(file)  # <= element(file).number
             @test isa(is_norm_conserving(psp), Bool)
             @test isa(is_ultrasoft(psp), Bool)
@@ -53,9 +53,9 @@ end
             for l in angular_momenta(psp), n in projector_radial_indices(psp, l)
                 @test projector_real(psp, l, n)(R) ≈ projector_real(psp, l, n)(R_rot)
             end
-            for l in angular_momenta(psp), n in pseudo_orbital_radial_indices(psp, l)
-                @test pseudo_orbital_real(psp, l, n)(R) ≈
-                      pseudo_orbital_real(psp, l, n)(R_rot)
+            for l in angular_momenta(psp), n in chi_function_radial_indices(psp, l)
+                @test chi_function_real(psp, l, n)(R) ≈
+                      chi_function_real(psp, l, n)(R_rot)
             end
             ρval_R = valence_charge_density_real(psp)(R)
             @test typeof(ρval_R) <: Union{Nothing,Real}
@@ -75,9 +75,9 @@ end
             for l in angular_momenta(psp), n in projector_radial_indices(psp, l)
                 @test projector_fourier(psp, l, n)(K) ≈ projector_fourier(psp, l, n)(K_rot)
             end
-            for l in angular_momenta(psp), n in pseudo_orbital_radial_indices(psp, l)
-                @test pseudo_orbital_fourier(psp, l, n)(K) ≈
-                      pseudo_orbital_fourier(psp, l, n)(K_rot)
+            for l in angular_momenta(psp), n in chi_function_radial_indices(psp, l)
+                @test chi_function_fourier(psp, l, n)(K) ≈
+                      chi_function_fourier(psp, l, n)(K_rot)
             end
             ρval_K = valence_charge_density_fourier(psp)(K)
             @test typeof(ρval_K) <: Union{Nothing,Real}

@@ -45,7 +45,7 @@ export has_core_density
 export valence_charge
 export max_angular_momentum
 export n_projector_radials
-export n_pseudo_orbital_radials
+export n_chi_function_radials
 include("file/file.jl")
 
 export UpfFile
@@ -66,8 +66,8 @@ export element
 export max_angular_momentum
 export n_projector_radials
 export n_projector_angulars
-export n_pseudo_orbital_radials
-export n_pseudo_orbital_angulars
+export n_chi_function_radials
+export n_chi_function_angulars
 export valence_charge
 export atomic_charge
 export is_norm_conserving
@@ -76,21 +76,21 @@ export is_paw
 export has_spin_orbit
 export has_core_density
 export has_valence_density
-export has_pseudo_orbitals
+export has_chi_functions
 export projector_coupling
 export local_potential_cutoff_radius
 export projector_cutoff_radius
-export pseudo_orbital_cutoff_radius
+export chi_function_cutoff_radius
 export valence_charge_density_cutoff_radius
 export core_charge_density_cutoff_radius
 export local_potential_real
 export projector_real
-export pseudo_orbital_real
+export chi_function_real
 export valence_charge_density_real
 export core_charge_density_real
 export local_potential_fourier
 export projector_fourier
-export pseudo_orbital_fourier
+export chi_function_fourier
 export valence_charge_density_fourier
 export core_charge_density_fourier
 export pseudo_energy_correction
@@ -98,7 +98,7 @@ export angular_momenta
 export relativistic_treatment
 export formalism
 export projector_radial_indices
-export pseudo_orbital_radial_indices
+export chi_function_radial_indices
 include("psp/psp.jl")
 
 export NumericPsP

@@ -290,4 +290,4 @@ is_paw(file::Psp8File)::Bool = false
 valence_charge(file::Psp8File)::Float64 = file.header.zion
 max_angular_momentum(file::Psp8File)::Int = file.header.lmax
 n_projector_radials(file::Psp8File, l::Int)::Int = file.header.nproj[l + 1]
-n_pseudo_orbital_radials(::Psp8File, l::Int)::Int = 0
+n_chi_function_radials(::Psp8File, l::Int)::Int = 0

@@ -43,8 +43,8 @@ D::OffsetVector{AbstractMatrix{Real}}
 # Pseudo-atomic valence charge density on the radial mesh, multiplied by the mesh squared:
 # r²ρval
 ρval::Union{Nothing,AbstractVector{Real}}
-# Pseudo-atomic orbitals on the radial mesh, multiplied by the mesh squared: r²ϕ[l][n]
-ϕ::Union{Nothing,OffsetVector{AbstractVector{AbstractVector{Real}}}}
+# Pseudo-atomic orbitals on the radial mesh, multiplied by the mesh squared: r²χ[l][n]
+χ::Union{Nothing,OffsetVector{AbstractVector{AbstractVector{Real}}}}
 ```
 """
 abstract type NumericPsP{T} <: AbstractPsP end
@@ -55,14 +55,14 @@ function element(psp::NumericPsP)::String
 end
 max_angular_momentum(psp::NumericPsP)::Int = psp.lmax
 n_projector_radials(psp::NumericPsP, l::Int)::Int = length(psp.β[l])
-n_pseudo_orbital_radials(psp::NumericPsP, l::Int)::Int = isnothing(psp.ϕ) ? 0 :
-                                                         length(psp.ϕ[l])
+n_chi_function_radials(psp::NumericPsP, l::Int)::Int = isnothing(psp.χ) ? 0 :
+                                                         length(psp.χ[l])
 valence_charge(psp::NumericPsP) = psp.Zval
 atomic_charge(psp::NumericPsP) = psp.Zatom
 has_spin_orbit(::NumericPsP)::Bool = false  # This is a current limitation
 has_core_density(psp::NumericPsP)::Bool = !isnothing(psp.ρcore)
 has_valence_density(psp::NumericPsP)::Bool = !isnothing(psp.ρval)
-has_pseudo_orbitals(psp::NumericPsP)::Bool = !isnothing(psp.ϕ)
+has_chi_functions(psp::NumericPsP)::Bool = !isnothing(psp.χ)
 
 function local_potential_cutoff_radius(psp::NumericPsP; tol=nothing)
     ir_cut = find_truncation_index(psp.Vloc, tol)
@@ -74,9 +74,9 @@ function projector_cutoff_radius(psp::NumericPsP, l::Int, n::Int; tol=nothing)
     return psp.r[ir_cut]
 end
 
-function pseudo_orbital_cutoff_radius(psp::NumericPsP, l::Int, n::Int; tol=nothing)
-    !has_pseudo_orbitals(psp) && return nothing
-    ir_cut = find_truncation_index(psp.ϕ[l][n], tol)
+function chi_function_cutoff_radius(psp::NumericPsP, l::Int, n::Int; tol=nothing)
+    !has_chi_functions(psp) && return nothing
+    ir_cut = find_truncation_index(psp.χ[l][n], tol)
     return psp.r[ir_cut]
 end
 
@@ -104,9 +104,9 @@ function projector_real(psp::NumericPsP, l::Int, n::Int)
     return build_interpolator_real(psp.β[l][n], psp.r)
 end
 
-function pseudo_orbital_real(psp::NumericPsP, l::Int, n::Int)
-    isnothing(psp.ϕ) && return _ -> nothing
-    return build_interpolator_real(psp.ϕ[l][n], psp.r)
+function chi_function_real(psp::NumericPsP, l::Int, n::Int)
+    isnothing(psp.χ) && return _ -> nothing
+    return build_interpolator_real(psp.χ[l][n], psp.r)
 end
 
 function valence_charge_density_real(psp::NumericPsP)
@@ -139,10 +139,10 @@ end
     return hankel_transform(psp.β[l][n], l, psp.r, psp.dr; i_stop)
 end
 
-@inbounds function pseudo_orbital_fourier(psp::NumericPsP, l::Int, n::Int; tol=nothing)
-    isnothing(psp.ϕ) && return _ -> nothing
-    i_stop = find_truncation_index(psp.ϕ[l][n], tol)
-    return hankel_transform(psp.ϕ[l][n], l, psp.r, psp.dr; i_stop)
+@inbounds function chi_function_fourier(psp::NumericPsP, l::Int, n::Int; tol=nothing)
+    isnothing(psp.χ) && return _ -> nothing
+    i_stop = find_truncation_index(psp.χ[l][n], tol)
+    return hankel_transform(psp.χ[l][n], l, psp.r, psp.dr; i_stop)
 end
 
 function valence_charge_density_fourier(psp::NumericPsP; tol=nothing)

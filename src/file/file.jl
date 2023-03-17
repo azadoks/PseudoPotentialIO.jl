@@ -17,8 +17,8 @@ function elemental_symbol(file::PsPFile)::AbstractString end
 function max_angular_momentum(file::PsPFile)::Integer end
 # The number of non-local projectors for angular momentum `l` contained in the file
 function n_projector_radials(file::PsPFile, l::Integer)::Integer end
-# The number of pseudo-atomic orbitals for angular momentum `l` contained in the file
-function n_pseudo_orbital_radials(file::PsPFile, l::Integer)::Integer end
+# The number of chi functions for angular momentum `l` contained in the file
+function n_chi_function_radials(file::PsPFile, l::Integer)::Integer end
 # The pseudo-atomic valence charge
 function valence_charge(file::PsPFile)::Real end
 # Whether the file contains a norm-conserving pseudopotential
@@ -63,9 +63,9 @@ momentum.
 function n_projector_radials(file::PsPFile, l) end
 
 """
-Number of radial parts of the pseudo-atomic wavefunctions with angular momentum `l`.
+Number of radial parts of the chi-functions with angular momentum `l`.
 """
-function n_pseudo_orbital_radials(file::PsPFile, l) end
+function n_chi_function_radials(file::PsPFile, l) end
 
 """
 Pseudo-atomic valence charge.
@@ -139,26 +139,26 @@ function n_projector_angulars(file::PsPFile)
 end
 
 """
-Number pseudo-atomic wavefunctions at all angular momenta up to the maximum angular momentum
+Number chi-functions at all angular momenta up to the maximum angular momentum
 channel.
 """
-function n_pseudo_orbital_radials(file::PsPFile)
-    return sum(l -> n_pseudo_orbital_radials(file, l), 0:max_angular_momentum(file); init=0)
+function n_chi_function_radials(file::PsPFile)
+    return sum(l -> n_chi_function_radials(file, l), 0:max_angular_momentum(file); init=0)
 end
 
 """
-Number of angular parts of the pseudo-atomic wavefunctions with angular momentum `l`.
+Number of angular parts of the chi-functions with angular momentum `l`.
 """
-function n_pseudo_orbital_angulars(file::PsPFile, l)
+function n_chi_function_angulars(file::PsPFile, l)
     # for angular momentum l, magnetic q.n. m ∈ -l:l
-    return n_pseudo_orbital_radials(file, l) * (2l + 1)
+    return n_chi_function_radials(file, l) * (2l + 1)
 end
 
 """
-Number of angular parts of the pseudo-atomic wavefunctions at all angular momenta up
+Number of angular parts of the chi-functions at all angular momenta up
 to the maximum angular momentum channel.
 """
-function n_pseudo_orbital_angulars(file::PsPFile)
+function n_chi_function_angulars(file::PsPFile)
     return sum(l -> n_pseudo_orbtial_angulars(file, l), 0:max_angular_momentum(file);
                init=0)
 end
@@ -185,5 +185,5 @@ function Base.show(io::IO, ::MIME"text/plain", file::PsPFile)
     @printf "%032s: %s\n" "non-linear core correction" has_core_density(file)
     @printf "%032s: %d\n" "maximum angular momentum" max_angular_momentum(file)
     @printf "%032s: %d\n" "number of projectors" n_projector_radials(file)
-    @printf "%032s: %d" "number of pseudo-atomic orbitals" n_pseudo_orbital_radials(file)
+    @printf "%032s: %d" "number of chi functions" n_chi_function_radials(file)
 end
