@@ -124,12 +124,13 @@ export HghPsP
 include("psp/hgh.jl")
 
 ## Loading/listing functions
+export list_psp
 export load_psp_file
 export load_psp
 export list_families
-export show_family_table
+export load_family
+export show_family_periodic_table
 export show_family_list
-export list_psp
 include("load.jl")
 
 ## Deprecated loaders

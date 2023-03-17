@@ -28,9 +28,9 @@ HghPsP{T}
 load_psp_file
 load_psp
 list_families
-show_family_table
+load_family
+show_family_periodic_table
 show_family_list
-list_psp
 
 identifier
 element
