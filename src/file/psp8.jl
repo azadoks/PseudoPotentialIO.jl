@@ -36,40 +36,6 @@ struct Psp8Header
     nprojso::Union{Nothing,Vector{Int}}
 end
 
-"""
-ABINIT PSeudoPotential format 8 file contents. Information on the file format specification
-and the meaning of the quantities within the file can be found on the
-["psp8" page](https://docs.abinit.org/developers/psp8_info/) of the ABINIT documentation.
-"""
-struct Psp8File <: PsPFile
-    "SHA1 Checksum"
-    checksum::Vector{UInt8}
-    "Various pseudopotential metadata"
-    header::Psp8Header
-    "Uniform radial grid starting at `r = 0.0`"
-    rgrid::Vector{Float64}
-    "Local part of the pseudopotential"
-    v_local::Vector{Float64}
-    "Radial part of the Kleinman-Bylander projectors for each angular momentum"
-    projectors::Vector{Vector{Vector{Float64}}}
-    "Kleinman-Bylander energies for each angular momentum"
-    ekb::Vector{Vector{Float64}}
-    "Radial part of the spin-orbit Kleinman-Bylander projectors for each angular momentum"
-    projectors_so::Union{Nothing,Vector{Vector{Vector{Float64}}}}
-    "Spin-orbit Kleinman-Bylander energies for each angular momentum"
-    ekb_so::Union{Nothing,Vector{Vector{Float64}}}
-    "Model core charge density"
-    rhoc::Union{Nothing,Vector{Float64}}
-    "First derivative of the model core charge density"
-    d_rhoc_dr::Union{Nothing,Vector{Float64}}
-    "Second derivative of the model core charge density"
-    d2_rhoc_dr2::Union{Nothing,Vector{Float64}}
-    "Third derivative of the model core charge density"
-    d3_rhoc_dr3::Union{Nothing,Vector{Float64}}
-    "Fourth derivative of the model core charge density"
-    d4_rhoc_dr4::Union{Nothing,Vector{Float64}}
-end
-
 function psp8_parse_header(io::IO)
     # Line 1 contains the title / comment describing the pseudopotential
     title = readline(io)
@@ -236,6 +202,40 @@ function psp8_parse_nlcc_block(io, mmax)
         d4_rhoc_dr4[i] = _parse_fortran(Float64, s[7])  # d⁴ρ / dr⁴
     end
     return (; rhoc, d_rhoc_dr, d2_rhoc_dr2, d3_rhoc_dr3, d4_rhoc_dr4)
+end
+
+"""
+ABINIT PSeudoPotential format 8 file contents. Information on the file format specification
+and the meaning of the quantities within the file can be found on the
+["psp8" page](https://docs.abinit.org/developers/psp8_info/) of the ABINIT documentation.
+"""
+struct Psp8File <: PsPFile
+    "SHA1 Checksum"
+    checksum::Vector{UInt8}
+    "Various pseudopotential metadata"
+    header::Psp8Header
+    "Uniform radial grid starting at `r = 0.0`"
+    rgrid::Vector{Float64}
+    "Local part of the pseudopotential"
+    v_local::Vector{Float64}
+    "Radial part of the Kleinman-Bylander projectors for each angular momentum"
+    projectors::Vector{Vector{Vector{Float64}}}
+    "Kleinman-Bylander energies for each angular momentum"
+    ekb::Vector{Vector{Float64}}
+    "Radial part of the spin-orbit Kleinman-Bylander projectors for each angular momentum"
+    projectors_so::Union{Nothing,Vector{Vector{Vector{Float64}}}}
+    "Spin-orbit Kleinman-Bylander energies for each angular momentum"
+    ekb_so::Union{Nothing,Vector{Vector{Float64}}}
+    "Model core charge density"
+    rhoc::Union{Nothing,Vector{Float64}}
+    "First derivative of the model core charge density"
+    d_rhoc_dr::Union{Nothing,Vector{Float64}}
+    "Second derivative of the model core charge density"
+    d2_rhoc_dr2::Union{Nothing,Vector{Float64}}
+    "Third derivative of the model core charge density"
+    d3_rhoc_dr3::Union{Nothing,Vector{Float64}}
+    "Fourth derivative of the model core charge density"
+    d4_rhoc_dr4::Union{Nothing,Vector{Float64}}
 end
 
 function Psp8File(io::IO)

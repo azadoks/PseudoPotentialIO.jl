@@ -1,94 +1,4 @@
 """
-Universal Pseudopotential Format file contents.
-"""
-struct UpfFile <: PsPFile
-    "SHA1 Checksum"
-    checksum::Vector{UInt8}
-    "UPF format version"
-    version::String
-    "Optional general information about the pseudopotential, often generation input"
-    info::Union{Nothing,String}
-    "Various pseudopotential metadata"
-    header::UpfHeader
-    "Radial mesh, mesh integration factors, and other mesh information"
-    mesh::UpfMesh
-    "Pseudized core charge on the radial grid, (ignored if `core_correction` is false)"
-    nlcc::Union{Nothing,Vector{Float64}}  # Σ_{i} 4π r_{i}^2 nlcc_{i}
-    "Local part of the pseudopotential on the radial grid (ignored if `is_coulomb`)"
-    local_::Union{Nothing,Vector{Float64}}
-    "Nonlocal part of the pseudopotential"
-    nonlocal::UpfNonlocal
-    "Pseudo-atomic valence wavefunctions"
-    pswfc::Union{Nothing,Vector{UpfChi}}
-    "All-electron wavefunctions"
-    full_wfc::Union{Nothing,UpfFullWfc}
-    "Pseudo-atomic valence charge density on the radial grid"
-    rhoatom::Vector{Float64}
-    "Spin-orbit coupling data, (ignored if `has_so` is false)"
-    spin_orb::Union{Nothing,UpfSpinOrb}
-    "PAW data, (ignored if `is_paw` is false)"
-    paw::Union{Nothing,UpfPaw}
-    "GIPAW data"
-    gipaw::Union{Nothing,UpfGipaw}
-end
-
-function UpfFile(path::AbstractString)
-    open(path, "r") do io
-        return UpfFile(io)
-    end
-end
-
-function UpfFile(io::IO)
-    version = _get_upf_version(io)
-    if version == 1
-        return upf1_parse_psp(io)
-    end
-    if version == 2
-        return upf2_parse_psp(io)
-    end
-    error("Unknown UPF version.")
-end
-
-function _get_upf_version(io::IO)::Int
-    pos = position(io)
-    seek(io, 0)
-    line = readline(io)
-    seek(io, pos)
-    if occursin("<PP_INFO>", line)
-        # Old UPF files start with the `<PP_INFO>` section
-        return 1
-    elseif occursin("UPF version=\"2.0.1\"", line)
-        # New UPF files with schema are in XML and start with a version tag
-        return 2
-    else
-        error("Unknown UPF version")
-    end
-end
-
-function _get_upf_version(path::AbstractString)::Int
-    open(path, "r") do io
-        return _get_upf_version(io)
-    end
-end
-
-identifier(psp::UpfFile)::String = bytes2hex(psp.checksum)
-format(file::UpfFile)::String = "UPF v$(file.version)"
-element(file::UpfFile)::String = file.header.element
-is_norm_conserving(file::UpfFile)::Bool = file.header.pseudo_type == "NC"
-is_ultrasoft(file::UpfFile)::Bool = file.header.pseudo_type in ("US", "USPP")
-is_paw(file::UpfFile)::Bool = file.header.pseudo_type == "PAW"
-has_spin_orbit(file::UpfFile)::Bool = file.header.has_so
-has_core_density(file::UpfFile)::Bool = file.header.core_correction
-valence_charge(file::UpfFile)::Float64 = file.header.z_valence
-max_angular_momentum(file::UpfFile)::Int = file.header.l_max
-function n_projector_radials(file::UpfFile, l::Int)::Int
-    return count(beta -> beta.angular_momentum == l, file.nonlocal.betas)
-end
-function n_pseudo_orbital_radials(file::UpfFile, l::Int)::Int
-    return file.header.number_of_wfc == 0 ? 0 : count(chi -> chi.l == l, file.pswfc)
-end
-
-"""
 UPF `<PP_HEADER>`
 """
 struct UpfHeader <: PsPFile
@@ -361,4 +271,94 @@ UPF `<PP_GIPAW>`
 struct UpfGipaw
     gipaw_data_format::Int
     core_orbitals::Vector{UpfGipawCoreOrbital}
+end
+
+"""
+Universal Pseudopotential Format file contents.
+"""
+struct UpfFile <: PsPFile
+    "SHA1 Checksum"
+    checksum::Vector{UInt8}
+    "UPF format version"
+    version::String
+    "Optional general information about the pseudopotential, often generation input"
+    info::Union{Nothing,String}
+    "Various pseudopotential metadata"
+    header::UpfHeader
+    "Radial mesh, mesh integration factors, and other mesh information"
+    mesh::UpfMesh
+    "Pseudized core charge on the radial grid, (ignored if `core_correction` is false)"
+    nlcc::Union{Nothing,Vector{Float64}}  # Σ_{i} 4π r_{i}^2 nlcc_{i}
+    "Local part of the pseudopotential on the radial grid (ignored if `is_coulomb`)"
+    local_::Union{Nothing,Vector{Float64}}
+    "Nonlocal part of the pseudopotential"
+    nonlocal::UpfNonlocal
+    "Pseudo-atomic valence wavefunctions"
+    pswfc::Union{Nothing,Vector{UpfChi}}
+    "All-electron wavefunctions"
+    full_wfc::Union{Nothing,UpfFullWfc}
+    "Pseudo-atomic valence charge density on the radial grid"
+    rhoatom::Vector{Float64}
+    "Spin-orbit coupling data, (ignored if `has_so` is false)"
+    spin_orb::Union{Nothing,UpfSpinOrb}
+    "PAW data, (ignored if `is_paw` is false)"
+    paw::Union{Nothing,UpfPaw}
+    "GIPAW data"
+    gipaw::Union{Nothing,UpfGipaw}
+end
+
+function UpfFile(path::AbstractString)
+    open(path, "r") do io
+        return UpfFile(io)
+    end
+end
+
+function UpfFile(io::IO)
+    version = _get_upf_version(io)
+    if version == 1
+        return upf1_parse_psp(io)
+    end
+    if version == 2
+        return upf2_parse_psp(io)
+    end
+    error("Unknown UPF version.")
+end
+
+function _get_upf_version(io::IO)::Int
+    pos = position(io)
+    seek(io, 0)
+    line = readline(io)
+    seek(io, pos)
+    if occursin("<PP_INFO>", line)
+        # Old UPF files start with the `<PP_INFO>` section
+        return 1
+    elseif occursin("UPF version=\"2.0.1\"", line)
+        # New UPF files with schema are in XML and start with a version tag
+        return 2
+    else
+        error("Unknown UPF version")
+    end
+end
+
+function _get_upf_version(path::AbstractString)::Int
+    open(path, "r") do io
+        return _get_upf_version(io)
+    end
+end
+
+identifier(psp::UpfFile)::String = bytes2hex(psp.checksum)
+format(file::UpfFile)::String = "UPF v$(file.version)"
+element(file::UpfFile)::String = file.header.element
+is_norm_conserving(file::UpfFile)::Bool = file.header.pseudo_type == "NC"
+is_ultrasoft(file::UpfFile)::Bool = file.header.pseudo_type in ("US", "USPP")
+is_paw(file::UpfFile)::Bool = file.header.pseudo_type == "PAW"
+has_spin_orbit(file::UpfFile)::Bool = file.header.has_so
+has_core_density(file::UpfFile)::Bool = file.header.core_correction
+valence_charge(file::UpfFile)::Float64 = file.header.z_valence
+max_angular_momentum(file::UpfFile)::Int = file.header.l_max
+function n_projector_radials(file::UpfFile, l::Int)::Int
+    return count(beta -> beta.angular_momentum == l, file.nonlocal.betas)
+end
+function n_pseudo_orbital_radials(file::UpfFile, l::Int)::Int
+    return file.header.number_of_wfc == 0 ? 0 : count(chi -> chi.l == l, file.pswfc)
 end

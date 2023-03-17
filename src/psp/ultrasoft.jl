@@ -133,6 +133,9 @@ is_paw(::UltrasoftPsP)::Bool = false
 
 #TODO test the augmentation functions
 
+"""
+Augmentation charge coupling matrix (elements).
+"""
 function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int)::Matrix{T} where {T}
     return psp.q[l]
 end
@@ -145,10 +148,16 @@ function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int, m::Int)::T 
     return psp.q[l][n, m]
 end
 
+"""
+Augmentation charge in real-space.
+"""
 function augmentation_real(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
     return build_interpolator_real(psp.Q[l][n,m], psp.r)
 end
 
+"""
+Augmentation charge in fourier-space.
+"""
 function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
     return hankel_transform(psp.Q[l][n,m], 0, psp.r, psp.dr)
 end

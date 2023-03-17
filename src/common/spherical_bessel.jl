@@ -4,7 +4,17 @@ Spherical Bessel function of the first kind jₗ(x).
 Consistent with https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions
 and with `SpecialFunctions.sphericalbesselj` and `Bessels.sphericalbesselj`.
 
-Specialized for integer `l` in the range`0 <= l <= 5`.
+Specialized for integer ``l`` in the range ``0 \leq l \leq 5``:
+
+```math
+\begin{aligned}
+j_0(x) &= \frac{\sin(x)}{x} \\
+j_1(x) &= \frac{\sin(x) - x\cos(x)}{x^2} \\
+j_2(x) &= \frac{(3 - x^2)\sin(x) - 3x\cos(x)}{x^3} \\
+j_3(x) &= \frac{(15 - 6x^2)\sin(x) + (x^3 - 15x)\cos(x)}{x^4} \\
+j_4(x) &= \frac{(105 - 45x^2 + x^4)\sin(x) + (10x^3 - 105x)\cos(x)}{x^5} \\
+\end{aligned}
+```
 """
 function fast_sphericalbesselj(l::Integer)
     l == 0 && return fast_sphericalbesselj0

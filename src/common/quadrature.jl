@@ -1,6 +1,5 @@
 @doc raw"""
 Simpson's rule integration for a function `f(x)` on a grid with grid spacing `dx`.
-
 Performs better than the trapezoidal rule on logarithmic grids.
 
 For a uniform grid with an odd number of grid points:
@@ -8,8 +7,8 @@ For a uniform grid with an odd number of grid points:
 \int_a^b f(x) dx \approx
 \frac{\Delta x}{3} \left[
 f(x_1) +
-4 \left( \sum_{i=2, i \mathrm{even}}^{N-1} f(x_i) \right) +
-2 \left( \sum_{i=3, i \mathrm{odd}}^{N-2} f(x_i) +
+4 \left( \sum_{i=2, i_\mathrm{even}}^{N-1} f(x_i) \right) +
+2 \left( \sum_{i=3, i_\mathrm{odd}}^{N-2} f(x_i) +
 f(x_N) \right) \right]
 ```
 """

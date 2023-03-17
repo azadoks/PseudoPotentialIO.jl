@@ -2,10 +2,14 @@
 Hankel / Bessel-Fourier transform of order `l` of a function `f` on a radial mesh `r`.
 The function `f` should be rapidly decaying to zero within the bounds of the mesh.
 
+The radial transform is defined as:
+
 ```math
-4\pi \int_0^\inf f(r) j_l(q r) r^2 dr \approx
+4\pi \int_0^{\infty} f(r) j_l(q r) r^2 dr \approx
 4\pi \int_{r_1}^{r_N} f(r) j_l(q r) r^2 dr
 ```
+
+where ``j_l(x)`` is the spherical Bessel function of the first kind at order ``l``.
 """
 hankel_transform
 @inbounds function hankel_transform(f::AbstractVector, l::Int, r::AbstractVector,

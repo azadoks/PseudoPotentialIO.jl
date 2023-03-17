@@ -57,6 +57,9 @@ function list_families(with_info=false)
     return df
 end
 
+"""
+Show the elements contained in a pseudopotential family as a periodic table.
+"""
 function show_family_table(family_or_dir::AbstractString)
     psp_df = _show_family_header(family_or_dir)
     elements = [PeriodicTable.elements[Symbol(element)] for element in psp_df.Element]
@@ -67,6 +70,11 @@ function show_family_table(family_or_dir::AbstractString)
     return nothing
 end
 
+"""
+List the pseudopotentials in a pseudopotential family in a pretty table.
+The elements for which pseudos are shown can be restricted by passing a list of strings,
+e.g. ["Ag"].
+"""
 function show_family_list(family_or_dir::AbstractString; elements=[])
     psp_df = _show_family_header(family_or_dir)
     if !isempty(elements)

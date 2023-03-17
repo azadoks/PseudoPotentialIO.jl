@@ -28,19 +28,19 @@ For a more consistent interface to the physical quantities with consitent units,
 The following type tree for representing different types of pseudopotentials is implemented
 
 ```
-AbstractPsp
+AbstractPsP
 |
---- NumericPsp (pseudopotentials on grids)
+--- NumericPsP (pseudopotentials on grids)
 |   |
-|   --- NormConservingPsp (UPF, PSP8)
+|   --- NormConservingPsP (UPF, PSP8)
 |   |
-|   --- UltrasoftPsp (UPF)
+|   --- UltrasoftPsP (UPF)
 |   |
-|   --- [Planned] PawPsp
+|   --- [Placeholder] ProjectorAugmentedWavePsP (UPF)
 |
---- AnalyticPsp (pseudopotentials with analytic forms)
+--- AnalyticPsP (pseudopotentials with analytic forms)
     |
-    --- HghPsp (HGH)
+    --- HghPsP (HGH)
 ```
 
 Unsupported features:
