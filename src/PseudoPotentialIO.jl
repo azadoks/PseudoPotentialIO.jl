@@ -124,7 +124,6 @@ export HghPsP
 include("psp/hgh.jl")
 
 ## Loading/listing functions
-export list_psp
 export load_psp_file
 export load_psp
 export list_families
