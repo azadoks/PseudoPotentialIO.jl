@@ -1,17 +1,30 @@
 using PseudoPotentialIO
 using Documenter
 using Literate
+import LibGit2
+import Pkg
 
 DEBUG = false  # Set to true to disable some checks and cleanup
 SRCPATH   = joinpath(@__DIR__, "src")
 BUILDPATH = joinpath(@__DIR__, "build")
 ROOTPATH  = joinpath(@__DIR__, "..")
 CONTINUOUS_INTEGRATION = get(ENV, "CI", nothing) == "true"
+PPIOREV    = LibGit2.head(ROOTPATH)
+PPIOBRANCH = try LibGit2.branch(LibGit2.GitRepo(ROOTPATH)) catch end
+PPIOGH     = "github.com/azadoks/PseudoPotentialIO.jl"
+PPIOREPO   = PPIOGH * ".git"
 PAGES = ["Home" => "index.md",
          "Tutorial" => "tutorial.jl",
          "Quantities" => "quantities.md",
          "Formats" => "formats.md",
          "api.md"]
+
+# Setup julia dependencies for docs generation if not yet done
+Pkg.activate(@__DIR__)
+if !isfile(joinpath(@__DIR__, "Manifest.toml"))
+    Pkg.develop(Pkg.PackageSpec(path=ROOTPATH))
+    Pkg.instantiate()
+end
 
 # Get list of files from PAGES
 extract_paths(pages::AbstractArray) = collect(Iterators.flatten(extract_paths.(pages)))
@@ -54,11 +67,25 @@ makedocs(;
          format=Documenter.HTML(;
                                 prettyurls=CONTINUOUS_INTEGRATION,
                                 canonical="https://azadoks.github.io/PseudoPotentialIO.jl",
+                                edit_link="master",
                                 assets=String[]),
          pages=transform_to_md(PAGES),
          checkdocs=:exports,
-         strict=true)
+         strict=!DEBUG)
 
-deploydocs(;
-           repo="github.com/azadoks/PseudoPotentialIO.jl",
-           devbranch="master")
+# Deploy docs to gh-pages branch
+deploydocs(; repo=PPIOREPO, devbranch="main")
+
+# Remove generated example files
+if !DEBUG
+    for file in literate_files
+        base = splitext(basename(file.src))[1]
+        for ext in [".ipynb", ".md"]
+            rm(joinpath(file.dest, base * ext), force=true)
+        end
+    end
+end
+
+if !CONTINUOUS_INTEGRATION
+    println("\nDocs generated, try $(joinpath(BUILDPATH, "index.html"))")
+end
