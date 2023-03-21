@@ -44,13 +44,10 @@ import PseudoPotentialIO: fast_sphericalbesselj
     end
 
     @testset "fast_sphericalbesselj" begin
-        for l in 0:5
+        for l in 0:10
             for x in (rand(100) .* 100)
                 @test sphericalbesselj(l, x) ≈ fast_sphericalbesselj(l)(x) atol = 1e-8
             end
-        end
-        for l in 6:10
-            @test_throws ErrorException("The case l = $l is not implemented") fast_sphericalbesselj(l)
         end
     end
 

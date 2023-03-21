@@ -1,5 +1,5 @@
 #TODO test hgh file parser
-@testset "HGH" begin
+@testset "HGH File" begin
     @testset "c-q4.hgh" begin
         filename = "c-q4.hgh"
         file = load_psp_file(HGH_CASE_FILEPATHS[filename])

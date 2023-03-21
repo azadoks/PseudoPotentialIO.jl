@@ -87,7 +87,7 @@ function psp8_parse_header(io::IO)
                       rchrg, fchrg, qchrg, nproj, extension_switch, nprojso)
 end
 
-function psp8_parse_projector_block(io, nproj, mmax)
+function psp8_parse_beta_projector_block(io, nproj, mmax)
     # The first line of each projector block contains first the angular momentum of the
     # projectors then the "KB energies" (projector coupling constants) among the projectors
     # in the block
@@ -129,7 +129,7 @@ function psp8_parse_v_local_block(io, mmax)
 end
 
 function psp8_parse_main_blocks(io, mmax, nproj, lmax, lloc)
-    projector_blocks = []
+    beta_projector_blocks = []
     v_local_block = ()
 
     if lmax < lloc  # The local potential does not replace an angular momentum channel
@@ -153,16 +153,16 @@ function psp8_parse_main_blocks(io, mmax, nproj, lmax, lloc)
             if lloc <= lmax
                 # If the local potential is mixed in with the projectors, add an empty block
                 # to maintain proper angular momentum indexing
-                push!(projector_blocks, (; l=block_l, rgrid=nothing, projectors=[], ekb=[]))
+                push!(beta_projector_blocks, (; l=block_l, rgrid=nothing, projectors=[], ekb=[]))
             end
         else
-            block = psp8_parse_projector_block(io, nproj, mmax)
-            push!(projector_blocks, block)
+            block = psp8_parse_beta_projector_block(io, nproj, mmax)
+            push!(beta_projector_blocks, block)
         end
     end
 
-    projectors = [block.projectors for block in projector_blocks]
-    ekb = [block.ekb for block in projector_blocks]
+    projectors = [block.projectors for block in beta_projector_blocks]
+    ekb = [block.ekb for block in beta_projector_blocks]
 
     return (; v_local_block.rgrid, v_local_block.v_local, projectors, ekb)
 end
@@ -170,14 +170,14 @@ end
 function psp8_parse_spin_orbit_blocks(io, mmax, nprojso, lmax)
     # Spin-orbit coupling projector blocks have the same shape as "normal" projector blocks,
     # but there is no spin-orbit local potential.
-    projector_blocks = []
+    beta_projector_blocks = []
     for _ in 1:lmax
-        block = psp8_parse_projector_block(io, nprojso, mmax)
-        push!(projector_blocks, block)
+        block = psp8_parse_beta_projector_block(io, nprojso, mmax)
+        push!(beta_projector_blocks, block)
     end
 
-    projectors = [block.projectors for block in projector_blocks]
-    ekb = [block.ekb for block in projector_blocks]
+    projectors = [block.projectors for block in beta_projector_blocks]
+    ekb = [block.ekb for block in beta_projector_blocks]
 
     return (; projectors, ekb)
 end
@@ -289,5 +289,5 @@ is_ultrasoft(file::Psp8File)::Bool = false
 is_paw(file::Psp8File)::Bool = false
 valence_charge(file::Psp8File)::Float64 = file.header.zion
 max_angular_momentum(file::Psp8File)::Int = file.header.lmax
-n_projector_radials(file::Psp8File, l::Int)::Int = file.header.nproj[l + 1]
-n_chi_function_radials(::Psp8File, l::Int)::Int = 0
+n_beta_projector_radials(file::Psp8File, l::Int)::Int = file.header.nproj[l + 1]
+n_chi_projector_radials(::Psp8File, l::Int)::Int = 0

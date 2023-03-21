@@ -8,8 +8,8 @@ function find_truncation_index(f::AbstractVector, tol)
             break
         end
     end
-    return isnothing(i_trunc) ? lastindex(f) : length(f) - i_trunc - 1
+    return isnothing(i_trunc) ? max(lastindex(f), firstindex(f)) : max(lastindex(f) - i_trunc - 1, firstindex(f))
 end
 
-find_truncation_index(f::AbstractVector, ::Nothing) = lastindex(f)
+find_truncation_index(f::AbstractVector, ::Nothing) = max(lastindex(f), firstindex(f))
 find_truncation_index(::Nothing, ::Nothing) = nothing

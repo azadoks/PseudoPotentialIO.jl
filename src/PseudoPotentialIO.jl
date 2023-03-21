@@ -13,7 +13,7 @@ using PrettyTables
 
 using PeriodicTable: PeriodicTable
 import Base.Broadcast.broadcastable
-import Bessels: gamma
+import Bessels: gamma, sphericalbesselj
 import SpecialFunctions: erf
 
 ## DocStringExtensions Templates
@@ -44,8 +44,8 @@ export relativistic_treatment
 export has_core_density
 export valence_charge
 export max_angular_momentum
-export n_projector_radials
-export n_chi_function_radials
+export n_beta_projector_radials
+export n_chi_projector_radials
 include("file/file.jl")
 
 export UpfFile
@@ -60,46 +60,43 @@ export HghFile
 include("file/hgh.jl")
 
 ## Pseudopotential datastructures and interface
+export AbstractPsPQuantity
+export PsPChargeDensity
+export ValenceChargeDensity
+export CoreChargeDensity
+export PsPProjector
+export BetaProjector
+export ChiProjector
+export PsPCoupling
+export BetaCoupling
+export PsPPotential
+export LocalPotential
+export AugmentationFunction
+export EvaluationSpace
+export RealSpace
+export FourierSpace
+include("psp/quantities.jl")
+
 export AbstractPsP
 export identifier
 export element
 export max_angular_momentum
-export n_projector_radials
-export n_projector_angulars
-export n_chi_function_radials
-export n_chi_function_angulars
+export n_radials
+export n_angulars
 export valence_charge
 export atomic_charge
 export is_norm_conserving
 export is_ultrasoft
 export is_paw
 export has_spin_orbit
-export has_core_density
-export has_valence_density
-export has_chi_functions
-export projector_coupling
-export local_potential_cutoff_radius
-export projector_cutoff_radius
-export chi_function_cutoff_radius
-export valence_charge_density_cutoff_radius
-export core_charge_density_cutoff_radius
-export pseudo_cutoff_radius
-export local_potential_real
-export projector_real
-export chi_function_real
-export valence_charge_density_real
-export core_charge_density_real
-export local_potential_fourier
-export projector_fourier
-export chi_function_fourier
-export valence_charge_density_fourier
-export core_charge_density_fourier
-export pseudo_energy_correction
+export has_quantity
+export get_quantity
+export cutoff_radius
+export psp_quantity_evaluator
+export psp_energy_correction
 export angular_momenta
 export relativistic_treatment
 export formalism
-export projector_radial_indices
-export chi_function_radial_indices
 include("psp/psp.jl")
 
 export NumericPsP

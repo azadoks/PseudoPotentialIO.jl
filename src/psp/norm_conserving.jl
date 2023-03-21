@@ -5,9 +5,9 @@ struct NormConservingPsP{T} <: NumericPsP{T}
     "SHA1 Checksum"
     checksum::Vector{UInt8}
     "Total charge."
-    Zatom::T
+    Zatom::Int
     "Valence charge."
-    Zval::T
+    Zval::Int
     "Maximum angular momentum."
     lmax::Int
     "Radial mesh."

@@ -2,10 +2,12 @@
 Type representing a numeric ultrasoft pseudopotential.
 """
 struct UltrasoftPsP{T} <: NumericPsP{T}
+    "Checksum"
+    checksum::Vector{UInt8}
     "Total charge"
-    Zatom::T
+    Zatom::Int
     "Valence charge"
-    Zval::T
+    Zval::Int
     "Maximum angular momentum"
     lmax::Int
     "Radial mesh"
@@ -123,8 +125,8 @@ function _upf_construct_us_internal(upf::UpfFile)
     else
         error("q_with_l == false and nqf == 0, unsure what to do...")
     end
-    return UltrasoftPsP{Float64}(nc.Zatom, nc.Zval, nc.lmax, nc.r, nc.dr, nc.Vloc, nc.β,
-                                 nc.D, nc.χ, Q, q, nc.ρcore, nc.ρval)
+    return UltrasoftPsP{Float64}(nc.checksum, nc.Zatom, nc.Zval, nc.lmax, nc.r, nc.dr,
+                                 nc.Vloc, nc.β, nc.D, nc.χ, Q, q, nc.ρcore, nc.ρval)
 end
 
 is_norm_conserving(::UltrasoftPsP)::Bool = false
@@ -152,12 +154,12 @@ end
 Augmentation charge in real-space.
 """
 function augmentation_real(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
-    return build_interpolator_real(psp.Q[l][n,m], psp.r)
+    return build_interpolator_real(psp.Q[l][n, m], psp.r)
 end
 
 """
 Augmentation charge in fourier-space.
 """
 function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
-    return hankel_transform(psp.Q[l][n,m], 0, psp.r, psp.dr)
+    return hankel_transform(psp.Q[l][n, m], 0, psp.r, psp.dr)
 end

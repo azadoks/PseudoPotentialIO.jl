@@ -1,4 +1,4 @@
-@testset "UPF v1.old" begin
+@testset "UPF v1.old File" begin
     @testset "Internal data consistency" begin
         for filepath in values(UPF1_CASE_FILEPATHS)
             file = load_psp_file(filepath)

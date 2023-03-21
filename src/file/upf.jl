@@ -356,9 +356,9 @@ has_spin_orbit(file::UpfFile)::Bool = file.header.has_so
 has_core_density(file::UpfFile)::Bool = file.header.core_correction
 valence_charge(file::UpfFile)::Float64 = file.header.z_valence
 max_angular_momentum(file::UpfFile)::Int = file.header.l_max
-function n_projector_radials(file::UpfFile, l::Int)::Int
+function n_beta_projector_radials(file::UpfFile, l::Int)::Int
     return count(beta -> beta.angular_momentum == l, file.nonlocal.betas)
 end
-function n_chi_function_radials(file::UpfFile, l::Int)::Int
+function n_chi_projector_radials(file::UpfFile, l::Int)::Int
     return file.header.number_of_wfc == 0 ? 0 : count(chi -> chi.l == l, file.pswfc)
 end
