@@ -26,10 +26,45 @@ include("fixtures.jl")
         include("aqua.jl")
     end
 
-    if any(in.(("all", "common"), Ref(TAGS)))
-        include("common.jl")
+    ## Common
+    if any(in.(("all", "common", "hankel_transform"), Ref(TAGS)))
+        include("common/hankel_transform.jl")
     end
 
+    if any(in.(("all", "common", "interpolation"), Ref(TAGS)))
+        include("common/interpolation.jl")
+    end
+
+    if any(in.(("all", "common", "mesh"), Ref(TAGS)))
+        include("common/mesh.jl")
+    end
+
+    if any(in.(("all", "common", "quadrature"), Ref(TAGS)))
+        include("common/quadrature.jl")
+    end
+
+    if any(in.(("all", "common", "spherical_bessel"), Ref(TAGS)))
+        include("common/spherical_bessel.jl")
+    end
+
+    if any(in.(("all", "common", "truncation"), Ref(TAGS)))
+        include("common/truncation.jl")
+    end
+
+    ## I/O
+    if any(in.(("all", "io", "load"), Ref(TAGS)))
+        include("io/load.jl")
+    end
+
+    if any(in.(("all", "io", "list"), Ref(TAGS)))
+        include("io/list.jl")
+    end
+
+    if any(in.(("all", "io", "show"), Ref(TAGS)))
+        include("io/show.jl")
+    end
+
+    ## File formats
     if any(in.(("all", "file"), Ref(TAGS)))
         include("file/file.jl")
     end
@@ -54,6 +89,7 @@ include("fixtures.jl")
         include("file/hgh.jl")
     end
 
+    ## Pseudopotentials
     if any(in.(("all", "psp"), Ref(TAGS)))
         include("psp/psp.jl")
     end
@@ -82,6 +118,7 @@ include("fixtures.jl")
         include("psp/upf_psp8.jl")
     end
 
+    ## Deprecated
     if any(in.(("all", "deprecated"), Ref(TAGS)))
         include("deprecated/upf.jl")
         include("deprecated/upf_json.jl")

@@ -47,9 +47,9 @@ Pseudopotential file format.
 function format(file::PsPFile) end
 
 """
-Short symbol of the element which the pseudopotential was constructed to reproduce.
+The element which the pseudopotential was constructed to reproduce.
 """
-function elemental_symbol(file::PsPFile) end
+function element(file::PsPFile) end
 
 """
 Maximum angular momentum channel in the local part of the pseudopotential.
@@ -57,15 +57,9 @@ Maximum angular momentum channel in the local part of the pseudopotential.
 function max_angular_momentum(file::PsPFile) end
 
 """
-Number of radial parts of the Kleinman-Bylander projectors `Rl(r)` at a given angular
-momentum.
+Number of radial functions of the given quantity contained in the pseudopotential file.
 """
-function n_beta_projector_radials(file::PsPFile, l) end
-
-"""
-Number of radial parts of the chi-functions with angular momentum `l`.
-"""
-function n_chi_projector_radials(file::PsPFile, l) end
+function n_radials(::PsPProjector, file::PsPFile, l) end
 
 """
 Pseudo-atomic valence charge.
@@ -92,12 +86,6 @@ Whether the pseudopotential contains relativistic spin-orbit coupling data.
 """
 function has_spin_orbit(file::PsPFile) end
 
-"""
-Whether the pseudopotential contains non-linear core correction data (model core charge
-density).
-"""
-function has_core_density(file::PsPFile) end
-
 #!!! Convenience functions !!!#
 """
 Formalism of the pseudopotential.
@@ -113,59 +101,25 @@ Type of relativistic treatment (fully relativistic or scalar-relativistic).
 """
 relativistic_treatment(file::PsPFile)::Symbol = has_spin_orbit(file) ? :full : :scalar
 
-"""
-Number of radial parts of the Kleinman-Bylander nonlocal projectors at all angular momenta
-up to the maximum angular momentum channel.
-"""
-function n_beta_projector_radials(file::PsPFile)
-    return sum(l -> n_beta_projector_radials(file, l), 0:max_angular_momentum(file); init=0)
+function n_radials(q::PsPProjector, file::PsPFile)
+    return sum(l -> n_radials(q, file, l), 0:max_angular_momentum(file); init=0)
 end
 
-"""
-Number of angular parts `Yₗₘ(r̂)` of the Kleinman-Bylander projectors `Rₗₙ(|r|)Yₗₘ(r̂)` at a
-given angular momentum `l`.
-"""
-function n_beta_projector_angulars(file::PsPFile, l)
-    # for angular momentum l, magnetic q.n. m ∈ -l:l
-    return n_beta_projector_radials(file, l) * (2l + 1)
+function n_angulars(q::PsPProjector, file::PsPFile, l)
+    return n_radials(q, file, l) * (2l + 1)
 end
 
 """
 Number of angular parts of the Kleinman-Bylander projectors at all angular momenta up
 to the maximum angular momentum channel.
 """
-function n_beta_projector_angulars(file::PsPFile)
-    return sum(l -> n_beta_projector_angulars(file, l), 0:max_angular_momentum(file); init=0)
-end
-
-"""
-Number chi-functions at all angular momenta up to the maximum angular momentum
-channel.
-"""
-function n_chi_projector_radials(file::PsPFile)
-    return sum(l -> n_chi_projector_radials(file, l), 0:max_angular_momentum(file); init=0)
-end
-
-"""
-Number of angular parts of the chi-functions with angular momentum `l`.
-"""
-function n_chi_projector_angulars(file::PsPFile, l)
-    # for angular momentum l, magnetic q.n. m ∈ -l:l
-    return n_chi_projector_radials(file, l) * (2l + 1)
-end
-
-"""
-Number of angular parts of the chi-functions at all angular momenta up
-to the maximum angular momentum channel.
-"""
-function n_chi_projector_angulars(file::PsPFile)
-    return sum(l -> n_pseudo_orbtial_angulars(file, l), 0:max_angular_momentum(file);
-               init=0)
+function n_angulars(q::PsPProjector, file::PsPFile)
+    return sum(l -> n_angulars(q, file, l), 0:max_angular_momentum(file); init=0)
 end
 
 Base.Broadcast.broadcastable(file::PsPFile) = Ref(file)
 
-Base.:(==)(file1::PsPFile, file2::PsPFile) = identifier(file1) == identifier(file2)
+Base.:(==)(file1::PsPFile, file2::PsPFile) = file1.checksum == file2.checksum
 Base.hash(file::PsPFile) = hash(file.checksum)
 
 function Base.show(io::IO, file::PsPFile)
@@ -182,8 +136,8 @@ function Base.show(io::IO, ::MIME"text/plain", file::PsPFile)
     @printf "%032s: %s\n" "element" element(file)
     @printf "%032s: %f\n" "valence charge" valence_charge(file)
     @printf "%032s: %s\n" "relativistic treatment" relativistic_treatment(file)
-    @printf "%032s: %s\n" "non-linear core correction" has_core_density(file)
+    @printf "%032s: %s\n" "non-linear core correction" has_quantity(CoreChargeDensity(), file)
     @printf "%032s: %d\n" "maximum angular momentum" max_angular_momentum(file)
-    @printf "%032s: %d\n" "number of projectors" n_beta_projector_radials(file)
-    @printf "%032s: %d" "number of chi functions" n_chi_projector_radials(file)
+    @printf "%032s: %s\n" "number of beta projectors" n_radials(BetaProjector(), file)
+    @printf "%032s: %s" "number of chi projectors" n_radials(ChiProjector(), file)
 end

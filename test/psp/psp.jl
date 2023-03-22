@@ -25,6 +25,7 @@ QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
         file = load_psp_file(filepath)
         if (is_norm_conserving(file) | is_ultrasoft(file)) & !has_spin_orbit(file)
             psp = load_psp(file)
+            @test isa(identifier(file), AbstractString)
             @test isa(element(psp), PeriodicTable.Element)
             @test -1 <= max_angular_momentum(psp) <= 5
             @test 0 <= n_radials(BetaProjector(), psp)

@@ -1,57 +1,8 @@
-import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2, guess_mesh_type
 import PseudoPotentialIO: simpson, dotprod, trapezoid
-import PseudoPotentialIO: fast_sphericalbesselj
 
-@testset "common" begin
-    @testset "guess_mesh_type" begin
-        @testset "[linear] Mg.upf" begin
-            psp = load_psp_file(UPF2_CASE_FILEPATHS["Mg.upf"])
-            type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
-            @test type_guess == "linear"
-            @test a_guess ≈ 0.01
-            @test b_guess ≈ -0.01
-        end
+@testset "Quadrature" begin
 
-        @testset "[logarithmic type 1] Al.pbe-n-kjpaw_psl.1.0.0.UPF" begin
-            psp = load_psp_file(UPF2_CASE_FILEPATHS["Al.pbe-n-kjpaw_psl.1.0.0.UPF"])
-            type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
-            @test type_guess == "log_1"
-            @test a_guess ≈ psp.mesh.dx
-            @test b_guess ≈ exp(psp.mesh.xmin) / psp.mesh.zmesh
-        end
-
-        @testset "[logarithmic type 1] He.pbe-hgh.UPF" begin
-            psp = load_psp_file(UPF2_CASE_FILEPATHS["He.pbe-hgh.UPF"])
-            type_guess, a_guess, b_guess = guess_mesh_type(psp.mesh.r, psp.mesh.rab)
-            @test type_guess == "log_1"
-            @test a_guess ≈ psp.mesh.dx
-            @test b_guess ≈ exp(psp.mesh.xmin) / psp.mesh.zmesh
-        end
-
-        @testset "[logarithmic type 2] constructed" begin
-            #TODO: find a log_2 type mesh example file
-            i = 1:1000
-            a = 0.0125  # dx
-            b = exp(-7.0) / 0.66  # exp(xmin) / zmesh
-            log2_mesh = logarithmic_mesh2.(i, a, b)
-            log2_dmesh = a .* b .* exp.((i .- 1) .* a)  # Derivative of log2 mesh w.r.t. `i`
-
-            type_guess, a_guess, b_guess = guess_mesh_type(log2_mesh, log2_dmesh)
-            @test type_guess == "log_2"
-            @test a_guess ≈ a
-            @test b_guess ≈ b
-        end
-    end
-
-    @testset "fast_sphericalbesselj" begin
-        for l in 0:10
-            for x in (rand(100) .* 100)
-                @test sphericalbesselj(l, x) ≈ fast_sphericalbesselj(l)(x) atol = 1e-8
-            end
-        end
-    end
-
-    @testset "simpson reference" begin
+    @testset "Simpson vs. Python reference" begin
         # Taken from Python Numerical Methods 21.04 "Simpson's Rule"
         a = 0
         b = float(π)
@@ -65,7 +16,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
         @test simpson(f, i_start, i_stop, fill(h, n)) ≈ 2.0001095173150043
     end
 
-    @testset "odd linear grid sin" begin
+    @testset "Odd linear grid sin" begin
         @testset for integrator in [simpson, dotprod, trapezoid]
             n = 100001
             x0 = 0.00
@@ -80,7 +31,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
         end
     end
 
-    @testset "even linear grid sin" begin
+    @testset "Even linear grid sin" begin
         @testset for integrator in [simpson, dotprod, trapezoid]
             n = 100000
             x0 = 0.00
@@ -95,7 +46,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
         end
     end
 
-    @testset "odd log grid sin" begin
+    @testset "Odd log grid sin" begin
         @testset for integrator in [simpson, dotprod, trapezoid]
             n = 1000001
             i = collect(1:n)
@@ -110,7 +61,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
         end
     end
 
-    @testset "even log grid sin" begin
+    @testset "Even log grid sin" begin
         @testset for integrator in [simpson, dotprod, trapezoid]
             n = 1000000
             i = collect(1:n)
@@ -128,7 +79,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
     # Reference value for ∫[0,π] exp(-x^2) sin(x) dx 
     ref = -(√π * (-2erfi(1/2) + erfi(1/2 - im*π) + erfi(1/2 + im*π))) / (4 * exp(1/4))
 
-    @testset "odd linear grid exp sin" begin
+    @testset "Odd linear grid exp sin" begin
         @testset for integrator in [simpson, dotprod, trapezoid]
             n = 100001
             x0 = 0.00
@@ -142,7 +93,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
         end
     end
 
-    @testset "even linear grid exp sin" begin
+    @testset "Even linear grid exp sin" begin
         @testset for integrator in [simpson, dotprod, trapezoid]
             n = 100000
             x0 = 0.00
@@ -156,7 +107,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
         end
     end
 
-    @testset "odd log grid exp sin" begin
+    @testset "Odd log grid exp sin" begin
         @testset for integrator in [simpson, dotprod, trapezoid]
             n = 1000001
             i = collect(1:n)
@@ -171,7 +122,7 @@ import PseudoPotentialIO: fast_sphericalbesselj
         end
     end
 
-    @testset "even log grid exp sin" begin
+    @testset "Even log grid exp sin" begin
         @testset for integrator in [simpson, dotprod, trapezoid]
             n = 1000000
             i = collect(1:n)

@@ -10,6 +10,7 @@ using Printf
 using Statistics
 using SHA
 using PrettyTables
+using OrderedCollections
 
 using PeriodicTable: PeriodicTable
 import Base.Broadcast.broadcastable
@@ -17,7 +18,7 @@ import Bessels: gamma, sphericalbesselj
 import SpecialFunctions: erf
 
 ## DocStringExtensions Templates
-# TODO they don't seem to be working at the moment
+# TODO they don't seem to be working at the moment ?
 using DocStringExtensions
 @template (FUNCTIONS, METHODS, MACROS) = """
                                          $(TYPEDSIGNATURES)
@@ -31,35 +32,7 @@ using DocStringExtensions
                   $(TYPEDFIELDS)
                   """
 
-## File datastructures and interface
-export PsPFile
-export format
-export element
-export is_norm_conserving
-export is_ultrasoft
-export is_paw
-export formalism
-export has_spin_orbit
-export relativistic_treatment
-export has_core_density
-export valence_charge
-export max_angular_momentum
-export n_beta_projector_radials
-export n_chi_projector_radials
-include("file/file.jl")
-
-export UpfFile
-include("file/upf.jl")
-include("file/upf1.jl")
-include("file/upf2.jl")
-
-export Psp8File
-include("file/psp8.jl")
-
-export HghFile
-include("file/hgh.jl")
-
-## Pseudopotential datastructures and interface
+## Quantity flags
 export AbstractPsPQuantity
 export PsPChargeDensity
 export ValenceChargeDensity
@@ -77,11 +50,38 @@ export RealSpace
 export FourierSpace
 include("psp/quantities.jl")
 
+## File datastructures and interface
+export PsPFile
+export format
+export element
+export is_norm_conserving
+export is_ultrasoft
+export is_paw
+export formalism
+export has_spin_orbit
+export relativistic_treatment
+export has_core_density
+export valence_charge
+export max_angular_momentum
+export n_radials
+include("file/file.jl")
+
+export UpfFile
+include("file/upf.jl")
+include("file/upf1.jl")
+include("file/upf2.jl")
+
+export Psp8File
+include("file/psp8.jl")
+
+export HghFile
+include("file/hgh.jl")
+
+## Pseudopotential datastructures and interface
 export AbstractPsP
 export identifier
 export element
 export max_angular_momentum
-export n_radials
 export n_angulars
 export valence_charge
 export atomic_charge
@@ -120,14 +120,21 @@ include("psp/analytical.jl")
 export HghPsP
 include("psp/hgh.jl")
 
-## Loading/listing functions
+## Loading/listing/showing functions
+export list_families
+export list_family_psps
+include("io/list.jl")
+
+export load_family_psp_files
+export load_family_psps
 export load_psp_file
 export load_psp
-export list_families
-export load_family
+include("io/load.jl")
+
+export show_family_summary
+export show_family_table
 export show_family_periodic_table
-export show_family_list
-include("load.jl")
+include("io/show.jl")
 
 ## Deprecated loaders
 export load_upf

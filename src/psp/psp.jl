@@ -206,8 +206,9 @@ end
 
 Base.Broadcast.broadcastable(psp::AbstractPsP) = Ref(psp)
 
-Base.:(==)(psp1::AbstractPsP, psp2::AbstractPsP) = identifier(psp1) == identifier(psp2)
-Base.hash(psp::AbstractPsP) = hash(psp.checksum)
+# TODO: figure out a better equality metric
+# Base.:(==)(psp1::AbstractPsP, psp2::AbstractPsP) = identifier(psp1) == identifier(psp2)
+# Base.hash(psp::AbstractPsP) = hash(psp.checksum)
 
 function Base.show(io::IO, psp::AbstractPsP)
     typename = string(typeof(psp))

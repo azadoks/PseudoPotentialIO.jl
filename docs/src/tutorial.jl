@@ -71,7 +71,7 @@ let
     fig = Figure(); ax = Axis(fig[1,1], xlabel="r [a₀]", ylabel="β(r)")
     for l in angular_momenta(Ba_psp)                  # Iterate over each angular momentum 0:lmax
         color = colors[l+1]
-        for n in projector_radial_indices(Ba_psp, l)  # Iterate over each projector at l 1:nmax
+        for n in beta_projector_radial_indices(Ba_psp, l)  # Iterate over each projector at l 1:nmax
             linestyle = linestyles[n]
             r²βln = Ba_psp.β[l][n]                    # Projector multiplied by r²
             i_rc_ln = lastindex(r²βln)                # Cutoff radius index

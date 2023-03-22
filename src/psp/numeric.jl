@@ -49,7 +49,7 @@ D::OffsetVector{AbstractMatrix{Real}}
 """
 abstract type NumericPsP{T} <: AbstractPsP end
 
-identifier(psp::NumericPsP)::String = bytes2hex(psp.checksum)
+identifier(psp::NumericPsP)::String = psp.identifier
 element(psp::NumericPsP)::PeriodicTable.Element = PeriodicTable.elements[psp.Zatom]
 max_angular_momentum(psp::NumericPsP)::Int = psp.lmax
 valence_charge(psp::NumericPsP) = psp.Zval
@@ -65,8 +65,8 @@ get_quantity(q::PsPProjector, psp::NumericPsP, l) = get_quantity(q, psp)[l]
 get_quantity(::BetaProjector, psp::NumericPsP) = psp.β
 get_quantity(::BetaCoupling, psp::NumericPsP) = psp.D
 get_quantity(::BetaCoupling, psp::NumericPsP, l) = psp.D[l]
-get_quantity(::BetaCoupling, psp::NumericPsP, l, n) = psp.D[l][n,n]
-get_quantity(::BetaCoupling, psp::NumericPsP, l, n, m) = psp.D[l][n,m]
+get_quantity(::BetaCoupling, psp::NumericPsP, l, n) = psp.D[l][n, n]
+get_quantity(::BetaCoupling, psp::NumericPsP, l, n, m) = psp.D[l][n, m]
 get_quantity(::ChiProjector, psp::NumericPsP) = psp.χ
 get_quantity(::ValenceChargeDensity, psp::NumericPsP) = psp.ρval
 get_quantity(::CoreChargeDensity, psp::NumericPsP) = psp.ρcore
@@ -74,13 +74,15 @@ get_quantity(::AugmentationFunction, psp::NumericPsP) = nothing
 
 has_quantity(q::AbstractPsPQuantity, psp::NumericPsP) = !isnothing(get_quantity(q, psp))
 
-function cutoff_radius(quantity::AbstractPsPQuantity, psp::NumericPsP; f=nothing, tol=nothing)
+function cutoff_radius(quantity::AbstractPsPQuantity, psp::NumericPsP; f=nothing,
+                       tol=nothing)
     !has_quantity(quantity, psp) && return nothing
     f = get_quantity(quantity, psp)
     return psp.r[find_truncation_index(f, tol)]
 end
 
-function cutoff_radius(quantity::PsPProjector, psp::NumericPsP, l, n; f=nothing, tol=nothing)
+function cutoff_radius(quantity::PsPProjector, psp::NumericPsP, l, n; f=nothing,
+                       tol=nothing)
     !has_quantity(quantity, psp) && return nothing
     f = get_quantity(quantity, psp, l, n)
     return psp.r[find_truncation_index(f, tol)]
@@ -96,21 +98,20 @@ function psp_quantity_evaluator(::RealSpace, quantity::PsPProjector, psp::Numeri
     return build_interpolator_real(get_quantity(quantity, psp, l, n), psp.r)
 end
 
-function psp_quantity_evaluator(::FourierSpace, quantity::AbstractPsPQuantity, psp::NumericPsP; tol=nothing)
+function psp_quantity_evaluator(::FourierSpace, quantity::AbstractPsPQuantity, psp::NumericPsP, i_stop::Integer)
     !has_quantity(quantity, psp) && return _ -> nothing
     f = get_quantity(quantity, psp)
-    return hankel_transform(f, 0, psp.r, psp.dr; i_stop=find_truncation_index(f, tol))
+    return hankel_transform(f, 0, psp.r, psp.dr; i_stop)
 end
 
-function psp_quantity_evaluator(::FourierSpace, quantity::PsPProjector, psp::NumericPsP, l, n; tol=nothing)
+function psp_quantity_evaluator(::FourierSpace, quantity::PsPProjector, psp::NumericPsP, l, n, i_stop::Integer)
     !has_quantity(quantity, psp) && return _ -> nothing
     f = get_quantity(quantity, psp, l, n)
-    return hankel_transform(f, l, psp.r, psp.dr; i_stop=find_truncation_index(f, tol))
+    return hankel_transform(f, l, psp.r, psp.dr; i_stop)
 end
 
-@inbounds function psp_quantity_evaluator(::FourierSpace, ::LocalPotential, psp::NumericPsP; tol=nothing)
+@inbounds function psp_quantity_evaluator(::FourierSpace, ::LocalPotential, psp::NumericPsP, i_stop::Integer)
     i_start = firstindex(psp.Vloc)
-    i_stop = find_truncation_index(psp.Vloc, tol)
     function Vloc(q)
         function integrand(i::Int)
             return psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
@@ -123,9 +124,24 @@ end
     return Vloc
 end
 
-@inbounds function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP; tol=nothing)
+function psp_quantity_evaluator(space::FourierSpace, quantity::AbstractPsPQuantity, psp::NumericPsP; tol=nothing)
+    !has_quantity(quantity, psp) && return _ -> nothing
+    f = get_quantity(quantity, psp)
+    return psp_quantity_evaluator(space, quantity, psp, find_truncation_index(f, tol))
+end
+
+function psp_quantity_evaluator(space::FourierSpace, quantity::PsPProjector, psp::NumericPsP, l, n; tol=nothing)
+    !has_quantity(quantity, psp) && return _ -> nothing
+    f = get_quantity(quantity, psp, l, n)
+    return psp_quantity_evaluator(space, quantity, psp, l, n, find_truncation_index(f, tol))
+end
+
+function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP; tol=nothing)
+    psp_energy_correction(T, psp, find_truncation_index(psp.Vloc, tol))
+end
+
+@inbounds function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP, i_stop::Integer)
     i_start = firstindex(psp.Vloc)
-    i_stop = find_truncation_index(psp.Vloc, tol)
     integrand(i::Int) = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
     return 4T(π) * dotprod(integrand, i_start, i_stop, psp.dr)
 end

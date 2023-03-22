@@ -2,8 +2,10 @@
 Type representing a numeric ultrasoft pseudopotential.
 """
 struct UltrasoftPsP{T} <: NumericPsP{T}
-    "Checksum"
-    checksum::Vector{UInt8}
+    "Identifier"
+    identifier::String
+    "SHA1 Checksum"
+    checksum::Union{Nothing,Vector{UInt8}}
     "Total charge"
     Zatom::Int
     "Valence charge"
@@ -125,8 +127,8 @@ function _upf_construct_us_internal(upf::UpfFile)
     else
         error("q_with_l == false and nqf == 0, unsure what to do...")
     end
-    return UltrasoftPsP{Float64}(nc.checksum, nc.Zatom, nc.Zval, nc.lmax, nc.r, nc.dr,
-                                 nc.Vloc, nc.β, nc.D, nc.χ, Q, q, nc.ρcore, nc.ρval)
+    return UltrasoftPsP{Float64}(nc.identifier, nc.checksum, nc.Zatom, nc.Zval, nc.lmax,
+                                 nc.r, nc.dr, nc.Vloc, nc.β, nc.D, nc.χ, Q, q, nc.ρcore, nc.ρval)
 end
 
 is_norm_conserving(::UltrasoftPsP)::Bool = false

@@ -2,8 +2,10 @@
 Type representing a numeric norm-conserving pseudopotential.
 """
 struct NormConservingPsP{T} <: NumericPsP{T}
+    "Identifier"
+    identifier::String
     "SHA1 Checksum"
-    checksum::Vector{UInt8}
+    checksum::Union{Nothing,Vector{UInt8}}
     "Total charge."
     Zatom::Int
     "Valence charge."
@@ -65,7 +67,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
 
     # UPFs store the core charge density as a true charge (without 4πr² as a prefactor),
     # so we multiply by r² for consistency
-    ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc .* (@view r[1:length(upf.nlcc)]).^2
+    ρcore = isnothing(upf.nlcc) ? nothing : upf.nlcc .* (@view r[1:length(upf.nlcc)]) .^ 2
 
     # Indices in upf.nonlocal.betas for projectors at each angular momentum
     iβ_upf = map(0:lmax) do l
@@ -90,10 +92,14 @@ function _upf_construct_nc_internal(upf::UpfFile)
 
     # UPFs store the projectors multiplied by the radial grid, so we multiply again by the
     # grid for consistency.
+    # If the cutoff radius index is stored, we use it to truncate the projector for
+    # numerical stability.
     β = map(0:lmax) do l
         map(iβ_upf[l]) do n
             βln = upf.nonlocal.betas[n].beta
-            βln = βln .* @view r[1:length(βln)]
+            ir_cut = upf.nonlocal.betas[n].cutoff_radius_index
+            ir_cut = isnothing(ir_cut) ? length(βln) : ir_cut
+            return βln = @views βln[1:ir_cut] .* r[1:ir_cut]
         end
     end
     β = OffsetVector(β, 0:lmax) ./ 2  # Ry -> Ha
@@ -123,8 +129,8 @@ function _upf_construct_nc_internal(upf::UpfFile)
         χ = nothing
     end
 
-    return NormConservingPsP{Float64}(upf.checksum, Zatom, Zval, lmax, r, dr, Vloc, β, D,
-                                      χ, ρcore, ρval)
+    return NormConservingPsP{Float64}(upf.identifier, upf.checksum, Zatom, Zval, lmax, r,
+                                      dr, Vloc, β, D, χ, ρcore, ρval)
 end
 
 function NormConservingPsP(psp8::Psp8File)
@@ -136,7 +142,7 @@ function NormConservingPsP(psp8::Psp8File)
     Zval = psp8.header.zion
     lmax = psp8.header.lmax
 
-    r = range(first(psp8.rgrid), last(psp8.rgrid), length=length(psp8.rgrid))
+    r = range(first(psp8.rgrid), last(psp8.rgrid); length=length(psp8.rgrid))
     dr = mean(diff(psp8.rgrid))
 
     Vloc = psp8.v_local
@@ -145,7 +151,7 @@ function NormConservingPsP(psp8::Psp8File)
     β = map(0:lmax) do l
         map(eachindex(psp8.projectors[l + 1])) do n
             βln = psp8.projectors[l + 1][n]
-            βln = βln .* r.^2
+            βln = βln .* r .^ 2
             return βln
         end
     end
@@ -155,10 +161,10 @@ function NormConservingPsP(psp8::Psp8File)
     χ = nothing  # PSP8 doesn't support chi-functions
     # PSP8s store the core charge density with a prefactor of 4π, so we remove it and
     # multiply by r² for consistency.
-    ρcore = isnothing(psp8.rhoc) ? nothing : psp8.rhoc .* r.^2 ./ 4π
-    ρval = nothing  # PSP8 doesn't support pseudo-atomic valence charge density
-    return NormConservingPsP{Float64}(psp8.checksum, Zatom, Zval, lmax, r, dr, Vloc, β, D,
-                                      χ, ρcore, ρval)
+    ρcore = isnothing(psp8.rhoc) ? nothing : psp8.rhoc .* r .^ 2 ./ 4π
+    ρval = isnothing(psp8.rhov) ? nothing : psp8.rhov .* r .^ 2 ./ 4π
+    return NormConservingPsP{Float64}(psp8.identifier, psp8.checksum, Zatom, Zval, lmax, r,
+                                      dr, Vloc, β, D, χ, ρcore, ρval)
 end
 
 is_norm_conserving(::NormConservingPsP)::Bool = true

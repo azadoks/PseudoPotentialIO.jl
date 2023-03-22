@@ -1,4 +1,4 @@
-function upf2_parse_psp(io::IO)
+function upf2_parse_psp(io::IO; identifier="")
     checksum = SHA.sha1(io)
     seek(io, 0)
 
@@ -67,8 +67,8 @@ function upf2_parse_psp(io::IO)
         gipaw = upf2_parse_gipaw(doc)
     end
 
-    return UpfFile(checksum, version, info, header, mesh, nlcc, local_, nonlocal, pswfc,
-                   full_wfc, rhoatom, spinorb, paw, gipaw)
+    return UpfFile(identifier, checksum, version, info, header, mesh, nlcc, local_,
+                   nonlocal, pswfc, full_wfc, rhoatom, spinorb, paw, gipaw)
 end
 
 function upf2_parse_header(node::EzXML.Node)

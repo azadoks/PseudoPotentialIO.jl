@@ -1,12 +1,14 @@
 @doc raw"""
 Analytical Hartwigsen-Goedecker-Hutter pseudopotential.
 
-[C. Hartwigsen, S. Goedecker, and J. Hutter.
+C. Hartwigsen, S. Goedecker, and J. Hutter.
 *Pys. Rev. B* **58**, 3641 (1998)](https://doi.org/10.1103/PhysRevB.58.3641)
 """
 struct HghPsP{T} <: AnalyticalPsP
+    "Identifier"
+    identifier::String
     "SHA1 Checksum"
-    checksum::Vector{UInt8}
+    checksum::Union{Nothing,Vector{UInt8}}
     "Atomic charge"
     Zatom::Union{Nothing,Int}
     "Valence charge"
@@ -23,9 +25,13 @@ struct HghPsP{T} <: AnalyticalPsP
     D::OffsetVector{Matrix{T},Vector{Matrix{T}}}
 end
 
+function HghPsP(Zatom, Zval, lmax, rloc, cloc, rnl, D; identifier="", checksum=nothing)
+    return HgHPsP(identifier, checksum, Zatom, Zval, lmax, rloc, cloc, rnl, D)
+end
+
 function HghPsP(file::HghFile)
     el = element(file)
-    Zatom = isnothing(el) ? nothing : PeriodicTable.elements[Symbol(el)].number
+    Zatom = isnothing(el) ? nothing : el.number
     cloc = file.cloc
     length(cloc) <= 4 || error("length(cloc) > 4 not supported.")
     if length(cloc) < 4
@@ -36,12 +42,14 @@ function HghPsP(file::HghFile)
     rnl = OffsetVector(file.rp, 0:(file.lmax))
     D = OffsetVector(file.h, 0:(file.lmax))
 
-    return HghPsP{Float64}(file.checksum, Zatom, sum(Float64.(file.zion)), file.lmax,
-                           file.rloc, cloc, rnl, D)
+    return HghPsP{Float64}(file.identifier, file.checksum, Zatom, sum(Float64.(file.zion)),
+                           file.lmax, file.rloc, cloc, rnl, D)
 end
 
-identifier(psp::HghPsP)::String = bytes2hex(psp.checksum)
-element(psp::HghPsP) = isnothing(psp.Zatom) ? nothing : PeriodicTable.elements[Int(psp.Zatom)]
+identifier(psp::HghPsP)::String = psp.identifier
+function element(psp::HghPsP)
+    return isnothing(psp.Zatom) ? nothing : PeriodicTable.elements[Int(psp.Zatom)]
+end
 has_spin_orbit(::HghPsP)::Bool = false
 is_norm_conserving(::HghPsP)::Bool = true
 is_ultrasoft(::HghPsP)::Bool = false
@@ -57,8 +65,8 @@ has_quantity(::BetaCoupling, ::HghPsP) = true
 
 get_quantity(::BetaCoupling, psp::HghPsP) = psp.D
 get_quantity(::BetaCoupling, psp::HghPsP, l) = psp.D[l]
-get_quantity(::BetaCoupling, psp::HghPsP, l, n) = psp.D[l][n,n]
-get_quantity(::BetaCoupling, psp::HghPsP, l, n, m) = psp.D[l][n,m]
+get_quantity(::BetaCoupling, psp::HghPsP, l, n) = psp.D[l][n, n]
+get_quantity(::BetaCoupling, psp::HghPsP, l, n, m) = psp.D[l][n, m]
 
 n_radials(::BetaProjector, psp::HghPsP, l::Int) = size(psp.D[l], 1)
 n_radials(::ChiProjector, ::HghPsP, ::Int) = 0
@@ -126,11 +134,11 @@ end
 
 @doc raw"""
 The nonlocal projectors of a HGH pseudopotentials in reciprocal space
-can be brought to the form ``Q(t) exp(-t^2 / 2)`` where ``t = r_l q``
+can be brought to the form ``Q(t) e^{-t^2 / 2}`` where ``t = r_l q``
 and `Q` is a polynomial. This function returns `Q`.
 """
 @inline function beta_projector_polynomial_fourier(psp::HghPsP, l::Int, n::Int,
-                                              x::T) where {T<:Real}
+                                                   x::T) where {T<:Real}
     @assert 0 <= l <= length(psp.rnl) - 1
     @assert n > 0
     rnl::T = psp.rnl[l]

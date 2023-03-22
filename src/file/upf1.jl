@@ -1,4 +1,4 @@
-function upf1_parse_psp(io::IO)
+function upf1_parse_psp(io::IO; identifier="")
     checksum = SHA.sha1(io)
     seek(io, 0)
     version = "1.old"
@@ -27,8 +27,8 @@ function upf1_parse_psp(io::IO)
     end
     paw = nothing  # Not supported by UPF v1
     gipaw = nothing  # Not supported by UPF v1
-    return UpfFile(checksum, version, info, header, mesh, nlcc, local_, nonlocal, pswfc,
-                   full_wfc, rhoatom, spinorb, paw, gipaw)
+    return UpfFile(identifier, checksum, version, info, header, mesh, nlcc, local_,
+                   nonlocal, pswfc, full_wfc, rhoatom, spinorb, paw, gipaw)
 end
 
 """

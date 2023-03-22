@@ -1,4 +1,4 @@
-import PseudoPotentialIO: _resolve_family
+import PseudoPotentialIO: resolve_family
 
 TEST_FAMILIES = (
     "hgh_lda_hgh",
@@ -12,8 +12,8 @@ TEST_FAMILIES = (
 )
 TEST_FILEPATHS = []
 for family in TEST_FAMILIES
-    family_dir = _resolve_family(family)
-    psp_filenames = load_family(family)["Filename"]
+    family_dir = resolve_family(family)
+    psp_filenames = list_family_psps(family)
     psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
     append!(TEST_FILEPATHS, psp_filepaths)
 end
@@ -26,8 +26,8 @@ UPF_FAMILIES = (
 )
 UPF_FILEPATHS = []
 for family in UPF_FAMILIES
-    family_dir = _resolve_family(family)
-    psp_filenames = load_family(family)["Filename"]
+    family_dir = resolve_family(family)
+    psp_filenames = list_family_psps(family)
     psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
     append!(UPF_FILEPATHS, psp_filepaths)
 end
@@ -38,8 +38,8 @@ HGH_FAMILIES = (
 )
 HGH_FILEPATHS = []
 for family in HGH_FAMILIES
-    family_dir = _resolve_family(family)
-    psp_filenames = load_family(family)["Filename"]
+    family_dir = resolve_family(family)
+    psp_filenames = list_family_psps(family)
     psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
     append!(HGH_FILEPATHS, psp_filepaths)
 end
@@ -50,8 +50,8 @@ PSP8_FAMILIES = (
 )
 PSP8_FILEPATHS = []
 for family in PSP8_FAMILIES
-    family_dir = _resolve_family(family)
-    psp_filenames = load_family(family)["Filename"]
+    family_dir = resolve_family(family)
+    psp_filenames = list_family_psps(family)
     psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
     append!(PSP8_FILEPATHS, psp_filepaths)
 end
@@ -65,7 +65,7 @@ UPF1_CASES = [
 UPF1_CASE_FILEPATHS = Dict()
 for (family, filename) in UPF1_CASES
     if !haskey(UPF1_CASE_FILEPATHS, filename)
-        UPF1_CASE_FILEPATHS[filename] = joinpath(_resolve_family(family), filename)
+        UPF1_CASE_FILEPATHS[filename] = joinpath(resolve_family(family), filename)
     else
         error("UPF1_CASE_FILEPATHS already contains a case for $filename")
     end
@@ -84,7 +84,7 @@ UPF2_CASES = [
 UPF2_CASE_FILEPATHS = Dict()
 for (family, filename) in UPF2_CASES
     if !haskey(UPF2_CASE_FILEPATHS, filename)
-        UPF2_CASE_FILEPATHS[filename] = joinpath(_resolve_family(family), filename)
+        UPF2_CASE_FILEPATHS[filename] = joinpath(resolve_family(family), filename)
     else
         error("UPF2_CASE_FILEPATHS already contains a case for $filename")
     end
@@ -99,7 +99,7 @@ PSP8_CASES = [
 PSP8_CASE_FILEPATHS = Dict()
 for (family, filename) in PSP8_CASES
     if !haskey(PSP8_CASE_FILEPATHS, filename)
-        PSP8_CASE_FILEPATHS[filename] = joinpath(_resolve_family(family), filename)
+        PSP8_CASE_FILEPATHS[filename] = joinpath(resolve_family(family), filename)
     else
         error("PSP8_CASE_FILEPATHS already contains a case for $filename")
     end
@@ -112,7 +112,7 @@ HGH_CASES = [
 HGH_CASE_FILEPATHS = Dict()
 for (family, filename) in HGH_CASES
     if !haskey(HGH_CASE_FILEPATHS, filename)
-        HGH_CASE_FILEPATHS[filename] = joinpath(_resolve_family(family), filename)
+        HGH_CASE_FILEPATHS[filename] = joinpath(resolve_family(family), filename)
     else
         error("HGH_CASE_FILEPATHS already contains a case for $filename")
     end
@@ -177,8 +177,8 @@ UPF2_HGH_PAIRS = [
 ]
 UPF2_HGH_FILEPATHS = map(UPF2_HGH_PAIRS) do (upf2_filename, hgh_filename)
     (
-        joinpath(_resolve_family("hgh_pbe_upf"), upf2_filename),
-        joinpath(_resolve_family("hgh_pbe_hgh"), hgh_filename)
+        joinpath(resolve_family("hgh_pbe_upf"), upf2_filename),
+        joinpath(resolve_family("hgh_pbe_hgh"), hgh_filename)
     )
 end
 
@@ -191,7 +191,7 @@ UPF2_PSP8_ELEMENTS = ("Ag", "Al", "Ar", "As", "Au", "B", "Ba", "Be", "Bi", "Br",
                       "Sr", "Ta", "Tc", "Te", "Ti", "Tl", "V", "W", "Xe", "Y", "Zn", "Zr")
 UPF2_PSP8_FILEPATHS = map(UPF2_PSP8_ELEMENTS) do element
     (
-        joinpath(_resolve_family("pd_nc_sr_pbe_standard_0.4.1_upf"), "$(element).upf"),
-        joinpath(_resolve_family("pd_nc_sr_pbe_standard_0.4.1_psp8"), "$(element).psp8")
+        joinpath(resolve_family("pd_nc_sr_pbe_standard_0.4.1_upf"), "$(element).upf"),
+        joinpath(resolve_family("pd_nc_sr_pbe_standard_0.4.1_psp8"), "$(element).psp8")
     )
 end
