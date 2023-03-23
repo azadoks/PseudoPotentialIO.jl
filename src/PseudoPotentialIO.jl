@@ -45,6 +45,7 @@ export BetaCoupling
 export PsPPotential
 export LocalPotential
 export AugmentationFunction
+export AugmentationCoupling
 export EvaluationSpace
 export RealSpace
 export FourierSpace

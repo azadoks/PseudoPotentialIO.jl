@@ -356,7 +356,7 @@ is_ultrasoft(file::UpfFile)::Bool = file.header.pseudo_type in ("US", "USPP")
 is_paw(file::UpfFile)::Bool = file.header.pseudo_type == "PAW"
 has_spin_orbit(file::UpfFile)::Bool = file.header.has_so
 has_core_density(file::UpfFile)::Bool = file.header.core_correction
-valence_charge(file::UpfFile)::Float64 = file.header.z_valence
+valence_charge(file::UpfFile) = file.header.z_valence
 max_angular_momentum(file::UpfFile)::Int = file.header.l_max
 function n_radials(::BetaProjector, file::UpfFile, l::Int)::Int
     return count(beta -> beta.angular_momentum == l, file.nonlocal.betas)

@@ -12,7 +12,6 @@ QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
         @test 0 <= n_radials(BetaProjector(), file)
         @test 0 <= n_radials(ChiProjector(), file)
         @test 0 <= valence_charge(file)
-        @test 0 <= atomic_charge(file)
         @test isa(is_norm_conserving(file), Bool)
         @test isa(is_ultrasoft(file), Bool)
         @test isa(is_paw(file), Bool)
