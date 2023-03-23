@@ -12,7 +12,6 @@ function load_psp_file(path::AbstractString)
         throw(ArgumentError("$ext: Unknown pseudopotential file extension"))
     return _FILE_EXT_LOADERS[ext](path)
 end
-
 function load_psp_file(family_name_or_dir::AbstractString, filename::AbstractString)
     dir = resolve_family(family_name_or_dir)
     return load_psp_file(joinpath(dir, filename))
@@ -29,6 +28,9 @@ function load_psp(family_name_or_dir::AbstractString, filename::AbstractString)
     return load_psp(joinpath(dir, filename))
 end
 
+"""
+Load all pseudopotentials in a family into `PsPFile` structs.
+"""
 function load_family_psp_files(filepaths::AbstractVector{T}) where {T<:AbstractString}
     return load_psp_file.(filepaths)
 end
@@ -39,6 +41,9 @@ function load_family_psp_files(family_name_or_dir::AbstractString)
     return load_family_psp_files(filepaths)
 end
 
+"""
+Load and standardize all pseudopotentials into `AbstractPsP` structs.
+"""
 function load_family_psps(filepaths::AbstractVector{T}) where {T<:AbstractString}
     return load_psp.(filepaths)
 end

@@ -10,7 +10,7 @@
     end
 
     rtest = 200:-0.1:0
-    itest = randperm(length(HGH_FILEPATHS))[1:30]
+    itest = randperm(length(HGH_FILEPATHS))[1:30]  # ≈3s/pseudo, 237 HGH in total
 
     @testset "$(splitpath(filepath)[end])" for filepath in HGH_FILEPATHS[itest]
         psp = load_psp(filepath)

@@ -106,9 +106,6 @@ export NormConservingPsP
 include("psp/norm_conserving.jl")
 
 export UltrasoftPsP
-export augmentation_coupling
-export augmentation_real
-export augmentation_fourier
 include("psp/ultrasoft.jl")
 
 export ProjectorAugmentedWavePsP

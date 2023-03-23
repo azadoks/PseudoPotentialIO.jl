@@ -39,7 +39,7 @@ end
     (root, dirs, _) = first(walkdir("./"))
     for dir in dirs
         family = load_family_psp_files(joinpath(root, dir))
-        @test isa(family, Vector{Any})
+        @test isempty(family)
     end
 end
 
@@ -49,11 +49,12 @@ end
         @test eltype(family) <: AbstractPsP
     end
 
-    @test_throws "Fully relativistic" load_family_psps("pd_nc_fr_pbesol_standard_0.4_psp8")
+    msg = "Fully relativistic pseudos are not supported"
+    @test_throws msg load_family_psps("pd_nc_fr_pbesol_standard_0.4_psp8")
 
     (root, dirs, _) = first(walkdir("./"))
     for dir in dirs
         family = load_family_psps(joinpath(root, dir))
-        @test isa(family, Vector{AbstractPsP})
+        @test isempty(family)
     end
 end

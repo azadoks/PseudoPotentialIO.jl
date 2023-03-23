@@ -1,3 +1,8 @@
+"""
+Show a brief summary of a pseudopotential family, listing its name, directory on disk,
+the pseudopotential formalisms and file-formats it contains, as well as the number of
+pseudopotentials it provides.
+"""
 function show_family_summary(family_name_dir_or_data; name="", dir="")
     name, dir = determine_name_dir(family_name_dir_or_data, name, dir)
     return show_family_summary(Core.stdout, family_name_dir_or_data; name, dir)

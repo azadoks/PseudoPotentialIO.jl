@@ -128,7 +128,8 @@ function _upf_construct_us_internal(upf::UpfFile)
         error("q_with_l == false and nqf == 0, unsure what to do...")
     end
     return UltrasoftPsP{Float64}(nc.identifier, nc.checksum, nc.Zatom, nc.Zval, nc.lmax,
-                                 nc.r, nc.dr, nc.Vloc, nc.β, nc.D, nc.χ, Q, q, nc.ρcore, nc.ρval)
+                                 nc.r, nc.dr, nc.Vloc, nc.β, nc.D, nc.χ, Q, q, nc.ρcore,
+                                 nc.ρval)
 end
 
 is_norm_conserving(::UltrasoftPsP)::Bool = false
@@ -136,32 +137,17 @@ is_ultrasoft(::UltrasoftPsP)::Bool = true
 is_paw(::UltrasoftPsP)::Bool = false
 
 #TODO test the augmentation functions
+has_quantity(::AugmentationCoupling, psp::UltrasoftPsP) = true
+get_quantity(::AugmentationCoupling, psp::UltrasoftPsP, l) = psp.q[l]
+get_quantity(::AugmentationCoupling, psp::UltrasoftPsP, l, n) = psp.q[l][n, n]
+get_quantity(::AugmentationCoupling, psp::UltrasoftPsP, l, n, m) = psp.q[l][n, m]
 
-"""
-Augmentation charge coupling matrix (elements).
-"""
-function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int)::Matrix{T} where {T}
-    return psp.q[l]
-end
-
-function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int)::T where {T}
-    return psp.q[l][n, n]
-end
-
-function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int, m::Int)::T where {T}
-    return psp.q[l][n, m]
-end
-
-"""
-Augmentation charge in real-space.
-"""
-function augmentation_real(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
+function psp_quantity_evaluator(::RealSpace, q::AugmentationFunction, psp::UltrasoftPsP, l,
+                                n, m)
     return build_interpolator_real(psp.Q[l][n, m], psp.r)
 end
 
-"""
-Augmentation charge in fourier-space.
-"""
-function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
-    return hankel_transform(psp.Q[l][n, m], 0, psp.r, psp.dr)
+function psp_quantity_evaluator(::FourierSpace, q::AugmentationFunction, psp::UltrasoftPsP,
+                                l, n, m)
+    return hankel_transform(psp.Q[l][n, m], l, psp.r, psp.dr)
 end

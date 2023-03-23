@@ -8,6 +8,10 @@ function list_families()
     return collect(keys(artifacts))
 end
 
+"""
+List all files in the directory of a given family which have a supported pseudopotential
+file extension (.upf, .psp8, or .hgh).
+"""
 function list_family_psps(family_name_or_dir::AbstractString; with_info=false)
     dir = resolve_family(family_name_or_dir)
     (_, _, filenames) = first(walkdir(dir))

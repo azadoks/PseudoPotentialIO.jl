@@ -102,6 +102,10 @@ Maximum angular momentum channel of the pseudopotential.
 """
 function max_angular_momentum(psp::AbstractPsP) end
 
+"""
+Number of radial functions of a given quantity provided by the pseudopotential at angular
+momentum ``l``. 
+"""
 function n_radials(quantity::AbstractPsPQuantity, psp::AbstractPsP, l) end
 
 """
@@ -134,9 +138,22 @@ Whether the pseudopotential contains relativistic spin-orbit coupling data.
 """
 function has_spin_orbit(psp::AbstractPsP) end
 
+"""
+Find the cutoff radius of a given quantity.
+The optional absolute tolerance `tol` can be used to find the radial coordinate where the
+absolute value of the quantity decays to below the tolerance rather than returning the last
+index of a vector or a parsed cutoff radius.
+
+If no quantity is provided, the keyword argument `f` can be used to select whether the 
+minimum or maximum cutoff radius over all pseudopotential quantities is returned.
+"""
 function cutoff_radius(q::AbstractPsPQuantity, psp::AbstractPsP; tol=nothing) end
 function cutoff_radius(q::PsPProjector, psp::AbstractPsP, l, n; tol=nothing) end
 
+"""
+Construct a callable which evaluates the requested pseudopotential quantity in either
+Fourier- or real-space.
+"""
 function psp_quantity_evaluator(s::EvaluationSpace, q::AbstractPsPQuantity,
                                 psp::AbstractPsP) end
 function psp_quantity_evaluator(s::EvaluationSpace, q::PsPProjector, psp::AbstractPsP, l, n) end
@@ -146,6 +163,18 @@ Pseudopotential energy correction (the DC component of the Fourier transform of 
 local part of the pseudopotential).
 """
 function psp_energy_correction(T::Type, psp::AbstractPsP) end
+
+@doc raw"""
+Get the internal representation of a given quantity, if available.
+"""
+function get_quantity(q::AbstractPsPQuantity, psp::AbstractPsP) end
+function get_quantity(q::PsPProjector, psp::AbstractPsP, l, n) end
+
+"""
+Check that a pseudopotential has a given quantity.
+"""
+function has_quantity(q::AbstractPsPQuantity, psp::AbstractPsP) end
+
 
 #!!! Convenience functions !!!#
 """
@@ -171,6 +200,16 @@ end
 function n_radials(q::PsPProjector, psp::AbstractPsP)
     return sum(l -> n_radials(q, psp, l), angular_momenta(psp); init=0)
 end
+
+"""
+The number of radial + angular parts corresponding to a quantity at a given angular
+momentum, or the total number of radial + angular parts for all angular momenta for
+a given quantity.
+
+i.e., count the number of combinations for the quantum numbers ``l`` and ``m`` up to the
+maximum angular momentum of the pseudopotential, accounting for multi-projector
+pseudopotentials that provide multiple radial parts at an individual angular momentum.
+"""
 function n_angulars(q::PsPProjector, psp::AbstractPsP, l)
     return (2l + 1) * n_radials(q, psp, l)
 end
@@ -190,11 +229,6 @@ function cutoff_radius(q::PsPProjector; f=minimum, tol=nothing)
     return isempty(cutoff_radii) ? nothing : f(cutoff_radii)
 end
 
-"""
-Find the cutoff radius for the pseudopotential. Supply a function `f` to determine what kind
-of reduction over cutoff radii for different quantities is performed. Supply `tol` if
-you'd like to truncate the quantities where they decay to `|f| < tol`.
-"""
 function cutoff_radius(psp::AbstractPsP,
                        quantities=[ValenceChargeDensity(), CoreChargeDensity(),
                                    BetaProjector(), ChiProjector(), LocalPotential()];
