@@ -160,7 +160,7 @@ and `Q` is a polynomial. This function returns `Q`.
     #
     (l == 3 && n == 1) && return common * 1 / sqrt(T(105)) * x^3
 
-    return error("Not implemented for l=$l and i=$n")
+    throw(ArgumentError("Not implemented for l=$l and i=$n"))
 end
 
 # [HGH98] (7-15) except they do it with plane waves normalized by 1/sqrt(Ω).

@@ -46,7 +46,9 @@
             @test ref ≈ psp_energy_correction(Float64, psp) atol = 1e-2
         end
 
-        @test_throws ErrorException psp_quantity_evaluator(FourierSpace(), BetaProjector(),
-                                                           psp, 0, 4)
+        if max_angular_momentum(psp) >= 0
+            β = psp_quantity_evaluator(FourierSpace(), BetaProjector(), psp, 0, 4)
+            @test_throws ArgumentError β(0.1)
+        end
     end
 end
