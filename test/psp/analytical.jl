@@ -46,7 +46,7 @@
             @test ref ≈ psp_energy_correction(Float64, psp) atol = 1e-2
         end
 
-        @test_raises ErrorException psp_quantity_evaluator(FourierSpace(), BetaProjector(),
+        @test_throws ErrorException psp_quantity_evaluator(FourierSpace(), BetaProjector(),
                                                            psp, 0, 4)
     end
 end
