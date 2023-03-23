@@ -1,7 +1,8 @@
 @testset "Analytical" begin
     function local_potential_integrand(psp::AnalyticalPsP, q)
         Vloc = psp_quantity_evaluator(RealSpace(), LocalPotential(), psp)
-        return r -> 4π * r * sphericalbesselj(0, q * r) * (r * Vloc(r) + valence_charge(psp))
+        return r -> 4π * r * sphericalbesselj(0, q * r) *
+                    (r * Vloc(r) + valence_charge(psp))
     end
 
     function beta_projector_integrand(psp::AnalyticalPsP, l::Int, n::Int, q)
@@ -44,5 +45,8 @@
                   4π * valence_charge(psp) / q_small^2
             @test ref ≈ psp_energy_correction(Float64, psp) atol = 1e-2
         end
+
+        @test_raises ErrorException psp_quantity_evaluator(FourierSpace(), BetaProjector(),
+                                                           psp, 0, 4)
     end
 end

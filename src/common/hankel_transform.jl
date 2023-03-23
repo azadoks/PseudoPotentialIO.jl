@@ -26,12 +26,3 @@ end
                                   i_stop=nothing)
     return _ -> nothing
 end
-
-@inbounds function true_hankel_transform(f::AbstractVector, l::Int, r::AbstractVector,
-                                         dr::Union{Real,AbstractVector}; i_start=firstindex(f),
-                                         i_stop=lastindex(f))
-    jₗ = fast_sphericalbesselj(l)
-    @inbounds f̃(q) = 4π * simpson(i -> f[i] * r[i]^2 * jₗ(q * r[i]), i_start, i_stop, dr)
-    @inbounds f̃(Q::AbstractVector) = f̃(norm(Q))
-    return f̃
-end

@@ -11,6 +11,7 @@ end
     for family in TEST_FAMILIES
         @test isnothing(show_family_table(io, family))
         @test isnothing(show_family_table(io, load_family_psp_files(family)))
+        @test isnothing(show_family_table(io, load_family_psp_files(family), elements=["Si"]))
     end
 end
 

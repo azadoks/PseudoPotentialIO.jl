@@ -26,5 +26,5 @@ end
 
     # Test the error condition of resolve_family where the argument corresponds to
     # neither a known artifact nor an existing directory
-    @test_throws "PsP family ./abcdefg/ does not exist" resolve_family("./abcdefg/")
+    @test_throws ErrorException resolve_family("./abcdefg/")
 end

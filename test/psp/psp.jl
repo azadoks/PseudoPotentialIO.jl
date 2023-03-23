@@ -18,23 +18,28 @@ end
 
 QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
               ChiProjector(), BetaCoupling(), LocalPotential(),
-              AugmentationFunction()]
+              AugmentationFunction(), AugmentationCoupling()]
 
 @testset "AbstractPsP" begin
     @testset "$(splitpath(filepath)[end])" for filepath in TEST_FILEPATHS
         file = load_psp_file(filepath)
         if (is_norm_conserving(file) | is_ultrasoft(file)) & !has_spin_orbit(file)
             psp = load_psp(file)
-            @test isa(identifier(file), AbstractString)
+            @test isa(identifier(psp), AbstractString)
             @test isa(element(psp), PeriodicTable.Element)
             @test -1 <= max_angular_momentum(psp) <= 5
             @test 0 <= n_radials(BetaProjector(), psp)
             @test 0 <= n_radials(ChiProjector(), psp)
-            @test 0 <= valence_charge(file)
+            @test 0 <= valence_charge(psp)
+            @test 0 <= atomic_charge(psp)
             @test isa(is_norm_conserving(psp), Bool)
             @test isa(is_ultrasoft(psp), Bool)
             @test isa(is_paw(psp), Bool)
             @test isa(has_spin_orbit(psp), Bool)
+
+            # TODO: test n_angulars, n_radials, cutoff_radius
+            # TODO: test broadcasting, show
+            # TODO: test augmentation function
 
             for quantity in QUANTITIES
                 @test isa(has_quantity(quantity, psp), Bool)
@@ -80,15 +85,14 @@ QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
             for quantity in [LocalPotential(), ValenceChargeDensity(), CoreChargeDensity()]
                 if has_quantity(quantity, psp)
                     rmin = isa(psp, NumericPsP) ? first(psp.r) : 0
-                    rmax = cutoff_radius(quantity, psp)
-                    if !isnothing(rmax)
-                        R = rescale_vector(rand(3), rmin, rmax)
-                        R_rot = rotate_vector(random_versor(), R)
-                        @test psp_quantity_evaluator(RealSpace(), quantity, psp)(R) ≈
-                            psp_quantity_evaluator(RealSpace(), quantity, psp)(R_rot)
-                        @test psp_quantity_evaluator(FourierSpace(), quantity, psp)(K) ≈
-                            psp_quantity_evaluator(FourierSpace(), quantity, psp)(K_rot)
-                    end
+                    rmax = cutoff_radius(quantity, psp)  # HGH seems to give nothing?
+                    rmax = isnothing(rmax) ? Inf : rmax
+                    R = rescale_vector(rand(3), rmin, rmax)
+                    R_rot = rotate_vector(random_versor(), R)
+                    @test psp_quantity_evaluator(RealSpace(), quantity, psp)(R) ≈
+                        psp_quantity_evaluator(RealSpace(), quantity, psp)(R_rot)
+                    @test psp_quantity_evaluator(FourierSpace(), quantity, psp)(K) ≈
+                        psp_quantity_evaluator(FourierSpace(), quantity, psp)(K_rot)
                 end
             end
 

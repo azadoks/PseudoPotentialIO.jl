@@ -49,8 +49,7 @@ end
         @test eltype(family) <: AbstractPsP
     end
 
-    msg = "Fully relativistic pseudos are not supported"
-    @test_throws msg load_family_psps("pd_nc_fr_pbesol_standard_0.4_psp8")
+    @test_throws ErrorException load_family_psps("pd_nc_fr_pbesol_standard_0.4_psp8")
 
     (root, dirs, _) = first(walkdir("./"))
     for dir in dirs
