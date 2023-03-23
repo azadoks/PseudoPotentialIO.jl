@@ -2,7 +2,6 @@ import PseudoPotentialIO: simpson, rectangle, trapezoid
 import PseudoPotentialIO: abinit_corrected_trapezoid, qe_simpson, cp90_simpson
 import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
 
-
 @testset "Quadrature" begin
 
     NONUNIFORM_INTEGRATORS = [simpson, rectangle, trapezoid, qe_simpson, cp90_simpson]
