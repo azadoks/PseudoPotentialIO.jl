@@ -98,50 +98,56 @@ function psp_quantity_evaluator(::RealSpace, quantity::PsPProjector, psp::Numeri
     return build_interpolator_real(get_quantity(quantity, psp, l, n), psp.r)
 end
 
-function psp_quantity_evaluator(::FourierSpace, quantity::AbstractPsPQuantity, psp::NumericPsP, i_stop::Integer)
+function psp_quantity_evaluator(::FourierSpace, quantity::AbstractPsPQuantity,
+                                psp::NumericPsP, i_stop::Integer; integrator=simpson)
     !has_quantity(quantity, psp) && return _ -> nothing
     f = get_quantity(quantity, psp)
-    return hankel_transform(f, 0, psp.r, psp.dr; i_stop)
+    return hankel_transform(f, 0, psp.r, psp.dr; i_stop, integrator)
 end
 
-function psp_quantity_evaluator(::FourierSpace, quantity::PsPProjector, psp::NumericPsP, l, n, i_stop::Integer)
+function psp_quantity_evaluator(::FourierSpace, quantity::PsPProjector, psp::NumericPsP, l,
+                                n, i_stop::Integer; integrator=simpson)
     !has_quantity(quantity, psp) && return _ -> nothing
     f = get_quantity(quantity, psp, l, n)
-    return hankel_transform(f, l, psp.r, psp.dr; i_stop)
+    return hankel_transform(f, l, psp.r, psp.dr; i_stop, integrator)
 end
 
-@inbounds function psp_quantity_evaluator(::FourierSpace, ::LocalPotential, psp::NumericPsP, i_stop::Integer)
+@inbounds function psp_quantity_evaluator(::FourierSpace, ::LocalPotential, psp::NumericPsP,
+                                          i_stop::Integer; integrator=simpson)
     i_start = firstindex(psp.Vloc)
     function Vloc(q)
         function integrand(i::Int)
             return psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
                    (psp.r[i] * psp.Vloc[i] + psp.Zval)
         end
-        integral = dotprod(integrand, i_start, i_stop, psp.dr)
+        integral = integrator(integrand, i_start, i_stop, psp.dr)
         return 4π * (integral - psp.Zval / q^2)
     end
     Vloc(Q::AbstractVector) = Vloc(norm(Q))
     return Vloc
 end
 
-function psp_quantity_evaluator(space::FourierSpace, quantity::AbstractPsPQuantity, psp::NumericPsP; tol=nothing)
+function psp_quantity_evaluator(space::FourierSpace, quantity::AbstractPsPQuantity,
+                                psp::NumericPsP; tol=nothing, integrator=simpson)
     !has_quantity(quantity, psp) && return _ -> nothing
     f = get_quantity(quantity, psp)
-    return psp_quantity_evaluator(space, quantity, psp, find_truncation_index(f, tol))
+    return psp_quantity_evaluator(space, quantity, psp, find_truncation_index(f, tol); integrator)
 end
 
-function psp_quantity_evaluator(space::FourierSpace, quantity::PsPProjector, psp::NumericPsP, l, n; tol=nothing)
+function psp_quantity_evaluator(space::FourierSpace, quantity::PsPProjector,
+                                psp::NumericPsP, l, n; tol=nothing, integrator=simpson)
     !has_quantity(quantity, psp) && return _ -> nothing
     f = get_quantity(quantity, psp, l, n)
-    return psp_quantity_evaluator(space, quantity, psp, l, n, find_truncation_index(f, tol))
+    return psp_quantity_evaluator(space, quantity, psp, l, n, find_truncation_index(f, tol); integrator)
 end
 
 function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP; tol=nothing)
-    psp_energy_correction(T, psp, find_truncation_index(psp.Vloc, tol))
+    return psp_energy_correction(T, psp, find_truncation_index(psp.Vloc, tol))
 end
 
-@inbounds function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP, i_stop::Integer)
+@inbounds function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP, i_stop::Integer;
+                                         integrator=dotprod)
     i_start = firstindex(psp.Vloc)
     integrand(i::Int) = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
-    return 4T(π) * dotprod(integrand, i_start, i_stop, psp.dr)
+    return 4T(π) * integrator(integrand, i_start, i_stop, psp.dr)
 end

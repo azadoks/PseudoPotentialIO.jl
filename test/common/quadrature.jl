@@ -1,6 +1,13 @@
 import PseudoPotentialIO: simpson, dotprod, trapezoid
+import PseudoPotentialIO: abinit_corrected_trapezoid, qe_simpson, cp90_simpson
+import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
+
 
 @testset "Quadrature" begin
+
+    NONUNIFORM_INTEGRATORS = [simpson, dotprod, trapezoid, qe_simpson, cp90_simpson]
+    INTEGRATORS = [simpson, dotprod, trapezoid, abinit_corrected_trapezoid, qe_simpson,
+                   cp90_simpson]
 
     @testset "Simpson vs. Python reference" begin
         # Taken from Python Numerical Methods 21.04 "Simpson's Rule"
@@ -17,7 +24,7 @@ import PseudoPotentialIO: simpson, dotprod, trapezoid
     end
 
     @testset "Odd linear grid sin" begin
-        @testset for integrator in [simpson, dotprod, trapezoid]
+        @testset for integrator in INTEGRATORS
             n = 100001
             x0 = 0.00
             dx = float(π) / n
@@ -26,13 +33,15 @@ import PseudoPotentialIO: simpson, dotprod, trapezoid
             i_stop = lastindex(x)
             f(i) = sin(x[i])
             @test integrator(f, i_start, i_stop, dx) ≈ 2.0
-            @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ 2.0
-            @test integrator(f, i_start, i_stop, dx) ≈ integrator(f, i_start, i_stop, fill(dx, n))
+            if integrator in NONUNIFORM_INTEGRATORS
+                @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ 2.0
+                @test integrator(f, i_start, i_stop, dx) ≈ integrator(f, i_start, i_stop, fill(dx, n))
+            end
         end
     end
 
     @testset "Even linear grid sin" begin
-        @testset for integrator in [simpson, dotprod, trapezoid]
+        @testset for integrator in INTEGRATORS
             n = 100000
             x0 = 0.00
             dx = float(π) / n
@@ -41,13 +50,15 @@ import PseudoPotentialIO: simpson, dotprod, trapezoid
             i_stop = lastindex(x)
             f(i) = sin(x[i])
             @test integrator(f, i_start, i_stop, dx) ≈ 2.0
-            @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ 2.0
-            @test integrator(f, i_start, i_stop, dx) ≈ integrator(f, i_start, i_stop, fill(dx, n))
+            if integrator in NONUNIFORM_INTEGRATORS
+                @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ 2.0
+                @test integrator(f, i_start, i_stop, dx) ≈ integrator(f, i_start, i_stop, fill(dx, n))
+            end
         end
     end
 
     @testset "Odd log grid sin" begin
-        @testset for integrator in [simpson, dotprod, trapezoid]
+        @testset for integrator in NONUNIFORM_INTEGRATORS
             n = 1000001
             i = collect(1:n)
             b = float(π) / n
@@ -62,7 +73,7 @@ import PseudoPotentialIO: simpson, dotprod, trapezoid
     end
 
     @testset "Even log grid sin" begin
-        @testset for integrator in [simpson, dotprod, trapezoid]
+        @testset for integrator in NONUNIFORM_INTEGRATORS
             n = 1000000
             i = collect(1:n)
             b = float(π) / n
@@ -80,7 +91,7 @@ import PseudoPotentialIO: simpson, dotprod, trapezoid
     ref = -(√π * (-2erfi(1/2) + erfi(1/2 - im*π) + erfi(1/2 + im*π))) / (4 * exp(1/4))
 
     @testset "Odd linear grid exp sin" begin
-        @testset for integrator in [simpson, dotprod, trapezoid]
+        @testset for integrator in INTEGRATORS
             n = 100001
             x0 = 0.00
             dx = float(π) / n
@@ -89,12 +100,14 @@ import PseudoPotentialIO: simpson, dotprod, trapezoid
             i_stop = lastindex(x)
             f(i) = exp(-(x[i]^2)) * sin(x[i])
             @test integrator(f, i_start, i_stop, dx) ≈ real(ref)
-            @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ real(ref)
+            if integrator in NONUNIFORM_INTEGRATORS
+                @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ real(ref)
+            end
         end
     end
 
     @testset "Even linear grid exp sin" begin
-        @testset for integrator in [simpson, dotprod, trapezoid]
+        @testset for integrator in INTEGRATORS
             n = 100000
             x0 = 0.00
             dx = float(π) / n
@@ -103,12 +116,14 @@ import PseudoPotentialIO: simpson, dotprod, trapezoid
             i_stop = lastindex(x)
             f(i) = exp(-(x[i]^2)) * sin(x[i])
             @test integrator(f, i_start, i_stop, dx) ≈ real(ref)
-            @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ real(ref)
+            if integrator in NONUNIFORM_INTEGRATORS
+                @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ real(ref)
+            end
         end
     end
 
     @testset "Odd log grid exp sin" begin
-        @testset for integrator in [simpson, dotprod, trapezoid]
+        @testset for integrator in NONUNIFORM_INTEGRATORS
             n = 1000001
             i = collect(1:n)
             b = float(π) / n
@@ -123,7 +138,7 @@ import PseudoPotentialIO: simpson, dotprod, trapezoid
     end
 
     @testset "Even log grid exp sin" begin
-        @testset for integrator in [simpson, dotprod, trapezoid]
+        @testset for integrator in NONUNIFORM_INTEGRATORS
             n = 1000000
             i = collect(1:n)
             b = float(π) / n

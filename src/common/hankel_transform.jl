@@ -14,9 +14,9 @@ where ``j_l(x)`` is the spherical Bessel function of the first kind at order ``l
 hankel_transform
 @inbounds function hankel_transform(f::AbstractVector, l::Int, r::AbstractVector,
                                     dr::Union{Real,AbstractVector}; i_start=firstindex(f),
-                                    i_stop=lastindex(f))
+                                    i_stop=lastindex(f), integrator=simpson)
     jₗ = fast_sphericalbesselj(l)
-    @inbounds f̃(q) = 4π * simpson(i -> f[i] * jₗ(q * r[i]), i_start, i_stop, dr)
+    @inbounds f̃(q) = 4π * integrator(i -> f[i] * jₗ(q * r[i]), i_start, i_stop, dr)
     @inbounds f̃(Q::AbstractVector) = f̃(norm(Q))
     return f̃
 end
