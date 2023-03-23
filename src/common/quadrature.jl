@@ -30,11 +30,11 @@ end
     return s / 3 * dx
 end
 
-@inbounds function dotprod(f, i_start::Int, i_stop::Int, dx::AbstractVector)
+@inbounds function rectangle(f, i_start::Int, i_stop::Int, dx::AbstractVector)
     return sum(i -> f(i) * dx[i], i_start:i_stop)
 end
 
-@inbounds function dotprod(f, i_start::Int, i_stop::Int, dx)
+@inbounds function rectangle(f, i_start::Int, i_stop::Int, dx)
     return sum(f, i_start:i_stop) * dx
 end
 

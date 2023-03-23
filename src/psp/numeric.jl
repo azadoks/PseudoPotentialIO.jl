@@ -112,6 +112,7 @@ function psp_quantity_evaluator(::FourierSpace, quantity::PsPProjector, psp::Num
     return hankel_transform(f, l, psp.r, psp.dr; i_stop, integrator)
 end
 
+# TODO: implement q-e style correction (this is ABINIT-style)
 @inbounds function psp_quantity_evaluator(::FourierSpace, ::LocalPotential, psp::NumericPsP,
                                           i_stop::Integer; integrator=simpson)
     i_start = firstindex(psp.Vloc)
@@ -145,8 +146,9 @@ function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP; tol=nothing)
     return psp_energy_correction(T, psp, find_truncation_index(psp.Vloc, tol))
 end
 
+# TODO: implement q-e style correction?
 @inbounds function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP, i_stop::Integer;
-                                         integrator=dotprod)
+                                         integrator=rectangle)
     i_start = firstindex(psp.Vloc)
     integrand(i::Int) = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
     return 4T(π) * integrator(integrand, i_start, i_stop, psp.dr)
