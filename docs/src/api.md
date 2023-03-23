@@ -36,7 +36,7 @@ ChiProjector
 
 PsPCoupling
 BetaCoupling
-AugmentationFunction
+AugmentationCoupling
 
 PsPPotential
 LocalPotential
