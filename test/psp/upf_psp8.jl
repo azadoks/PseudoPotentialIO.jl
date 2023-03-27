@@ -11,7 +11,7 @@
                 # results that agree. Often, it seems that this trunction is _before_
                 # the quantity actually decays to zero!
                 i_stop = lastindex(get_quantity(quantity, psp8))
-                upf2_evaluator = psp_quantity_evaluator(FourierSpace(), quantity, upf2,
+                upf2_evaluator = psp_quantity_evaluator(FourierSpace(), quantity, upf2;
                                                         i_stop)
                 psp8_evaluator = psp_quantity_evaluator(FourierSpace(), quantity, psp8)
 
@@ -37,7 +37,7 @@
 
         @testset "Pseudo energy correction agrees" begin
             i_stop = lastindex(get_quantity(LocalPotential(), psp8))
-            @test psp_energy_correction(Float64, upf2, i_stop) ≈
+            @test psp_energy_correction(Float64, upf2; i_stop) ≈
                   psp_energy_correction(Float64, psp8) rtol = 1e-9 atol = 1e-9
         end
     end

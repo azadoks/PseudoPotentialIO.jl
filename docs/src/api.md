@@ -83,6 +83,7 @@ psp_energy_correction
 
 PseudoPotentialIO.hankel_transform
 PseudoPotentialIO.build_interpolator_real
+PseudoPotentialIO.trapezoid
 PseudoPotentialIO.simpson
 PseudoPotentialIO.fast_sphericalbesselj
 ```

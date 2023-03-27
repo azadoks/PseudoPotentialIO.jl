@@ -1,7 +1,7 @@
 module PseudoPotentialIO
 using Artifacts
+using CubicSplines
 using EzXML
-using Interpolations
 using LazyArtifacts
 using LinearAlgebra
 using OffsetArrays

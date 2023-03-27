@@ -1,11 +1,11 @@
-import PseudoPotentialIO: simpson, rectangle, trapezoid
+import PseudoPotentialIO: simpson, trapezoid
 import PseudoPotentialIO: abinit_corrected_trapezoid, qe_simpson, cp90_simpson
 import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
 
 @testset "Quadrature" begin
 
-    NONUNIFORM_INTEGRATORS = [simpson, rectangle, trapezoid, qe_simpson, cp90_simpson]
-    INTEGRATORS = [simpson, rectangle, trapezoid, abinit_corrected_trapezoid, qe_simpson,
+    NONUNIFORM_INTEGRATORS = [simpson, trapezoid, qe_simpson, cp90_simpson]
+    INTEGRATORS = [simpson, trapezoid, abinit_corrected_trapezoid, qe_simpson,
                    cp90_simpson]
 
     @testset "Simpson vs. Python reference" begin
@@ -18,8 +18,8 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
         i_start = firstindex(x)
         i_stop = lastindex(x)
         f(i) = sin(x[i])
-        @test simpson(f, i_start, i_stop, h) == 2.0001095173150043
-        @test simpson(f, i_start, i_stop, fill(h, n)) ≈ 2.0001095173150043
+        @test simpson(f, i_start, i_stop, x, h) == 2.0001095173150043
+        @test simpson(f, i_start, i_stop, x, fill(h, n)) ≈ 2.0001095173150043
     end
 
     @testset "Odd linear grid sin" begin
@@ -31,10 +31,10 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
             i_start = firstindex(x)
             i_stop = lastindex(x)
             f(i) = sin(x[i])
-            @test integrator(f, i_start, i_stop, dx) ≈ 2.0
+            @test integrator(f, i_start, i_stop, x, dx) ≈ 2.0
             if integrator in NONUNIFORM_INTEGRATORS
-                @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ 2.0
-                @test integrator(f, i_start, i_stop, dx) ≈ integrator(f, i_start, i_stop, fill(dx, n))
+                @test integrator(f, i_start, i_stop, x, fill(dx, n)) ≈ 2.0
+                @test integrator(f, i_start, i_stop, x, dx) ≈ integrator(f, i_start, i_stop, x, fill(dx, n))
             end
         end
     end
@@ -48,10 +48,10 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
             i_start = firstindex(x)
             i_stop = lastindex(x)
             f(i) = sin(x[i])
-            @test integrator(f, i_start, i_stop, dx) ≈ 2.0
+            @test integrator(f, i_start, i_stop, x, dx) ≈ 2.0
             if integrator in NONUNIFORM_INTEGRATORS
-                @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ 2.0
-                @test integrator(f, i_start, i_stop, dx) ≈ integrator(f, i_start, i_stop, fill(dx, n))
+                @test integrator(f, i_start, i_stop, x, fill(dx, n)) ≈ 2.0
+                @test integrator(f, i_start, i_stop, x, dx) ≈ integrator(f, i_start, i_stop, x, fill(dx, n))
             end
         end
     end
@@ -67,7 +67,7 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
             i_start = firstindex(x)
             i_stop = lastindex(x)
             f(i) = sin(x[i])
-            @test integrator(f, i_start, i_stop, dx) ≈ 2.0 atol=1e-5 rtol=1e-5
+            @test integrator(f, i_start, i_stop, x, dx) ≈ 2.0
         end
     end
 
@@ -82,7 +82,7 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
             i_start = firstindex(x)
             i_stop = lastindex(x)
             f(i) = sin(x[i])
-            @test integrator(f, i_start, i_stop, dx) ≈ 2.0 atol=1e-5 rtol=1e-5
+            @test integrator(f, i_start, i_stop, x, dx) ≈ 2.0
         end
     end
 
@@ -98,9 +98,9 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
             i_start = firstindex(x)
             i_stop = lastindex(x)
             f(i) = exp(-(x[i]^2)) * sin(x[i])
-            @test integrator(f, i_start, i_stop, dx) ≈ real(ref)
+            @test integrator(f, i_start, i_stop, x, dx) ≈ real(ref)
             if integrator in NONUNIFORM_INTEGRATORS
-                @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ real(ref)
+                @test integrator(f, i_start, i_stop, x, fill(dx, n)) ≈ real(ref)
             end
         end
     end
@@ -114,9 +114,9 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
             i_start = firstindex(x)
             i_stop = lastindex(x)
             f(i) = exp(-(x[i]^2)) * sin(x[i])
-            @test integrator(f, i_start, i_stop, dx) ≈ real(ref)
+            @test integrator(f, i_start, i_stop, x, dx) ≈ real(ref)
             if integrator in NONUNIFORM_INTEGRATORS
-                @test integrator(f, i_start, i_stop, fill(dx, n)) ≈ real(ref)
+                @test integrator(f, i_start, i_stop, x, fill(dx, n)) ≈ real(ref)
             end
         end
     end
@@ -132,7 +132,7 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
             i_start = firstindex(x)
             i_stop = lastindex(x)
             f(i) = exp(-(x[i]^2)) * sin(x[i])
-            @test integrator(f, i_start, i_stop, dx) ≈ real(ref) atol=1e-5 rtol=1e-5
+            @test integrator(f, i_start, i_stop, x, dx) ≈ real(ref)
         end
     end
 
@@ -147,7 +147,7 @@ import PseudoPotentialIO: linear_mesh, logarithmic_mesh1, logarithmic_mesh2
             i_start = firstindex(x)
             i_stop = lastindex(x)
             f(i) = exp(-(x[i]^2)) * sin(x[i])
-            @test integrator(f, i_start, i_stop, dx) ≈ real(ref) atol=1e-5 rtol=1e-5
+            @test integrator(f, i_start, i_stop, x, dx) ≈ real(ref)
         end
     end
 end

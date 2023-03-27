@@ -1,6 +1,34 @@
 @doc raw"""
-Simpson's rule integration for a function `f(x)` on a grid with grid spacing `dx`.
-Performs better than the trapezoidal rule on logarithmic grids.
+Trapezoidal rule quadrature.
+
+```math
+\int_a^b f(x) dx \approx
+\frac{1}{2} \Delta x \left[-\frac{f(x_1) + f(x_N)}{2} + \sum_{i=2}^{N-1} f(x_i) \right] \approx
+\frac{1}{2} \sum_{i=1}^{N-1} (f(x_i) + f(x_{i+1})) (x_{i+1} - x{i}))
+```
+"""
+trapezoid
+@inbounds function trapezoid(f, i_start::Int, i_stop::Int, _::AbstractVector, dx)
+    return (sum(f, i_start:i_stop) - (f(i_start) + f(i_stop)) / 2) * dx
+end
+# When given a vector dx, use x to calculate Δx as x_{i+1} - x{i}, which is the true
+# distance between points.
+# This fixes the overlap/gaps that are present when using dx (the derivative of the mesh)
+# from logarithmic meshes.
+@inbounds function trapezoid(f, i_start::Int, i_stop::Int, x::AbstractVector, _::AbstractVector)
+    fa = f(i_start)
+    fb = f(i_start + 1)
+    s = (fa + fb) * (x[i_start+1] - x[i_start])
+    for i in (i_start + 1):(i_stop - 1)
+        fa = fb
+        fb = f(i + 1)
+        s += (fa + fb) * (x[i + 1] - x[i])
+    end
+    return s / 2
+end
+
+@doc raw"""
+Simpson's rule quadrature.
 
 For a uniform grid with an odd number of grid points:
 ```math
@@ -13,7 +41,15 @@ f(x_N) \right) \right]
 ```
 """
 simpson
-@inbounds function simpson(f, i_start::Int, i_stop::Int, dx::AbstractVector)
+@inbounds function simpson(f, i_start::Int, i_stop::Int, _::AbstractVector, dx)
+    s = f(i_start)
+    s += 4 * sum(i -> f(i), (i_start + 1):2:(i_stop - 1))
+    s += 2 * sum(i -> f(i), (i_start + 2):2:(i_stop - 1))
+    s += (i_stop - i_start + 1) % 2 == 1 ? f(i_stop) : -f(i_stop - 1)
+    return s / 3 * dx
+end
+# TODO: this method may be incorrect
+@inbounds function simpson(f, i_start::Int, i_stop::Int, x::AbstractVector, dx::AbstractVector)
     s = f(i_start) * dx[i_start]
     s += sum(i -> 4 * f(i) * dx[i], (i_start + 1):2:(i_stop - 1))
     s += sum(i -> 2 * f(i) * dx[i], (i_start + 2):2:(i_stop - 1))
@@ -22,33 +58,9 @@ simpson
     return s / 3
 end
 
-@inbounds function simpson(f, i_start::Int, i_stop::Int, dx)
-    s = f(i_start)
-    s += 4 * sum(i -> f(i), (i_start + 1):2:(i_stop - 1))
-    s += 2 * sum(i -> f(i), (i_start + 2):2:(i_stop - 1))
-    s += (i_stop - i_start + 1) % 2 == 1 ? f(i_stop) : -f(i_stop - 1)
-    return s / 3 * dx
-end
-
-@inbounds function rectangle(f, i_start::Int, i_stop::Int, dx::AbstractVector)
-    return sum(i -> f(i) * dx[i], i_start:i_stop)
-end
-
-@inbounds function rectangle(f, i_start::Int, i_stop::Int, dx)
-    return sum(f, i_start:i_stop) * dx
-end
-
-@inbounds function trapezoid(f, i_start::Int, i_stop::Int, dx::AbstractVector)
-    return sum(i -> (f(i) + f(i + 1)) * dx[i], i_start:(i_stop - 1)) / 2
-end
-
-@inbounds function trapezoid(f, i_start::Int, i_stop::Int, dx)
-    return dx * (sum(f, (i_start + 1):(i_stop - 1)) + (f(i_start) + f(i_stop)) / 2)
-end
-
 # Same as ABINIT `ctrap`
 # https://github.com/abinit/abinit/blob/6e17fde483be5e66beaa09debf3f0f6dcf4d98cb/shared/common/src/28_numeric_noabirule/m_numeric_tools.F90#L2728
-function abinit_corrected_trapezoid(f, i_start::Int, i_stop::Int, dx::Real)
+function abinit_corrected_trapezoid(f, i_start::Int, i_stop::Int, _::AbstractVector, dx::Real)
     n = i_stop - i_start + 1
     if n >= 10
         endpoint = (
@@ -105,7 +117,7 @@ end
 
 # Same as q-e `simpson`
 # https://github.com/QEF/q-e/blob/48b24e82928af44ba63d04f37c99b0224cbc506d/upflib/simpsn.f90#L9
-function qe_simpson(f, i_start::Int, i_stop::Int, dx::AbstractVector)
+function qe_simpson(f, i_start::Int, i_stop::Int, _::AbstractVector, dx::AbstractVector)
     n = i_stop - i_start + 1
     s = sum((i_start + 1):(i_stop - 1)) do i
         2abs(mod(i, 2)-2) * f(i) * dx[i]
@@ -118,7 +130,7 @@ function qe_simpson(f, i_start::Int, i_stop::Int, dx::AbstractVector)
     return s
 end
 
-function qe_simpson(f, i_start::Int, i_stop::Int, dx)
+function qe_simpson(f, i_start::Int, i_stop::Int, _::AbstractVector, dx)
     n = i_stop - i_start + 1
     s = sum((i_start + 1):(i_stop - 1)) do i
         2abs(mod(i, 2)-2) * f(i) * dx
@@ -133,7 +145,12 @@ end
 
 # Same as q-e `simpson_cp90`
 # https://github.com/QEF/q-e/blob/48b24e82928af44ba63d04f37c99b0224cbc506d/upflib/simpsn.f90#L61
-function cp90_simpson(f, i_start::Int, i_stop::Int, dx::AbstractVector)
+function cp90_simpson(f, i_start::Int, i_stop::Int, x::AbstractVector, dx::AbstractVector)
+    if iszero(x[i_start])
+        # @warn "x[$i_start] == 0, discarding this point"
+        i_start += 1
+    end
+    
     n = i_stop - i_start + 1
     n < 8 && throw(ArgumentError("Minimum 8 points are required"))
 
@@ -149,7 +166,12 @@ function cp90_simpson(f, i_start::Int, i_stop::Int, dx::AbstractVector)
     return s
 end
 
-function cp90_simpson(f, i_start::Int, i_stop::Int, dx)
+function cp90_simpson(f, i_start::Int, i_stop::Int, x::AbstractVector, dx)
+    if iszero(x[i_start])
+        # @warn "x[$i_start] == 0, discarding this point"
+        i_start += 1
+    end
+    
     n = i_stop - i_start + 1
     n < 8 && throw(ArgumentError("Minimum 8 points are required"))
 

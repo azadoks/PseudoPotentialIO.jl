@@ -53,3 +53,18 @@ function guess_mesh_type(r::AbstractVector, rab::AbstractVector)
     end
     return ("unknown", NaN, NaN)
 end
+
+function guess_mesh_type(r::AbstractVector, rab::Real)
+    nr = length(r)
+    # Try linear
+    a = r[2] - r[1]
+    b = r[1] - a
+    rguess = linear_mesh.(1:nr, a, b)
+    if all(rguess .≈ r) & all(round.(rab, digits=4) .≈ a)
+        # Improve the values
+        a = mean(diff(r))
+        b = r[1] - a
+        return ("linear", a, b)
+    end
+    return ("unknown", NaN, NaN)
+end
