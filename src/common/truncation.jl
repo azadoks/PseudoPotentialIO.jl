@@ -1,6 +1,7 @@
 # Find the index where function stored in vector `f` decays to zero via a reverse
 # search, assuming that the function smoothly decays to zero.
-function find_truncation_index(f::AbstractVector, tol)
+function find_truncation_index(f::AbstractVector{T}, tol) where {T<:Real}
+    iszero(f) && return 1
     i_trunc = lastindex(f)
     for (i, fi) in enumerate(Iterators.reverse(f))
         if abs(fi) > tol
@@ -11,5 +12,5 @@ function find_truncation_index(f::AbstractVector, tol)
     return i_trunc
 end
 
-find_truncation_index(f::AbstractVector, ::Nothing) = lastindex(f)
+find_truncation_index(f::AbstractVector{T}, ::Nothing) where {T<:Real} = lastindex(f)
 find_truncation_index(::Nothing, _) = nothing

@@ -72,7 +72,12 @@ get_quantity(::ValenceChargeDensity, psp::NumericPsP) = psp.ρval
 get_quantity(::CoreChargeDensity, psp::NumericPsP) = psp.ρcore
 get_quantity(::AugmentationFunction, psp::NumericPsP) = nothing
 
-has_quantity(q::AbstractPsPQuantity, psp::NumericPsP) = !isnothing(get_quantity(q, psp))
+function has_quantity(q::AbstractPsPQuantity, psp::NumericPsP)
+    if !isnothing(get_quantity(q, psp))  # First check if the quantity is explicit nothing
+        !isempty(get_quantity(q, psp)) && return true  # Then check if it is empty
+    end
+    return false
+end
 
 function cutoff_radius(quantity::AbstractPsPQuantity, psp::NumericPsP; f=nothing,
                        tol=nothing)
@@ -87,6 +92,13 @@ function cutoff_radius(quantity::PsPProjector, psp::NumericPsP, l, n; f=nothing,
     f = get_quantity(quantity, psp, l, n)
     return psp.r[find_truncation_index(f, tol)]
 end
+
+function cutoff_radius(q::PsPProjector, psp::NumericPsP; f=minimum, tol=nothing)
+    cutoff_radii = map(l -> cutoff_radius(q, psp, l; tol), angular_momenta(psp))
+    cutoff_radii = filter(!isnothing, cutoff_radii)
+    return isempty(cutoff_radii) ? nothing : f(cutoff_radii)
+end
+
 
 # Real-space angular-independent quantities: local potential, atomic charge densities
 function psp_quantity_evaluator(::RealSpace, quantity::AbstractPsPQuantity, psp::NumericPsP)
@@ -146,37 +158,74 @@ end
 # TODO: implement q-e style correction (this is ABINIT-style)
 @inbounds function psp_quantity_evaluator(::FourierSpace, ::LocalPotential, psp::NumericPsP;
                                           i_start=nothing, i_stop=nothing,
-                                          integrator=trapezoid)
+                                          integrator=trapezoid, correction=LocalPotentialCorrectionABINIT())
     i_start = isnothing(i_start) ? firstindex(psp.Vloc) : i_start
     i_stop = isnothing(i_stop) ? lastindex(psp.Vloc) : i_stop
-    function Vloc(q)
-        function integrand(i::Int)
-            return psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
-                   (psp.r[i] * psp.Vloc[i] + psp.Zval)
+    function Vloc(q::T) where {T}
+        if !iszero(q)
+            function integrand(i::Int)
+                return sin(q * psp.r[i]) * (psp.r[i] * psp.Vloc[i] - local_potential_correction(RealSpace(), correction, psp, psp.r[i]))
+            end
+            integral = integrator(integrand, i_start, i_stop, psp.r, psp.dr)
+            return 4π * (integral / q +
+                        local_potential_correction(FourierSpace(), correction, psp, q))
         end
-        integral = integrator(integrand, i_start, i_stop, psp.r, psp.dr)
-        return 4π * (integral - psp.Zval / q^2)
+        return psp_energy_correction(T, psp; i_start, i_stop, integrator)
+        # function integrand(i::Int)
+        #     return psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
+        #         (psp.r[i] * psp.Vloc[i] - local_potential_correction(RealSpace(), correction, psp, psp.r[i]))
+        # end
+        # integral = integrator(integrand, i_start, i_stop, psp.r, psp.dr)
+        # return 4π * (integral + local_potential_correction(FourierSpace(), correction, psp, q))
     end
     Vloc(Q::AbstractVector) = Vloc(norm(Q))
     return Vloc
 end
 
 @inbounds function psp_quantity_evaluator(::FourierSpace, ::LocalPotential, psp::NumericPsP,
-                                          r, dr; integrator=trapezoid)
+                                          r, dr; integrator=trapezoid,
+                                          correction=LocalPotentialCorrectionABINIT())
     f_real = psp_quantity_evaluator(RealSpace(), LocalPotential(), psp)
     f = f_real.(r)
     i_start = firstindex(f)
     i_stop = lastindex(f)
-    function Vloc(q)
-        function integrand(i::Int)
-            return r[i] * fast_sphericalbesselj0(q * r[i]) * (r[i] * f[i] + psp.Zval)
+    function Vloc(q::T) where {T}
+        if !iszero(q)
+            function integrand(i::Int)
+                return sin(q * r[i]) * (r[i] * f[i] - local_potential_correction(RealSpace(), correction, psp, r[i]))
+            end
+            integral = integrator(integrand, i_start, i_stop, r, dr)
+            return 4π * (integral / q +
+                        local_potential_correction(FourierSpace(), correction, psp, q))
         end
-        integral = integrator(integrand, i_start, i_stop, r, dr)
-        return 4π * (integral - psp.Zval / q^2)
+        return psp_energy_correction(T, psp, r, dr; integrator)
+        # function integrand(i::Int)
+        #     return r[i] * fast_sphericalbesselj0(q * r[i]) *
+        #         (r[i] * f[i] - local_potential_correction(RealSpace(), correction, psp, r[i]))
+        # end
+        # integral = integrator(integrand, i_start, i_stop, r, dr)
+        # return 4π * (integral + local_potential_correction(FourierSpace(), correction, psp, q))
     end
     Vloc(Q::AbstractVector) = Vloc(norm(Q))
     return Vloc
 end
+
+function local_potential_correction(::RealSpace, ::LocalPotentialCorrectionQE, psp::NumericPsP, r)
+    return -psp.Zval * erf(r)
+end
+function local_potential_correction(::FourierSpace, ::LocalPotentialCorrectionQE, psp::NumericPsP, q)
+    return -psp.Zval * exp(-q^2 / 4) / q^2
+end
+
+function local_potential_correction(::RealSpace, ::LocalPotentialCorrectionABINIT, psp::NumericPsP, _)
+    return -psp.Zval
+end
+function local_potential_correction(::FourierSpace, ::LocalPotentialCorrectionABINIT, psp::NumericPsP, q)
+    return -psp.Zval / q^2
+end
+# QE Vloc(q=0)  aux (ir) = r (ir) * (r (ir) * vloc_at (ir) + zp * e2)
+# QE Vloc(q>0)  aux1 (ir) = r (ir) * vloc_at (ir) + zp * e2 * erf (r (ir)
+#               aux (ir) = aux1 (ir) * sin (gx * r (ir) ) / gx
 
 @inbounds function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP; i_start=nothing,
                                          i_stop=nothing, integrator=trapezoid)

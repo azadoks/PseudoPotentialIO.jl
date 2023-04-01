@@ -1,3 +1,10 @@
+abstract type QuadratureMethod end
+struct Trapezoid <: QuadratureMethod end
+struct Simpson <: QuadratureMethod end
+struct QESimpson <: QuadratureMethod end
+struct CP90Simpson <: QuadratureMethod end
+struct AbinitCorrectedTrapezoid <: QuadratureMethod end
+
 @doc raw"""
 Trapezoidal rule quadrature.
 
@@ -22,6 +29,20 @@ end
     for i in (i_start + 1):(i_stop - 1)
         fa = fb
         fb = f(i + 1)
+        s += (fa + fb) * (x[i + 1] - x[i])
+    end
+    return s / 2
+end
+
+@inbounds function trapezoid(f::AbstractVector, x::AbstractVector)
+    i_start = firstindex(f)
+    i_stop = lastindex(f)
+    fa = f[i_start]
+    fb = f[i_start + 1]
+    s = (fa + fb) * (x[i_start+1] - x[i_start])
+    for i in (i_start + 1):(i_stop - 1)
+        fa = fb
+        fb = f[i + 1]
         s += (fa + fb) * (x[i + 1] - x[i])
     end
     return s / 2
@@ -70,7 +91,7 @@ function abinit_corrected_trapezoid(f, i_start::Int, i_stop::Int, _::AbstractVec
             79.30(f(i_start + 3) + f(i_stop - 3)) +
             70.65(f(i_start + 4) + f(i_stop - 4))
         ) / 72
-        return (sum(f, i_start+6:i_stop-5) + endpoint) * dx
+        return (sum(f, i_start+5:i_stop-5) + endpoint) * dx
     elseif n >= 8
         endpoint = (
             17(f(i_start    ) + f(i_stop    )) +
@@ -150,7 +171,7 @@ function cp90_simpson(f, i_start::Int, i_stop::Int, x::AbstractVector, dx::Abstr
         # @warn "x[$i_start] == 0, discarding this point"
         i_start += 1
     end
-    
+
     n = i_stop - i_start + 1
     n < 8 && throw(ArgumentError("Minimum 8 points are required"))
 
@@ -158,8 +179,8 @@ function cp90_simpson(f, i_start::Int, i_stop::Int, x::AbstractVector, dx::Abstr
         (f(i_start    ) * dx[i_start    ] + f(i_stop    ) * dx[i_stop    ]) *  109 +
         (f(i_start + 1) * dx[i_start + 1] + f(i_stop - 1) * dx[i_stop - 1]) * -5   +
         (f(i_start + 2) * dx[i_start + 2] + f(i_stop - 2) * dx[i_stop - 2]) *  63  +
-        (f(i_start + 3) * dx[i_start + 3] + f(i_stop - 3) * dx[i_stop - 3]) *  49 
-    ) / 48 
+        (f(i_start + 3) * dx[i_start + 3] + f(i_stop - 3) * dx[i_stop - 3]) *  49
+    ) / 48
     for i in (i_start + 4):(i_stop - 4)
         s += f(i) * dx[i]
     end
@@ -171,7 +192,7 @@ function cp90_simpson(f, i_start::Int, i_stop::Int, x::AbstractVector, dx)
         # @warn "x[$i_start] == 0, discarding this point"
         i_start += 1
     end
-    
+
     n = i_stop - i_start + 1
     n < 8 && throw(ArgumentError("Minimum 8 points are required"))
 
@@ -179,7 +200,7 @@ function cp90_simpson(f, i_start::Int, i_stop::Int, x::AbstractVector, dx)
         (f(i_start    ) + f(i_stop    )) *  109 +
         (f(i_start + 1) + f(i_stop - 1)) * -5   +
         (f(i_start + 2) + f(i_stop - 2)) *  63  +
-        (f(i_start + 3) + f(i_stop - 3)) *  49 
+        (f(i_start + 3) + f(i_stop - 3)) *  49
     ) * dx / 48
     for i in (i_start + 4):(i_stop - 4)
         s += f(i) * dx

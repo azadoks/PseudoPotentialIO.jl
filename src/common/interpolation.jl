@@ -7,7 +7,7 @@ build_interpolator_real
 @views @inbounds function build_interpolator_real(f::AbstractVector{T},
                                                   r::AbstractVector{T}) where {T<:Real}
     itp = CubicSpline(r[firstindex(f):lastindex(f)], f)
-    itp_function(r) = itp[r]
-    itp_function(R::AbstractVector) = itp_function(norm(R))
-    return itp_function
+    # itp_function(r) = itp[r]
+    # itp_function(R::AbstractVector) = itp_function(norm(R))
+    return itp
 end

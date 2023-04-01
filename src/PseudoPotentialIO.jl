@@ -49,6 +49,9 @@ export AugmentationCoupling
 export EvaluationSpace
 export RealSpace
 export FourierSpace
+export LocalPotentialCorrection
+export LocalPotentialCorrectionABINIT
+export LocalPotentialCorrectionQE
 include("psp/quantities.jl")
 
 ## File datastructures and interface

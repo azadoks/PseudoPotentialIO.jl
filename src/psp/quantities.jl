@@ -51,6 +51,10 @@ Local potential
 """
 struct LocalPotential <: PsPPotential end
 
+abstract type LocalPotentialCorrection <: AbstractPsPQuantity end
+struct LocalPotentialCorrectionQE <: LocalPotentialCorrection end
+struct LocalPotentialCorrectionABINIT <: LocalPotentialCorrection end
+
 @doc raw"""
 Ultrasoft / PAW augmentation function ``q`` or ``Q``
 """

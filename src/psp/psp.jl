@@ -104,7 +104,7 @@ function max_angular_momentum(psp::AbstractPsP) end
 
 """
 Number of radial functions of a given quantity provided by the pseudopotential at angular
-momentum ``l``. 
+momentum ``l``.
 """
 function n_radials(quantity::AbstractPsPQuantity, psp::AbstractPsP, l) end
 
@@ -144,7 +144,7 @@ The optional absolute tolerance `tol` can be used to find the radial coordinate 
 absolute value of the quantity decays to below the tolerance rather than returning the last
 index of a vector or a parsed cutoff radius.
 
-If no quantity is provided, the keyword argument `f` can be used to select whether the 
+If no quantity is provided, the keyword argument `f` can be used to select whether the
 minimum or maximum cutoff radius over all pseudopotential quantities is returned.
 """
 function cutoff_radius(q::AbstractPsPQuantity, psp::AbstractPsP; tol=nothing) end
@@ -217,14 +217,14 @@ function n_angulars(q::PsPProjector, psp::AbstractPsP)
     return sum(l -> n_angulars(q, psp, l), angular_momenta(psp); init=0)
 end
 
-function cutoff_radius(q::PsPProjector, l::Int; f=minimum, tol=nothing)
+function cutoff_radius(q::PsPProjector, psp::AbstractPsP, l::Int; f=minimum, tol=nothing)
     cutoff_radii = map(n -> cutoff_radius(q, psp, l, n; tol), 1:n_radials(q, psp, l))
     cutoff_radii = filter(!isnothing, cutoff_radii)
     return isempty(cutoff_radii) ? nothing : f(cutoff_radii)
 end
 
-function cutoff_radius(q::PsPProjector; f=minimum, tol=nothing)
-    cutoff_radii = map(n -> cutoff_radius(q, psp, l; tol), angular_momenta(psp))
+function cutoff_radius(q::PsPProjector, psp::AbstractPsP; f=minimum, tol=nothing)
+    cutoff_radii = map(l -> cutoff_radius(q, psp, l; tol), angular_momenta(psp))
     cutoff_radii = filter(!isnothing, cutoff_radii)
     return isempty(cutoff_radii) ? nothing : f(cutoff_radii)
 end
