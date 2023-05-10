@@ -50,8 +50,8 @@ export EvaluationSpace
 export RealSpace
 export FourierSpace
 export LocalPotentialCorrection
-export LocalPotentialCorrectionABINIT
-export LocalPotentialCorrectionQE
+export CoulombCorrection
+export ErfCorrection
 include("psp/quantities.jl")
 
 ## File datastructures and interface
@@ -146,8 +146,11 @@ include("deprecated/psp8.jl")
 ## Miscellaneous
 include("common/hankel_transform.jl")
 include("common/mesh.jl")
-include("common/quadrature.jl")
 include("common/spherical_bessel.jl")
 include("common/interpolation.jl")
 include("common/truncation.jl")
+include("common/quadrature/methods.jl")
+include("common/quadrature/function.jl")
+include("common/quadrature/weights.jl")
+include("common/quadrature/vector.jl")
 end

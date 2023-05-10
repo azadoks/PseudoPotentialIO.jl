@@ -1,3 +1,6 @@
+# TODO: add l, n, ... indices as components of the flagging structure
+# TODO: this should greatly reduce code duplication!
+
 """
 Abstact type used for dispatch on different pseudopotential quantities"
 """
@@ -52,8 +55,8 @@ Local potential
 struct LocalPotential <: PsPPotential end
 
 abstract type LocalPotentialCorrection <: AbstractPsPQuantity end
-struct LocalPotentialCorrectionQE <: LocalPotentialCorrection end
-struct LocalPotentialCorrectionABINIT <: LocalPotentialCorrection end
+struct ErfCorrection <: LocalPotentialCorrection end
+struct CoulombCorrection <: LocalPotentialCorrection end
 
 @doc raw"""
 Ultrasoft / PAW augmentation function ``q`` or ``Q``

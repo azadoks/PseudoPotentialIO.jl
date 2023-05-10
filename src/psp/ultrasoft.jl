@@ -15,7 +15,8 @@ struct UltrasoftPsP{T} <: NumericPsP{T}
     "Radial mesh"
     r::Vector{T}
     "Radial mesh spacing"
-    dr::Union{T,Vector{T}}
+    dr::Vector{T}
+    Δr::Union{T,Vector{T}}
     "Local part of the potential on the radial mesh"
     Vloc::Vector{T}
     "Nonlocal projectors β[l][n] on the radial mesh"
@@ -109,7 +110,7 @@ function _upf_construct_us_internal(upf::UpfFile)
     nc = _upf_construct_nc_internal(upf)
     # Number of projectors at each angular momentum
     nβ = OffsetVector(length.(nc.β), 0:(nc.lmax))
-    # Find the first/last indices in upf.nonlocal.dij for each angular momentum so the 
+    # Find the first/last indices in upf.nonlocal.dij for each angular momentum so the
     # sub-arrays q[l][n,m] can be extracted
     cum_nβ = [0, cumsum(nβ)...]
     q_upf = upf.nonlocal.augmentation.q
@@ -119,7 +120,7 @@ function _upf_construct_us_internal(upf::UpfFile)
     # Wrangle the agumentation functions. For UPF v2.0.1, they are given with indeices
     # i ∈ 1:nβ, j ∈ 1:nβ, l ∈ 0:2lmax. In the old format, they are given only at i and j
     # with additional coefficients for a polynomial expansion within a cutoff radius
-    # These are used to reconstruct the full Qijl. 
+    # These are used to reconstruct the full Qijl.
     if upf.nonlocal.augmentation.q_with_l
         Q = _upf_construct_augmentation_q_with_l(upf)
     elseif upf.nonlocal.augmentation.nqf > 0
@@ -128,8 +129,8 @@ function _upf_construct_us_internal(upf::UpfFile)
         error("q_with_l == false and nqf == 0, unsure what to do...")
     end
     return UltrasoftPsP{Float64}(nc.identifier, nc.checksum, nc.Zatom, nc.Zval, nc.lmax,
-                                 nc.r, nc.dr, nc.Vloc, nc.β, nc.D, nc.χ, Q, q, nc.ρcore,
-                                 nc.ρval)
+                                 nc.r, nc.dr, nc.Δr, nc.Vloc, nc.β, nc.D, nc.χ, Q, q,
+                                 nc.ρcore, nc.ρval)
 end
 
 is_norm_conserving(::UltrasoftPsP)::Bool = false

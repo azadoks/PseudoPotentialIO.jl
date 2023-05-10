@@ -58,34 +58,37 @@ valence_charge(psp::HghPsP) = psp.Zval
 atomic_charge(psp::HghPsP) = psp.Zatom
 max_angular_momentum(psp::HghPsP)::Int = psp.lmax
 
-has_quantity(::AbstractPsPQuantity, ::HghPsP) = false
-has_quantity(::LocalPotential, ::HghPsP) = true
-has_quantity(::BetaProjector, ::HghPsP) = true
-has_quantity(::BetaCoupling, ::HghPsP) = true
+has_quantity(::HghPsP, ::AbstractPsPQuantity) = false
+has_quantity(::HghPsP, ::LocalPotential) = true
+has_quantity(::HghPsP, ::BetaProjector) = true
+has_quantity(::HghPsP, ::BetaCoupling) = true
 
-get_quantity(::BetaCoupling, psp::HghPsP) = psp.D
-get_quantity(::BetaCoupling, psp::HghPsP, l) = psp.D[l]
-get_quantity(::BetaCoupling, psp::HghPsP, l, n) = psp.D[l][n, n]
-get_quantity(::BetaCoupling, psp::HghPsP, l, n, m) = psp.D[l][n, m]
+get_quantity(psp::HghPsP, ::BetaCoupling) = psp.D
+get_quantity(psp::HghPsP, ::BetaCoupling, l) = psp.D[l]
+get_quantity(psp::HghPsP, ::BetaCoupling, l, n) = psp.D[l][n, n]
+get_quantity(psp::HghPsP, ::BetaCoupling, l, n, m) = psp.D[l][n, m]
 
-n_radials(::BetaProjector, psp::HghPsP, l::Int) = size(psp.D[l], 1)
-n_radials(::ChiProjector, ::HghPsP, ::Int) = 0
+n_radials(psp::HghPsP, ::BetaProjector, l::Int) = size(psp.D[l], 1)
+n_radials(::HghPsP, ::ChiProjector, ::Int) = 0
 
-function cutoff_radius(q::AbstractPsPQuantity, psp::HghPsP; f=nothing, tol=nothing)
-    return has_quantity(q, psp) ? nothing : Inf
+function cutoff_radius(psp::HghPsP, quantity::AbstractPsPQuantity; f=nothing, tol=nothing)
+    return has_quantity(quantity, psp) ? nothing : Inf
 end
-cutoff_radius(q::PsPProjector, psp::HghPsP, l, n; tol=nothing) = cutoff_radius(q, psp)
+function cutoff_radius(psp::HghPsP, quantity::PsPProjector, ::Any, ::Any; f=nothing,
+                       tol=nothing)
+    return cutoff_radius(quantity, psp)
+end
 
-function psp_quantity_evaluator(::RealSpace, ::LocalPotential, psp::HghPsP)
+function psp_quantity_evaluator(psp::HghPsP, ::LocalPotential, ::RealSpace)
     return local_potential_real(psp)
 end
-function psp_quantity_evaluator(::RealSpace, ::BetaProjector, psp::HghPsP, l, n)
+function psp_quantity_evaluator(psp::HghPsP, ::BetaProjector, l, n, ::RealSpace)
     return beta_projector_real(psp, l, n)
 end
-function psp_quantity_evaluator(::FourierSpace, ::LocalPotential, psp::HghPsP)
+function psp_quantity_evaluator(psp::HghPsP, ::LocalPotential, ::FourierSpace)
     return local_potential_fourier(psp)
 end
-function psp_quantity_evaluator(::FourierSpace, ::BetaProjector, psp::HghPsP, l, n)
+function psp_quantity_evaluator(psp::HghPsP, ::BetaProjector, l, n, ::FourierSpace)
     return beta_projector_fourier(psp, l, n)
 end
 

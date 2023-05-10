@@ -28,8 +28,8 @@ QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
             @test isa(identifier(psp), AbstractString)
             @test isa(element(psp), PeriodicTable.Element)
             @test -1 <= max_angular_momentum(psp) <= 5
-            @test 0 <= n_radials(BetaProjector(), psp)
-            @test 0 <= n_radials(ChiProjector(), psp)
+            @test 0 <= n_radials(psp, BetaProjector())
+            @test 0 <= n_radials(psp, ChiProjector())
             @test 0 <= valence_charge(psp)
             @test 0 <= atomic_charge(psp)
             @test isa(is_norm_conserving(psp), Bool)
@@ -42,21 +42,21 @@ QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
             # TODO: test augmentation function
 
             for quantity in QUANTITIES
-                @test isa(has_quantity(quantity, psp), Bool)
+                @test isa(has_quantity(psp, quantity), Bool)
             end
 
             for l in angular_momenta(psp)
-                @test size(get_quantity(BetaCoupling(), psp, l)) ==
-                      (n_radials(BetaProjector(), psp, l),
-                       n_radials(BetaProjector(), psp, l))
-                @test eltype(get_quantity(BetaCoupling(), psp, l)) <: Real
-                for n in 1:n_radials(BetaProjector(), psp, l)
-                    @test get_quantity(BetaCoupling(), psp, l, n, n) ==
-                          get_quantity(BetaCoupling(), psp, l, n)
-                    for m in (n + 1):n_radials(BetaProjector(), psp, l)
-                        @test isa(get_quantity(BetaCoupling(), psp, l, n, m), Real)
-                        @test get_quantity(BetaCoupling(), psp, l, n, m) ==
-                              get_quantity(BetaCoupling(), psp, l, m, n)
+                @test size(get_quantity(psp, BetaCoupling(), l)) ==
+                      (n_radials(psp, BetaProjector(), l),
+                       n_radials(psp, BetaProjector(), l))
+                @test eltype(get_quantity(psp, BetaCoupling(), l)) <: Real
+                for n in 1:n_radials(psp, BetaProjector(), l)
+                    @test get_quantity(psp, BetaCoupling(), l, n, n) ==
+                          get_quantity(psp, BetaCoupling(), l, n)
+                    for m in (n + 1):n_radials(psp, BetaProjector(), l)
+                        @test isa(get_quantity(psp, BetaCoupling(), l, n, m), Real)
+                        @test get_quantity(psp, BetaCoupling(), l, n, m) ==
+                              get_quantity(psp, BetaCoupling(), l, m, n)
                     end
                 end
             end
@@ -65,34 +65,34 @@ QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
             K_rot = rotate_vector(random_versor(), K)
 
             for quantity in [BetaProjector(), ChiProjector()]
-                if has_quantity(quantity, psp)
-                    for l in angular_momenta(psp), n in 1:n_radials(quantity, psp, l)
+                if has_quantity(psp, quantity)
+                    for l in angular_momenta(psp), n in 1:n_radials(psp, quantity, l)
                         rmin = isa(psp, NumericPsP) ? first(psp.r) : 0
-                        rmax = cutoff_radius(quantity, psp, l, n)
+                        rmax = isa(psp, NumericPsP) ? psp.r[lastindex(get_quantity(psp, quantity, l, n))] : Inf
                         if !isnothing(rmax)
-                            R = rescale_vector(rand(3), rmin, rmax)
-                            R_rot = rotate_vector(random_versor(), R)
+                            # R = rescale_vector(rand(3), rmin, rmax)
+                            # R_rot = rotate_vector(random_versor(), R)
 
-                            @test psp_quantity_evaluator(RealSpace(), quantity, psp, l, n)(R) ≈
-                                psp_quantity_evaluator(RealSpace(), quantity, psp, l, n)(R_rot)
-                            @test psp_quantity_evaluator(FourierSpace(), quantity, psp, l, n)(K) ≈
-                                psp_quantity_evaluator(FourierSpace(), quantity, psp, l, n)(K_rot)
+                            # Numeric evaluators no longer support vector arguments
+                            # @test psp_quantity_evaluator(psp, quantity, l, n, RealSpace())(R) ≈
+                            #     psp_quantity_evaluator(psp, quantity, l, n, RealSpace())(R_rot)
+                            @test psp_quantity_evaluator(psp, quantity, l, n, FourierSpace())(K) ≈
+                                psp_quantity_evaluator(psp, quantity, l, n, FourierSpace())(K_rot)
                         end
                     end
                 end
             end
 
             for quantity in [LocalPotential(), ValenceChargeDensity(), CoreChargeDensity()]
-                if has_quantity(quantity, psp)
-                    rmin = isa(psp, NumericPsP) ? first(psp.r) : 0
-                    rmax = cutoff_radius(quantity, psp)  # HGH seems to give nothing?
-                    rmax = isnothing(rmax) ? Inf : rmax
-                    R = rescale_vector(rand(3), rmin, rmax)
-                    R_rot = rotate_vector(random_versor(), R)
-                    @test psp_quantity_evaluator(RealSpace(), quantity, psp)(R) ≈
-                        psp_quantity_evaluator(RealSpace(), quantity, psp)(R_rot)
-                    @test psp_quantity_evaluator(FourierSpace(), quantity, psp)(K) ≈
-                        psp_quantity_evaluator(FourierSpace(), quantity, psp)(K_rot)
+                if has_quantity(psp, quantity)
+                    # rmin = isa(psp, NumericPsP) ? first(psp.r) : 0
+                    # rmax = isa(psp, NumericPsP) ? psp.r[lastindex(get_quantity(psp, quantity))] : Inf
+                    # R = rescale_vector(rand(3), rmin, rmax)
+                    # R_rot = rotate_vector(random_versor(), R)
+                    # @test psp_quantity_evaluator(psp, quantity, RealSpace())(R) ≈
+                    #     psp_quantity_evaluator(psp, quantity, RealSpace())(R_rot)
+                    @test psp_quantity_evaluator(psp, quantity, FourierSpace())(K) ≈
+                        psp_quantity_evaluator(psp, quantity, FourierSpace())(K_rot)
                 end
             end
 

@@ -14,8 +14,10 @@ struct NormConservingPsP{T} <: NumericPsP{T}
     lmax::Int
     "Radial mesh."
     r::Union{StepRangeLen{T},Vector{T}}
-    "Radial mesh spacing."
-    dr::Union{T,Vector{T}}
+    "Radial mesh derivative."
+    dr::Vector{T}
+    "Radial mesh spacing r[i+1] - r[i]."
+    Δr::Union{T,Vector{T}}
     "Local part of the potential on the radial mesh (without an r² prefactor)."
     Vloc::Vector{T}
     "Nonlocal projectors β[l][n] on the radial mesh (with an r² prefactor)."
@@ -56,11 +58,14 @@ function _upf_construct_nc_internal(upf::UpfFile)
     mesh_type, _, _ = guess_mesh_type(upf.mesh.r, upf.mesh.rab)
     mesh_type == "unknown" && error("Unknown mesh type")
     if mesh_type == "linear"
-        dr = first(upf.mesh.rab)
-        r = first(upf.mesh.r):dr:last(upf.mesh.r)
-    else
+        Δr = first(upf.mesh.rab)
+        r = first(upf.mesh.r):Δr:last(upf.mesh.r)
         dr = upf.mesh.rab
+    else
+        Δr = diff(upf.mesh.r)
         r = upf.mesh.r
+        dr = upf.mesh.rab
+
     end
 
     Vloc = upf.local_ ./ 2  # Ry -> Ha
@@ -72,14 +77,14 @@ function _upf_construct_nc_internal(upf::UpfFile)
     # Indices in upf.nonlocal.betas for projectors at each angular momentum
     iβ_upf = map(0:lmax) do l
         β_upf = upf.nonlocal.betas
-        return filter(i -> β_upf[i].angular_momentum == l, eachindex(β_upf))
+        return filter(i -> β_upf[i].angular_momentum == l && !isempty(β_upf[i].beta), eachindex(β_upf))
     end
     iβ_upf = OffsetVector(iβ_upf, 0:lmax)
 
     # Number of projectors at each angular momentum
     nβ = OffsetArray(length.(iβ_upf), 0:lmax)
 
-    # Find the first/last indices in upf.nonlocal.dij for each angular momentum so the 
+    # Find the first/last indices in upf.nonlocal.dij for each angular momentum so the
     # sub-arrays D[l][n,m] can be extracted
     cumul_nβ = [0, cumsum(nβ)...]
 
@@ -130,7 +135,7 @@ function _upf_construct_nc_internal(upf::UpfFile)
     end
 
     return NormConservingPsP{Float64}(upf.identifier, upf.checksum, Zatom, Zval, lmax, r,
-                                      dr, Vloc, β, D, χ, ρcore, ρval)
+                                      dr, Δr, Vloc, β, D, χ, ρcore, ρval)
 end
 
 function NormConservingPsP(psp8::Psp8File)
@@ -142,8 +147,9 @@ function NormConservingPsP(psp8::Psp8File)
     Zval = psp8.header.zion
     lmax = psp8.header.lmax
 
-    r = range(first(psp8.rgrid), last(psp8.rgrid); length=length(psp8.rgrid))
-    dr = mean(diff(psp8.rgrid))
+    Δr = mean(diff(psp8.rgrid))
+    r = psp8.rgrid
+    dr = fill(Δr, length(r))  # The mesh is always linear, so dr === Δr
 
     Vloc = psp8.v_local
 
@@ -164,7 +170,7 @@ function NormConservingPsP(psp8::Psp8File)
     ρcore = isnothing(psp8.rhoc) ? nothing : psp8.rhoc .* r .^ 2 ./ 4π
     ρval = isnothing(psp8.rhov) ? nothing : psp8.rhov .* r .^ 2 ./ 4π
     return NormConservingPsP{Float64}(psp8.identifier, psp8.checksum, Zatom, Zval, lmax, r,
-                                      dr, Vloc, β, D, χ, ρcore, ρval)
+                                      dr, Δr, Vloc, β, D, χ, ρcore, ρval)
 end
 
 is_norm_conserving(::NormConservingPsP)::Bool = true

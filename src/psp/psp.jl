@@ -106,7 +106,7 @@ function max_angular_momentum(psp::AbstractPsP) end
 Number of radial functions of a given quantity provided by the pseudopotential at angular
 momentum ``l``.
 """
-function n_radials(quantity::AbstractPsPQuantity, psp::AbstractPsP, l) end
+function n_radials(psp::AbstractPsP, quantity::AbstractPsPQuantity, l) end
 
 """
 Pseudo-atomic valence charge.
@@ -147,16 +147,17 @@ index of a vector or a parsed cutoff radius.
 If no quantity is provided, the keyword argument `f` can be used to select whether the
 minimum or maximum cutoff radius over all pseudopotential quantities is returned.
 """
-function cutoff_radius(q::AbstractPsPQuantity, psp::AbstractPsP; tol=nothing) end
-function cutoff_radius(q::PsPProjector, psp::AbstractPsP, l, n; tol=nothing) end
+function cutoff_radius(psp::AbstractPsP, quantity::AbstractPsPQuantity; tol=nothing) end
+function cutoff_radius(psp::AbstractPsP, quantity::PsPProjector, l, n; tol=nothing) end
 
 """
 Construct a callable which evaluates the requested pseudopotential quantity in either
 Fourier- or real-space.
 """
-function psp_quantity_evaluator(s::EvaluationSpace, q::AbstractPsPQuantity,
-                                psp::AbstractPsP) end
-function psp_quantity_evaluator(s::EvaluationSpace, q::PsPProjector, psp::AbstractPsP, l, n) end
+function psp_quantity_evaluator(psp::AbstractPsP, quantity::AbstractPsPQuantity,
+                                space::EvaluationSpace) end
+function psp_quantity_evaluator(psp::AbstractPsP, quantity::AbstractPsPQuantity, l, n,
+                                space::EvaluationSpace) end
 
 """
 Pseudopotential energy correction (the DC component of the Fourier transform of the
@@ -167,14 +168,13 @@ function psp_energy_correction(T::Type, psp::AbstractPsP) end
 @doc raw"""
 Get the internal representation of a given quantity, if available.
 """
-function get_quantity(q::AbstractPsPQuantity, psp::AbstractPsP) end
-function get_quantity(q::PsPProjector, psp::AbstractPsP, l, n) end
+function get_quantity(psp::AbstractPsP, quantity::AbstractPsPQuantity) end
+function get_quantity(psp::AbstractPsP, quantity::PsPProjector, l, n) end
 
 """
 Check that a pseudopotential has a given quantity.
 """
-function has_quantity(q::AbstractPsPQuantity, psp::AbstractPsP) end
-
+function has_quantity(psp::AbstractPsP, quantity::AbstractPsPQuantity) end
 
 #!!! Convenience functions !!!#
 """
@@ -197,8 +197,8 @@ function formalism(psp::AbstractPsP)::Type
     is_paw(psp) && return ProjectorAugmentedWavePsP
 end
 
-function n_radials(q::PsPProjector, psp::AbstractPsP)
-    return sum(l -> n_radials(q, psp, l), angular_momenta(psp); init=0)
+function n_radials(psp::AbstractPsP, quantity::PsPProjector)
+    return sum(l -> n_radials(psp, quantity, l), angular_momenta(psp); init=0)
 end
 
 """
@@ -210,30 +210,35 @@ i.e., count the number of combinations for the quantum numbers ``l`` and ``m`` u
 maximum angular momentum of the pseudopotential, accounting for multi-projector
 pseudopotentials that provide multiple radial parts at an individual angular momentum.
 """
-function n_angulars(q::PsPProjector, psp::AbstractPsP, l)
-    return (2l + 1) * n_radials(q, psp, l)
+function n_angulars(psp::AbstractPsP, quantity::PsPProjector, l)
+    return (2l + 1) * n_radials(psp, quantity, l)
 end
-function n_angulars(q::PsPProjector, psp::AbstractPsP)
-    return sum(l -> n_angulars(q, psp, l), angular_momenta(psp); init=0)
+function n_angulars(psp::AbstractPsP, quantity::PsPProjector)
+    return sum(l -> n_angulars(psp, quantity, l), angular_momenta(psp); init=0)
 end
 
-function cutoff_radius(q::PsPProjector, psp::AbstractPsP, l::Int; f=minimum, tol=nothing)
-    cutoff_radii = map(n -> cutoff_radius(q, psp, l, n; tol), 1:n_radials(q, psp, l))
+function cutoff_radius(psp::AbstractPsP, quantity::PsPProjector, l::Int; f=minimum,
+                       tol=nothing)
+    cutoff_radii = map(n -> cutoff_radius(psp, quantity, l, n; tol),
+                       1:n_radials(psp, quantity, l))
     cutoff_radii = filter(!isnothing, cutoff_radii)
     return isempty(cutoff_radii) ? nothing : f(cutoff_radii)
 end
 
-function cutoff_radius(q::PsPProjector, psp::AbstractPsP; f=minimum, tol=nothing)
-    cutoff_radii = map(l -> cutoff_radius(q, psp, l; tol), angular_momenta(psp))
+function cutoff_radius(psp::AbstractPsP, quantity::PsPProjector; f=minimum, tol=nothing)
+    cutoff_radii = map(l -> cutoff_radius(psp, quantity, l; tol), angular_momenta(psp))
     cutoff_radii = filter(!isnothing, cutoff_radii)
     return isempty(cutoff_radii) ? nothing : f(cutoff_radii)
 end
 
 function cutoff_radius(psp::AbstractPsP,
-                       quantities=[ValenceChargeDensity(), CoreChargeDensity(),
-                                   BetaProjector(), ChiProjector(), LocalPotential()];
+                       quantities::AbstractVector{AbstractPsPQuantity}=[ValenceChargeDensity(),
+                                                                        CoreChargeDensity(),
+                                                                        BetaProjector(),
+                                                                        ChiProjector(),
+                                                                        LocalPotential()];
                        f=minimum, tol=nothing)
-    cutoff_radii = map(q -> cutoff_radius(q, psp; tol), quantities)
+    cutoff_radii = map(q -> cutoff_radius(psp, q; tol), quantities)
     cutoff_radii = filter(!isnothing, cutoff_radii)
     return isempty(cutoff_radii) ? nothing : f(cutoff_radii)
 end
@@ -258,8 +263,9 @@ function Base.show(io::IO, ::MIME"text/plain", psp::AbstractPsP)
     @printf "%032s: %s\n" "element" element(psp)
     @printf "%032s: %f\n" "valence charge" valence_charge(psp)
     @printf "%032s: %s\n" "relativistic treatment" relativistic_treatment(psp)
-    @printf "%032s: %s\n" "non-linear core correction" has_quantity(CoreChargeDensity(), psp)
+    @printf "%032s: %s\n" "non-linear core correction" has_quantity(psp,
+                                                                    CoreChargeDensity())
     @printf "%032s: %d\n" "maximum angular momentum" max_angular_momentum(psp)
-    @printf "%032s: %s\n" "number of beta projectors" n_radials(BetaProjector(), psp)
-    @printf "%032s: %s" "number of chi projectors" n_radials(ChiProjector(), psp)
+    @printf "%032s: %s\n" "number of beta projectors" n_radials(psp, BetaProjector())
+    @printf "%032s: %s" "number of chi projectors" n_radials(psp, ChiProjector())
 end
