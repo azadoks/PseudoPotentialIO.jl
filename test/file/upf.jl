@@ -1,4 +1,4 @@
-@testset "UPF" begin
+@testset "UPF File" begin
     @testset "Internal data consistency" begin
         @testset "$filepath" for filepath in UPF_FILEPATHS
             file = load_psp_file(filepath)

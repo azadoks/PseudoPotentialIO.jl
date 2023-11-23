@@ -23,7 +23,7 @@ function fast_sphericalbesselj(l::Integer)
     l == 3 && return fast_sphericalbesselj3
     l == 4 && return fast_sphericalbesselj4
     l == 5 && return fast_sphericalbesselj5
-    return error("The case l = $l is not implemented")
+    return x -> sphericalbesselj(l, x)
 end
 
 function fast_sphericalbesselj0(x::T)::T where {T<:Real}

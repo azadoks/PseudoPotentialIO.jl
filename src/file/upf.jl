@@ -277,6 +277,8 @@ end
 Universal Pseudopotential Format file contents.
 """
 struct UpfFile <: PsPFile
+    "Identifier"
+    identifier::String
     "SHA1 Checksum"
     checksum::Vector{UInt8}
     "UPF format version"
@@ -309,17 +311,17 @@ end
 
 function UpfFile(path::AbstractString)
     open(path, "r") do io
-        return UpfFile(io)
+        return UpfFile(io; identifier=splitpath(path)[end])
     end
 end
 
-function UpfFile(io::IO)
+function UpfFile(io::IO; identifier="")
     version = _get_upf_version(io)
     if version == 1
-        return upf1_parse_psp(io)
+        return upf1_parse_psp(io; identifier)
     end
     if version == 2
-        return upf2_parse_psp(io)
+        return upf2_parse_psp(io; identifier)
     end
     error("Unknown UPF version.")
 end
@@ -346,19 +348,26 @@ function _get_upf_version(path::AbstractString)::Int
     end
 end
 
-identifier(psp::UpfFile)::String = bytes2hex(psp.checksum)
+identifier(psp::UpfFile)::String = psp.identifier
 format(file::UpfFile)::String = "UPF v$(file.version)"
-element(file::UpfFile)::String = file.header.element
+element(file::UpfFile) = PeriodicTable.elements[Symbol(file.header.element)]
 is_norm_conserving(file::UpfFile)::Bool = file.header.pseudo_type == "NC"
 is_ultrasoft(file::UpfFile)::Bool = file.header.pseudo_type in ("US", "USPP")
 is_paw(file::UpfFile)::Bool = file.header.pseudo_type == "PAW"
 has_spin_orbit(file::UpfFile)::Bool = file.header.has_so
 has_core_density(file::UpfFile)::Bool = file.header.core_correction
-valence_charge(file::UpfFile)::Float64 = file.header.z_valence
+valence_charge(file::UpfFile) = file.header.z_valence
 max_angular_momentum(file::UpfFile)::Int = file.header.l_max
-function n_projector_radials(file::UpfFile, l::Int)::Int
+function n_radials(::NumericProjector, file::UpfFile, l::Int)::Int
     return count(beta -> beta.angular_momentum == l, file.nonlocal.betas)
 end
-function n_chi_function_radials(file::UpfFile, l::Int)::Int
+function n_radials(::NumericState, file::UpfFile, l::Int)::Int
     return file.header.number_of_wfc == 0 ? 0 : count(chi -> chi.l == l, file.pswfc)
 end
+has_quantity(::AbstractPsPQuantity, ::UpfFile) = false
+has_quantity(::NumericLocalPotential, ::UpfFile) = true
+has_quantity(::NumericProjector, ::UpfFile) = true
+has_quantity(::BetaCoupling, ::UpfFile) = true
+has_quantity(::NumericState, file::UpfFile) = !isnothing(file.pswfc)
+has_quantity(::CoreChargeDensity, file::UpfFile) = !isnothing(file.nlcc)
+has_quantity(::ValenceChargeDensity, file::UpfFile) = !isnothing(file.rhoatom)

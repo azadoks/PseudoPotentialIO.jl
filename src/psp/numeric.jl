@@ -49,115 +49,225 @@ D::OffsetVector{AbstractMatrix{Real}}
 """
 abstract type NumericPsP{T} <: AbstractPsP end
 
-identifier(psp::NumericPsP)::String = bytes2hex(psp.checksum)
-function element(psp::NumericPsP)::String
-    return PeriodicTable.elements[Int(psp.Zatom)].symbol
-end
+identifier(psp::NumericPsP)::String = psp.identifier
+element(psp::NumericPsP)::PeriodicTable.Element = PeriodicTable.elements[psp.Zatom]
 max_angular_momentum(psp::NumericPsP)::Int = psp.lmax
-n_projector_radials(psp::NumericPsP, l::Int)::Int = length(psp.β[l])
-n_chi_function_radials(psp::NumericPsP, l::Int)::Int = isnothing(psp.χ) ? 0 :
-                                                         length(psp.χ[l])
 valence_charge(psp::NumericPsP) = psp.Zval
 atomic_charge(psp::NumericPsP) = psp.Zatom
 has_spin_orbit(::NumericPsP)::Bool = false  # This is a current limitation
-has_core_density(psp::NumericPsP)::Bool = !isnothing(psp.ρcore)
-has_valence_density(psp::NumericPsP)::Bool = !isnothing(psp.ρval)
-has_chi_functions(psp::NumericPsP)::Bool = !isnothing(psp.χ)
-
-function local_potential_cutoff_radius(psp::NumericPsP; tol=nothing)
-    ir_cut = find_truncation_index(psp.Vloc, tol)
-    return psp.r[ir_cut]
+function n_radials(psp::NumericPsP, quantity::AbstractProjector, l)
+    return has_quantity(psp, quantity) ? length(get_quantity(psp, quantity, l)) : 0
 end
 
-function projector_cutoff_radius(psp::NumericPsP, l::Int, n::Int; tol=nothing)
-    ir_cut = find_truncation_index(psp.β[l][n], tol)
-    return psp.r[ir_cut]
+get_quantity(psp::NumericPsP, ::NumericLocalPotential) = psp.Vloc
+function get_quantity(psp::NumericPsP, quantity::AbstractProjector, l, n)
+    return get_quantity(psp, quantity, l)[n]
 end
-
-function chi_function_cutoff_radius(psp::NumericPsP, l::Int, n::Int; tol=nothing)
-    !has_chi_functions(psp) && return nothing
-    ir_cut = find_truncation_index(psp.χ[l][n], tol)
-    return psp.r[ir_cut]
+get_quantity(psp::NumericPsP, quantity::AbstractProjector, l) = get_quantity(psp, quantity)[l]
+get_quantity(psp::NumericPsP, ::NumericProjector) = psp.β
+get_quantity(psp::NumericPsP, ::NumericProjector, l) = psp.β[l]
+function get_quantity(psp::NumericPsP{T}, ::NumericProjector, l,
+                      n)::Union{Nothing,Vector{T}} where {T}
+    return psp.β[l][n]
 end
-
-function valence_charge_density_cutoff_radius(psp::NumericPsP; tol=nothing)
-    !has_valence_density(psp) && return nothing
-    ir_cut = find_truncation_index(psp.ρval, tol)
-    return psp.r[ir_cut]
+get_quantity(psp::NumericPsP, ::BetaCoupling) = psp.D
+get_quantity(psp::NumericPsP, ::BetaCoupling, l) = psp.D[l]
+function get_quantity(psp::NumericPsP{T}, ::BetaCoupling, l, n)::T where {T}
+    return psp.D[l][n, n]
 end
-
-function core_charge_density_cutoff_radius(psp::NumericPsP; tol=nothing)
-    !has_core_density(psp) && return nothing
-    ir_cut = find_truncation_index(psp.ρcore, tol)
-    return psp.r[ir_cut]
+function get_quantity(psp::NumericPsP{T}, ::BetaCoupling, l, n, m)::T where {T}
+    return psp.D[l][n, m]
 end
-
-function projector_coupling(psp::NumericPsP{T}, l::Int)::Matrix{T} where {T<:Real}
-    return psp.D[l]
+get_quantity(psp::NumericPsP, ::NumericState) = psp.χ
+get_quantity(psp::NumericPsP, ::NumericState, l) = psp.χ[l]
+function get_quantity(psp::NumericPsP{T}, ::NumericState, l,
+                      n)::Union{Nothing,Vector{T}} where {T}
+    return psp.χ[l][n]
 end
-
-function local_potential_real(psp::NumericPsP)
-    return build_interpolator_real(psp.Vloc, psp.r)
+function get_quantity(psp::NumericPsP{T},
+                      ::ValenceChargeDensity)::Union{Nothing,Vector{T}} where {T}
+    return psp.ρval
 end
-
-function projector_real(psp::NumericPsP, l::Int, n::Int)
-    return build_interpolator_real(psp.β[l][n], psp.r)
+function get_quantity(psp::NumericPsP{T},
+                      ::CoreChargeDensity)::Union{Nothing,Vector{T}} where {T}
+    return psp.ρcore
 end
+get_quantity(::NumericPsP, ::AugmentationFunction) = nothing
 
-function chi_function_real(psp::NumericPsP, l::Int, n::Int)
-    isnothing(psp.χ) && return _ -> nothing
-    return build_interpolator_real(psp.χ[l][n], psp.r)
-end
-
-function valence_charge_density_real(psp::NumericPsP)
-    isnothing(psp.ρval) && return _ -> nothing
-    return build_interpolator_real(psp.ρval, psp.r)
-end
-
-function core_charge_density_real(psp::NumericPsP)
-    isnothing(psp.ρcore) && return _ -> nothing
-    return build_interpolator_real(psp.ρcore, psp.r)
-end
-
-@inbounds function local_potential_fourier(psp::NumericPsP; tol=nothing)
-    i_start = firstindex(psp.Vloc)
-    i_stop = find_truncation_index(psp.Vloc, tol)
-    function Vloc(q)
-        function integrand(i::Int)
-            return psp.r[i] * fast_sphericalbesselj0(q * psp.r[i]) *
-                   (psp.r[i] * psp.Vloc[i] + psp.Zval)
-        end
-        integral = dotprod(integrand, i_start, i_stop, psp.dr)
-        return 4π * (integral - psp.Zval / q^2)
+function has_quantity(psp::NumericPsP, quantity::AbstractPsPQuantity)
+    if !isnothing(get_quantity(psp, quantity))  # First check if the quantity is explicit nothing
+        !isempty(get_quantity(psp, quantity)) && return true  # Then check if it is empty
     end
-    Vloc(Q::AbstractVector) = Vloc(norm(Q))
-    return Vloc
+    return false
 end
 
-@inbounds function projector_fourier(psp::NumericPsP, l::Int, n::Int; tol=nothing)
-    i_stop = find_truncation_index(psp.β[l][n], tol)
-    return hankel_transform(psp.β[l][n], l, psp.r, psp.dr; i_stop)
+function cutoff_radius(psp::NumericPsP, quantity::AbstractPsPQuantity; f=nothing,
+                       tol=nothing)
+    !has_quantity(psp, quantity) && return nothing
+    f = get_quantity(psp, quantity)
+    return psp.r[find_truncation_index(f, tol)]
 end
 
-@inbounds function chi_function_fourier(psp::NumericPsP, l::Int, n::Int; tol=nothing)
-    isnothing(psp.χ) && return _ -> nothing
-    i_stop = find_truncation_index(psp.χ[l][n], tol)
-    return hankel_transform(psp.χ[l][n], l, psp.r, psp.dr; i_stop)
+function cutoff_radius(psp::NumericPsP, quantity::AbstractProjector, l, n; f=nothing,
+                       tol=nothing)
+    !has_quantity(psp, quantity) && return nothing
+    f = get_quantity(psp, quantity, l, n)
+    return psp.r[find_truncation_index(f, tol)]
 end
 
-function valence_charge_density_fourier(psp::NumericPsP; tol=nothing)
-    i_stop = find_truncation_index(psp.ρval, tol)
-    return hankel_transform(psp.ρval, 0, psp.r, psp.dr; i_stop)
+function cutoff_radius(psp::NumericPsP, quantity::AbstractProjector; f=minimum, tol=nothing)
+    cutoff_radii = map(l -> cutoff_radius(psp, quantity, l; tol), angular_momenta(psp))
+    cutoff_radii = filter(!isnothing, cutoff_radii)
+    return isempty(cutoff_radii) ? nothing : f(cutoff_radii)
 end
 
-function core_charge_density_fourier(psp::NumericPsP; tol=nothing)
-    i_stop = find_truncation_index(psp.ρcore, tol)
-    return hankel_transform(psp.ρcore, 0, psp.r, psp.dr; i_stop)
+# # Real-space angular-independent quantities: local potential, atomic charge densities
+# function psp_quantity_evaluator(psp::NumericPsP, quantity::AbstractPsPQuantity, ::RealSpace)
+#     !has_quantity(psp, quantity) && return _ -> nothing
+#     return build_interpolator_real(get_quantity(psp, quantity), psp.r)
+# end
+
+# # Real-space angular-dependent quantities: projectors
+# function psp_quantity_evaluator(psp::NumericPsP, quantity::AbstractProjector, l, n, ::RealSpace)
+#     !has_quantity(psp, quantity) && return _ -> nothing
+#     return build_interpolator_real(get_quantity(psp, quantity, l, n), psp.r)
+# end
+
+# # Fourier-space angular-independent quantities: atomic charge densities
+# function psp_quantity_evaluator(psp::NumericPsP, quantity::AbstractPsPQuantity, space::FourierSpace; quadrature_method=Simpson())
+#     !has_quantity(psp, quantity) && return _ -> nothing
+#     istop = lastindex(get_quantity(psp, quantity))
+#     r = psp.r[begin:istop]
+#     dr = diff(psp.r)[begin:istop]
+#     if typeof(psp.Δr) <: AbstractVector
+#         Δr = @view psp.Δr[begin:istop-1]
+#     else
+#         Δr = psp.Δr
+#     end
+#     return psp_quantity_evaluator(psp, quantity, space, r, dr, Δr; quadrature_method)
+# end
+
+# function psp_quantity_evaluator(psp::NumericPsP, quantity::AbstractPsPQuantity,
+#                                 ::FourierSpace, r::AbstractVector,
+#                                 dr::AbstractVector,
+#                                 Δr::Union{Real,AbstractVector};
+#                                 quadrature_method=Simpson())
+#     !has_quantity(psp, quantity) && return _ -> nothing
+#     f = psp_quantity_evaluator(psp, quantity, RealSpace())
+#     # l=0 for angular-independent quantities
+#     return hankel_transform(r, f, dr, Δr, 0; quadrature_method)
+# end
+
+# # Fourier-space angular-dependent quantities: projectors
+# function psp_quantity_evaluator(psp::NumericPsP, quantity::AbstractProjector, l, n, space::FourierSpace; quadrature_method=Simpson())
+#     !has_quantity(psp, quantity) && return _ -> nothing
+#     istop = lastindex(get_quantity(psp, quantity, l, n))
+#     r = psp.r[begin:istop]
+#     dr = deriv(psp.r)[begin:istop]
+#     Δr = diff(psp.r)[begin:istop-1]
+#     return psp_quantity_evaluator(psp, quantity, l, n, space, r, dr, Δr; quadrature_method)
+# end
+
+# function psp_quantity_evaluator(psp::NumericPsP, quantity::AbstractProjector, l, n,
+#                                 ::FourierSpace, r::AbstractVector,
+#                                 dr::AbstractVector,
+#                                 Δr::Union{Real,AbstractVector};
+#                                 quadrature_method=Simpson())
+#     !has_quantity(psp, quantity) && return _ -> nothing
+#     f = psp_quantity_evaluator(psp, quantity, l, n, RealSpace())
+#     return hankel_transform(r, f, dr, Δr, l; quadrature_method)
+# end
+
+# function psp_quantity_evaluator(psp::NumericPsP, quantity::NumericLocalPotential, space::FourierSpace; quadrature_method=Simpson(), correction_method=CoulombCorrection())
+#     istop = lastindex(get_quantity(psp, quantity))
+#     r = psp.r[begin:istop]
+#     dr = deriv(psp.r)[begin:istop]
+#     Δr = diff(psp.r)[begin:istop-1]
+
+#     return psp_quantity_evaluator(psp, quantity, space, r, dr, Δr; quadrature_method, correction_method)
+# end
+
+# @inbounds function psp_quantity_evaluator(psp::NumericPsP, ::NumericLocalPotential, ::FourierSpace,
+#                                           r::AbstractVector,
+#                                           dr::AbstractVector,
+#                                           Δr::Union{Real,AbstractVector};
+#                                           quadrature_method=Simpson(),
+#                                           correction_method=CoulombCorrection())
+#     function Vloc(q::T) where {T}
+#         # For q > 0, compute the Hankel-Fourier transform of the local potential
+#         if !iszero(q)
+#             # Pre-generate an evaluation function for the local potential in real space
+#             Vloc = psp_quantity_evaluator(psp, NumericLocalPotential(), RealSpace())
+#             # Pre-generate the real-space correction function with a single argument
+#             corr(r) = local_potential_correction(psp, correction_method, RealSpace(), r)
+#             # Define the integrand for the Hankel transform, subtracting a Coulomb-like
+#             # correction term which should remove a 1/r-like tail from the local potential
+#             # and localize it well enough that the integral is well-behaved
+#             # f(r) = Vloc(r) - c(r) / r
+#             function integrand(r::Real)
+#                 # Note that Vloc(r) is stored _without_ an r² prefactor, unlike all other
+#                 # radial quantities!
+#                 # Hankel transform   : 4π ∫ r² f(r) jₗ(q * r) dr
+#                 # Correction         : c(r) / r
+#                 # jₗ(q * r) for l=0   : sin(q * r) / (q * r)
+#                 # Substitute         : 4π ∫ r² (Vloc(r) - c(r) / r) sin(q * r) / (q * r) dr
+#                 # Cancel and reorder : 4π / q ∫ (r * Vloc(r) - c(r)) sin(q * r) dr
+#                 # Integrand          : (r * Vloc(r) - c(r)) sin(q * r)
+#                 return (r * Vloc(r) - corr(r)) * sin(q * r)
+#             end
+#             integral = integrate(r, integrand, dr, Δr, quadrature_method)
+#             # Compute the analytical Fourier-Hankel transform of the correction
+#             corr = 4T(π) *
+#                    local_potential_correction(psp, correction_method, FourierSpace(), q)
+#             # Recall that 4π / q is factored out of the integral above
+#             return 4T(π) / q * integral + corr
+#         end
+#         # For q = 0, return the pseudo. energy correction (to avoid division by zero)
+#         return psp_energy_correction(T, psp; quadrature_method, correction_method)
+#     end
+#     Vloc(Q::AbstractVector) = Vloc(norm(Q))
+#     return Vloc
+# end
+
+function local_potential_correction(psp::NumericPsP, ::ErfCorrection, ::RealSpace, r::Real)
+    return -psp.Zval * erf(r)  # As in QuantumESPRESSO
+end
+function local_potential_correction(psp::NumericPsP, ::ErfCorrection, ::FourierSpace,
+                                    q::Real)
+    return -psp.Zval * exp(-q^2 / 4) / q^2  # As in QuantumESPRESSO
 end
 
-@inbounds function pseudo_energy_correction(T::Type, psp::NumericPsP; tol=nothing)
-    i_start = firstindex(psp.Vloc)
-    i_stop = find_truncation_index(psp.Vloc, tol)
-    integrand(i::Int) = psp.r[i] * (psp.r[i] * psp.Vloc[i] + psp.Zval)
-    return T(4π * dotprod(integrand, i_start, i_stop, psp.dr))
+function local_potential_correction(psp::NumericPsP, ::CoulombCorrection, ::RealSpace,
+                                    ::Real)
+    return -psp.Zval  # As in ABINIT
 end
+function local_potential_correction(psp::NumericPsP, ::CoulombCorrection, ::FourierSpace,
+                                    q::Real)
+    return -psp.Zval / q^2  # As in ABINIT
+end
+
+@inbounds function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP{S};
+                                         quadrature_method=Simpson(),
+                                         correction_method=CoulombCorrection())::T where {S}
+    Vloc_r = get_quantity(psp, NumericLocalPotential())
+    r = @view psp.r[eachindex(Vloc_r)]
+    corr_r = local_potential_correction.(Ref(psp), Ref(correction_method), Ref(RealSpace()),
+                                         r)
+
+    weights = integration_weights(psp.r, quadrature_method)
+    integrand = r .* (r .* Vloc_r .- corr_r)
+    integral = 4T(π)dot(weights, integrand)
+    return integral
+end
+
+# @inbounds function psp_energy_correction(T::Type{<:Real}, psp::NumericPsP,
+#                                          r::AbstractVector,
+#                                          dr::AbstractVector,
+#                                          Δr::Union{Real,AbstractVector};
+#                                          quadrature_method=Simpson(),
+#                                          correction_method=CoulombCorrection())
+#     Vloc = psp_quantity_evaluator(psp, NumericLocalPotential(), RealSpace())
+#     corr(r) = local_potential_correction(psp, correction_method, RealSpace(), r)
+#     return 4T(π) *
+#            integrate(r, ri -> ri * (ri * Vloc(ri) - corr(ri)), dr, Δr, quadrature_method)
+# end

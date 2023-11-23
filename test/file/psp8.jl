@@ -1,4 +1,4 @@
-@testset "PSP8" begin
+@testset "PSP8 File" begin
     @testset "Internal data consistency" begin
         for filepath in values(PSP8_FILEPATHS)
             file = load_psp_file(filepath)

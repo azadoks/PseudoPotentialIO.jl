@@ -2,16 +2,18 @@
 Type representing a numeric ultrasoft pseudopotential.
 """
 struct UltrasoftPsP{T} <: NumericPsP{T}
+    "Identifier"
+    identifier::String
+    "SHA1 Checksum"
+    checksum::Union{Nothing,Vector{UInt8}}
     "Total charge"
-    Zatom::T
+    Zatom::Int
     "Valence charge"
-    Zval::T
+    Zval::Int
     "Maximum angular momentum"
     lmax::Int
     "Radial mesh"
-    r::Vector{T}
-    "Radial mesh spacing"
-    dr::Union{T,Vector{T}}
+    r::Union{RadialMesh{T},Vector{T}}
     "Local part of the potential on the radial mesh"
     Vloc::Vector{T}
     "Nonlocal projectors β[l][n] on the radial mesh"
@@ -105,7 +107,7 @@ function _upf_construct_us_internal(upf::UpfFile)
     nc = _upf_construct_nc_internal(upf)
     # Number of projectors at each angular momentum
     nβ = OffsetVector(length.(nc.β), 0:(nc.lmax))
-    # Find the first/last indices in upf.nonlocal.dij for each angular momentum so the 
+    # Find the first/last indices in upf.nonlocal.dij for each angular momentum so the
     # sub-arrays q[l][n,m] can be extracted
     cum_nβ = [0, cumsum(nβ)...]
     q_upf = upf.nonlocal.augmentation.q
@@ -115,7 +117,7 @@ function _upf_construct_us_internal(upf::UpfFile)
     # Wrangle the agumentation functions. For UPF v2.0.1, they are given with indeices
     # i ∈ 1:nβ, j ∈ 1:nβ, l ∈ 0:2lmax. In the old format, they are given only at i and j
     # with additional coefficients for a polynomial expansion within a cutoff radius
-    # These are used to reconstruct the full Qijl. 
+    # These are used to reconstruct the full Qijl.
     if upf.nonlocal.augmentation.q_with_l
         Q = _upf_construct_augmentation_q_with_l(upf)
     elseif upf.nonlocal.augmentation.nqf > 0
@@ -123,8 +125,9 @@ function _upf_construct_us_internal(upf::UpfFile)
     else
         error("q_with_l == false and nqf == 0, unsure what to do...")
     end
-    return UltrasoftPsP{Float64}(nc.Zatom, nc.Zval, nc.lmax, nc.r, nc.dr, nc.Vloc, nc.β,
-                                 nc.D, nc.χ, Q, q, nc.ρcore, nc.ρval)
+    return UltrasoftPsP{Float64}(nc.identifier, nc.checksum, nc.Zatom, nc.Zval, nc.lmax,
+                                 nc.r, nc.Vloc, nc.β, nc.D, nc.χ, Q, q,
+                                 nc.ρcore, nc.ρval)
 end
 
 is_norm_conserving(::UltrasoftPsP)::Bool = false
@@ -132,32 +135,28 @@ is_ultrasoft(::UltrasoftPsP)::Bool = true
 is_paw(::UltrasoftPsP)::Bool = false
 
 #TODO test the augmentation functions
+has_quantity(psp::UltrasoftPsP, ::AugmentationCoupling) = true
+has_quantity(psp::UltrasoftPsP, ::AugmentationFunction) = true
+get_quantity(psp::UltrasoftPsP, ::AugmentationCoupling, l) = psp.q[l]
+get_quantity(psp::UltrasoftPsP, ::AugmentationCoupling, l, n) = psp.q[l][n, n]
+get_quantity(psp::UltrasoftPsP, ::AugmentationCoupling, l, n, m) = psp.q[l][n, m]
+get_quantity(psp::UltrasoftPsP, ::AugmentationFunction, l) = psp.Q[l]
+get_quantity(psp::UltrasoftPsP, ::AugmentationFunction, l, n) = psp.Q[l][n,n]
+get_quantity(psp::UltrasoftPsP, ::AugmentationFunction, l, n, m) = psp.Q[l][n,m]
 
-"""
-Augmentation charge coupling matrix (elements).
-"""
-function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int)::Matrix{T} where {T}
-    return psp.q[l]
+function cutoff_radius(psp::NumericPsP, quantity::AugmentationFunction, l, n, m; f=nothing,
+                       tol=nothing)
+    !has_quantity(psp, quantity) && return nothing
+    f = get_quantity(psp, quantity, l, n, m)
+    return psp.r[find_truncation_index(f, tol)]
 end
 
-function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int)::T where {T}
-    return psp.q[l][n, n]
+function psp_quantity_evaluator(::RealSpace, q::AugmentationFunction, psp::UltrasoftPsP, l,
+                                n, m)
+    return build_interpolator_real(psp.Q[l][n, m], psp.r)
 end
 
-function augmentation_coupling(psp::UltrasoftPsP{T}, l::Int, n::Int, m::Int)::T where {T}
-    return psp.q[l][n, m]
-end
-
-"""
-Augmentation charge in real-space.
-"""
-function augmentation_real(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
-    return build_interpolator_real(psp.Q[l][n,m], psp.r)
-end
-
-"""
-Augmentation charge in fourier-space.
-"""
-function augmentation_fourier(psp::UltrasoftPsP, l::Int, n::Int, m::Int)
-    return hankel_transform(psp.Q[l][n,m], 0, psp.r, psp.dr)
+function psp_quantity_evaluator(::FourierSpace, q::AugmentationFunction, psp::UltrasoftPsP,
+                                l, n, m)
+    return hankel_transform(psp.Q[l][n, m], l, psp.r, deriv(psp.r))
 end

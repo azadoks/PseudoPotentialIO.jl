@@ -1,7 +1,6 @@
 module PseudoPotentialIO
 using Artifacts
 using EzXML
-using Interpolations
 using LazyArtifacts
 using LinearAlgebra
 using OffsetArrays
@@ -10,14 +9,17 @@ using Printf
 using Statistics
 using SHA
 using PrettyTables
+using OrderedCollections
 
 using PeriodicTable: PeriodicTable
 import Base.Broadcast.broadcastable
-import Bessels: gamma
+import Bessels: gamma, sphericalbesselj
 import SpecialFunctions: erf
+using Interpolations: Interpolations
+using CubicSplines: CubicSplines
 
 ## DocStringExtensions Templates
-# TODO they don't seem to be working at the moment
+# TODO they don't seem to be working at the moment ?
 using DocStringExtensions
 @template (FUNCTIONS, METHODS, MACROS) = """
                                          $(TYPEDSIGNATURES)
@@ -30,6 +32,32 @@ using DocStringExtensions
                   $(DOCSTRING)
                   $(TYPEDFIELDS)
                   """
+
+export RadialMesh
+export ArbitraryMesh
+include("common/mesh.jl")
+
+## Quantity flags
+export AbstractPsPQuantity
+export AbstractDensity
+export ValenceChargeDensity
+export CoreChargeDensity
+export AbstractProjector
+export NumericProjector
+export NumericState
+export PsPCoupling
+export BetaCoupling
+export AbstractPotential
+export NumericLocalPotential
+export AugmentationFunction
+export AugmentationCoupling
+export EvaluationSpace
+export RealSpace
+export FourierSpace
+export NumericLocalPotentialCorrection
+export CoulombCorrection
+export ErfCorrection
+include("psp/quantities.jl")
 
 ## File datastructures and interface
 export PsPFile
@@ -44,8 +72,7 @@ export relativistic_treatment
 export has_core_density
 export valence_charge
 export max_angular_momentum
-export n_projector_radials
-export n_chi_function_radials
+export n_radials
 include("file/file.jl")
 
 export UpfFile
@@ -64,42 +91,21 @@ export AbstractPsP
 export identifier
 export element
 export max_angular_momentum
-export n_projector_radials
-export n_projector_angulars
-export n_chi_function_radials
-export n_chi_function_angulars
+export n_angulars
 export valence_charge
 export atomic_charge
 export is_norm_conserving
 export is_ultrasoft
 export is_paw
 export has_spin_orbit
-export has_core_density
-export has_valence_density
-export has_chi_functions
-export projector_coupling
-export local_potential_cutoff_radius
-export projector_cutoff_radius
-export chi_function_cutoff_radius
-export valence_charge_density_cutoff_radius
-export core_charge_density_cutoff_radius
-export pseudo_cutoff_radius
-export local_potential_real
-export projector_real
-export chi_function_real
-export valence_charge_density_real
-export core_charge_density_real
-export local_potential_fourier
-export projector_fourier
-export chi_function_fourier
-export valence_charge_density_fourier
-export core_charge_density_fourier
-export pseudo_energy_correction
+export has_quantity
+export get_quantity
+export cutoff_radius
+export psp_quantity_evaluator
+export psp_energy_correction
 export angular_momenta
 export relativistic_treatment
 export formalism
-export projector_radial_indices
-export chi_function_radial_indices
 include("psp/psp.jl")
 
 export NumericPsP
@@ -109,9 +115,6 @@ export NormConservingPsP
 include("psp/norm_conserving.jl")
 
 export UltrasoftPsP
-export augmentation_coupling
-export augmentation_real
-export augmentation_fourier
 include("psp/ultrasoft.jl")
 
 export ProjectorAugmentedWavePsP
@@ -123,14 +126,21 @@ include("psp/analytical.jl")
 export HghPsP
 include("psp/hgh.jl")
 
-## Loading/listing functions
+## Loading/listing/showing functions
+export list_families
+export list_family_psps
+include("io/list.jl")
+
+export load_family_psp_files
+export load_family_psps
 export load_psp_file
 export load_psp
-export list_families
-export load_family
+include("io/load.jl")
+
+export show_family_summary
+export show_family_table
 export show_family_periodic_table
-export show_family_list
-include("load.jl")
+include("io/show.jl")
 
 ## Deprecated loaders
 export load_upf
@@ -139,10 +149,17 @@ include("deprecated/upf.jl")
 include("deprecated/psp8.jl")
 
 ## Miscellaneous
+export hankel_transform
+export interpolate
+export interpolate_evaluate
+export LinearInterpolation
+export CubicSplineInterpolation
 include("common/hankel_transform.jl")
-include("common/mesh.jl")
-include("common/quadrature.jl")
 include("common/spherical_bessel.jl")
 include("common/interpolation.jl")
 include("common/truncation.jl")
+include("common/quadrature/methods.jl")
+include("common/quadrature/function.jl")
+include("common/quadrature/weights.jl")
+include("common/quadrature/vector.jl")
 end
