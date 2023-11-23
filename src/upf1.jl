@@ -145,7 +145,7 @@ The radial grid is one of the following:
 ``e^{x_\\text{min}} (e^{(i - 1)dx} - 1) / Z_\\text{mesh}``
 
 The radial grid derivative is the factor for discrete integration:
-``\\int f(r) dr = \\sum_{i=1}^{N} f(i) r_{ab}(i)``  
+``\\int f(r) dr = \\sum_{i=1}^{N} f(i) r_{ab}(i)``
 """
 function parse_radial_grid_upf1!(io::IO, upf::Dict)
     read_until(io, "<PP_R>")
@@ -217,10 +217,10 @@ function parse_beta_projectors_upf1!(io::IO, upf::Dict)
     beta_projectors = []
     for i = 1:upf["header"]["number_of_proj"]
         read_until(io, "<PP_BETA>")
-        
+
         beta = Dict()
         beta["label"] = ""
-        
+
         s = split(readline(io))
         beta["index"] = parse(Int, s[1])
         beta["angular_momentum"] = parse(Int, s[2])
@@ -230,10 +230,10 @@ function parse_beta_projectors_upf1!(io::IO, upf::Dict)
 
         beta["radial_function"] = read_mesh_data(Float64, io, beta["cutoff_radius_index"])
         beta["cutoff_radius"] = 0.
-        
+
         push!(beta_projectors, beta)
     end
-    
+
     upf["beta_projectors"] = beta_projectors
 end
 
@@ -259,7 +259,7 @@ function parse_dij_upf1!(io::IO, upf::Dict)
         Dij[i,j] = parse(Float64, s[3])
         Dij[j,i] = Dij[i,j]
     end
-    
+
     upf["D_ion"] = Dij
 end
 
@@ -271,7 +271,7 @@ end
 #         upf["augmentation"] = missing
 #         return
 #     end
-    
+
 #     read_until(io, "<PP_QIJ>")
 #     # If num_q_coef is non-zero, Qij inside R_inner (parsed below,
 #     # one value for each augmentation) are computed using the q_coeffs
@@ -322,7 +322,7 @@ end
 #                             qij_fixed[ir] *= x^(l + 2)
 #                         end
 #                     end
-                    
+
 #                     push!(augmentation, Dict(
 #                         "radial_function" => qij_fixed,
 #                         "i" => i,
@@ -387,10 +387,10 @@ function parse_addinfo_upf1!(io::IO, upf::Dict)
         read_until(io, "<PP_ADDINFO>")
         for i = 1:upf["header"]["number_of_wfc"]
             s = split(readline(io))
-            label = strip(s[1]) 
+            label = strip(s[1])
             n = parse(Int, s[2])
             l = parse(Int, s[3])
-            j = parse(Float64, s[4]) 
+            j = parse(Float64, s[4])
             occ = parse(Float64, s[5])
             @assert (abs(j - l - 0.5) ≈ 0) || (abs(j - l + 0.5) ≈ 0)
             upf["atomic_wave_functions"][i]["label"] = label

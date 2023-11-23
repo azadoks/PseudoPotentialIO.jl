@@ -121,15 +121,15 @@ Otherwised, it is likely a linear mesh.
 The type of mesh is stored in `upf["radial_grid_parameters"]["mesh_type"]`.
 
 The radial grid derivative is the factor for discrete integration:
-``\\int f(r) dr = \\sum_{i=1}^{N} f(i) r_{ab}(i)``  
+``\\int f(r) dr = \\sum_{i=1}^{N} f(i) r_{ab}(i)``
 """
 function parse_radial_grid_upf2!(doc_root::EzXML.Node, upf::Dict)
     node = findfirst("PP_MESH/PP_R", doc_root)
     upf["radial_grid"] = parse.(Float64, split(strip(node.content)))  # Bohr
-    
+
     node = findfirst("PP_MESH/PP_RAB", doc_root)
     upf["radial_grid_derivative"] = parse.(Float64, split(strip(node.content)))
-    
+
     node = findfirst("PP_MESH", doc_root)
     dx = get_attr(Float64, node, "dx")
     mesh = get_attr(Int, node, "mesh")
@@ -218,7 +218,7 @@ function parse_beta_projectors_upf2!(doc_root::EzXML.Node, upf::Dict)
         beta["cutoff_radius_index"] = ir_cut
         beta["cutoff_radius"] = get_attr(Float64, node, "cutoff_radius")
         beta["index"] = get_attr(Int, node, "index")
-        beta["radial_function"] = parse.(Float64, split(strip(node.content)))[1:ir_cut]
+        beta["radial_function"] = parse.(Float64, split(strip(node.content)))
         if upf["header"]["has_so"]
             node_so = findfirst("PP_SPIN_ORB/PP_RELBETA.$i", doc_root)
             beta["index"] = get_attr(Int, node_so, "index")
@@ -257,7 +257,7 @@ end
 #         if ismissing(q_with_l)
 #             throw(ErrorException("Parsing `q_with_l = T` is not supported."))
 #         end
-        
+
 #         augmentation = []
 #         for i = 1:upf["header"]["number_of_proj"]
 #             li = upf["beta_projectors"][i]["angular_momentum"]
