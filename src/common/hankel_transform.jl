@@ -1,6 +1,6 @@
 @doc raw"""
-Hankel / Bessel-Fourier transform of order `l` of a function `f` on a radial mesh `r`.
-The function `f` should be rapidly decaying to zero within the bounds of the mesh.
+Hankel / Bessel-Fourier transform.
+The function to transform should be rapidly decaying to zero within the bounds of the mesh.
 Note that the `hankel_transform` requires `r²f` as input, i.e. the function must be
 pre-multiplied by the square of the radial mesh.
 
@@ -15,57 +15,157 @@ where ``j_l(x)`` is the spherical Bessel function of the first kind at order ``l
 """
 function hankel_transform end
 
-function hankel_transform(r::AbstractVector, r²f::AbstractVector,
-                          dr::AbstractVector, Δr::Union{Real,AbstractVector}, l::Int;
-                          quadrature_method=Trapezoid())
+@inbounds function hankel_transform(mesh::RadialMesh{T}, r²f::AbstractVector{T},
+                                    qs::AbstractVector{S}, l::Integer,
+                                    weights::AbstractVector{S},
+                                    integrand::AbstractVector{S};
+                                    quadrature_method=Simpson()) where {T<:Real,S<:Real}
+    r = @view mesh[1:length(r²f)]
+    weights = @view weights[1:length(r²f)]
+    integrand = @view integrand[1:length(r²f)]
+
+    integration_weights!(weights, mesh, quadrature_method)
     jₗ = fast_sphericalbesselj(l)
-    @inbounds function f̃(q::T) where {T<:Real}
-        return 4T(π) *
-               integrate(eachindex(r²f), i -> r²f[i] * jₗ(q * r[i]), dr, Δr, quadrature_method)
+
+    f = map(qs) do q
+        integrand .= r²f .* jₗ.(q .* r)
+        integral = dot(weights, integrand)
+        return 4π * integral
     end
-    @inbounds f̃(Q::AbstractVector) = f̃(norm(Q))
-    return f̃
+
+    return f
 end
 
-function hankel_transform(r::AbstractVector, r²f, dr::AbstractVector, Δr::Union{Real,AbstractVector}, l::Int;
-                          quadrature_method=Trapezoid())
-    jₗ = fast_sphericalbesselj(l)
-    @inbounds function f̃(q::T) where {T<:Real}
-        return 4T(π) * integrate(r, ri -> r²f(ri) * jₗ(q * ri), dr, Δr, quadrature_method)
+function hankel_transform(psp::NormConservingPsP{T}, qs::AbstractVector{S};
+                          quadrature_method=Simpson(),
+                          correction_method=CoulombCorrection())::NormConservingPsP{S} where {T<:Real,
+                                                                                              S<:Real}
+    weights = Vector{S}(undef, length(psp.r))
+    integrand = Vector{S}(undef, length(psp.r))
+
+    Vloc = hankel_transform(psp, qs, weights, integrand, NumericLocalPotential();
+                            quadrature_method, correction_method)
+    β = hankel_transform(psp, qs, weights, integrand, NumericProjector(); quadrature_method)
+    χ = hankel_transform(psp, qs, weights, integrand, NumericState(); quadrature_method)
+    ρval = hankel_transform(psp, qs, weights, integrand, ValenceChargeDensity();
+                            quadrature_method)
+    ρcore = hankel_transform(psp, qs, weights, integrand, CoreChargeDensity();
+                             quadrature_method)
+
+    return NormConservingPsP{S}(psp.identifier, nothing, psp.Zatom, psp.Zval, psp.lmax, qs,
+                             Vloc, β, psp.D, χ, ρcore, ρval)
+end
+
+function hankel_transform(psp::UltrasoftPsP{T}, qs::AbstractVector{S};
+                          quadrature_method=Simpson(),
+                          correction_method=CoulombCorrection())::UltrasoftPsP{S} where {T<:Real,
+                                                                                         S<:Real}
+    weights = Vector{S}(undef, length(psp.r))
+    integrand = Vector{S}(undef, length(psp.r))
+
+    Vloc = hankel_transform(psp, qs, weights, integrand, NumericLocalPotential();
+                            quadrature_method, correction_method)
+    β = hankel_transform(psp, qs, weights, integrand, NumericProjector(); quadrature_method)
+    χ = hankel_transform(psp, qs, weights, integrand, NumericState(); quadrature_method)
+    Q = hankel_transform(psp, qs, weights, integrand, AugmentationFunction();
+                         quadrature_method)
+    ρval = hankel_transform(psp, qs, weights, integrand, ValenceChargeDensity();
+                            quadrature_method)
+    ρcore = hankel_transform(psp, qs, weights, integrand, CoreChargeDensity();
+                             quadrature_method)
+
+    # TODO: broken, type of Χ gives a MethodError
+    return UltrasoftPsP{S}(psp.identifier, nothing, psp.Zatom, psp.Zval, psp.lmax, qs, Vloc, β,
+                           psp.D, χ, Q, psp.q, ρcore, ρval)
+end
+
+#TODO: remove the duplication here by having get_quantity take args...
+function hankel_transform(psp::NumericPsP{T}, qs::AbstractVector{S},
+                          weights::AbstractVector{S},
+                          integrand::AbstractVector{S}, quantity::AbstractPsPQuantity;
+                          quadrature_method=Simpson())::Union{Nothing,
+                                                              Vector{S}} where {T<:Real,
+                                                                                S<:Real}
+    !has_quantity(psp, quantity) && return nothing
+    r²f = get_quantity(psp, quantity)
+    return hankel_transform(psp.r, r²f, qs, 0, weights, integrand; quadrature_method)
+end
+
+function hankel_transform(psp::NumericPsP{T}, qs::AbstractVector{S},
+                          weights::AbstractVector{S},
+                          integrand::AbstractVector{S}, quantity::AbstractPsPQuantity, l::Integer,
+                          args...;
+                          quadrature_method=Simpson())::Union{Nothing,
+                                                              Vector{S}} where {T<:Real,
+                                                                                S<:Real}
+    !has_quantity(psp, quantity) && return nothing
+    r²f = get_quantity(psp, quantity, l, args...)
+    return hankel_transform(psp.r, r²f, qs, l, weights, integrand; quadrature_method)
+end
+
+function hankel_transform(psp::NumericPsP{T}, qs::AbstractVector{S},
+                          weights::AbstractVector{S},
+                          integrand::AbstractVector{S}, quantity::NumericLocalPotential;
+                          quadrature_method=Simpson(),
+                          correction_method=CoulombCorrection())::Vector{S} where {T<:Real,
+                                                                                   S<:Real}
+    Vloc = get_quantity(psp, quantity)
+
+    r = @view psp.r[1:length(Vloc)]
+    weights = @view weights[1:length(Vloc)]
+    integrand = @view integrand[1:length(Vloc)]
+
+    rVloc_m_corr = r .* Vloc .-
+                   local_potential_correction.(Ref(psp), Ref(correction_method),
+                                               Ref(RealSpace()), r)
+
+    integration_weights!(weights, psp.r, quadrature_method)
+
+    f = map(qs) do q
+        integrand .= rVloc_m_corr .* sin.(q .* r)
+        integral = dot(weights, integrand)
+        corr = local_potential_correction(psp, correction_method, FourierSpace(), q)
+        return 4π * (integral / q + corr)
     end
-    @inbounds f̃(Q::AbstractVector) = f̃(norm(Q))
-    return f̃
+
+    return f
 end
 
-function hankel_transform(::AbstractVector, ::Nothing, ::Union{Real,AbstractVector}, ::Int;
-                          quadrature_method=Trapezoid())
-    return _ -> nothing
-end
-
-function hankel_transform!(f̃::AbstractVector, q::AbstractVector{T}, r::AbstractVector,
-                           r²f::AbstractVector, dr::AbstractVector, Δr::Union{Real,AbstractVector}, l::Int;
-                           quadrature_method=Trapezoid()) where {T<:Real}
-    jₗ = fast_sphericalbesselj(l)
-    map!(f̃, q) do qj
-        return 4T(π) *
-               integrate(eachindex(r²f), i -> r²f[i] * jₗ(qj * r[i]), dr, Δr, quadrature_method)
+function hankel_transform(psp::NumericPsP{T}, qs::AbstractVector{S},
+                          weights::AbstractVector{S},
+                          integrand::AbstractVector{S}, quantity::AbstractProjector;
+                          quadrature_method=Simpson()) where {T<:Real,S<:Real}
+    if has_quantity(psp, quantity)
+        f = map(angular_momenta(psp)) do l
+            map(1:n_radials(psp, quantity, l)) do n
+                return hankel_transform(psp, qs, weights, integrand, quantity, l, n;
+                                        quadrature_method)
+            end
+        end
+        f = OffsetArray(f, angular_momenta(psp))
+    else
+        f = nothing
     end
-    return f̃
+
+    return f
 end
 
-function hankel_transform!(f̃::AbstractVector, q::AbstractVector{T}, r::AbstractVector, r²f,
-                           dr::AbstractVector, Δr::Union{Real,AbstractVector}, l::Int;
-                           quadrature_method=Trapezoid()) where {T<:Real}
-    jₗ = fast_sphericalbesselj(l)
-    map!(f̃, q) do qj
-        return 4T(π) * integrate(r, ri -> r²f(ri) * jₗ(qj * ri), dr, Δr, quadrature_method)
+# TODO: this is most likely wrong!
+function hankel_transform(psp::UltrasoftPsP{T}, qs::AbstractVector{S},
+                          weights::AbstractVector{S},
+                          integrand::AbstractVector{S}, quantity::AugmentationFunction;
+                          quadrature_method=Simpson()) where {T<:Real,S<:Real}
+    Q = map(angular_momenta(psp)) do l
+        Ql = similar(psp.Q[l])
+        for n in axes(psp.Q[l], 1)
+            for m in axes(psp.Q[l], 2)
+                Ql[n, m] = hankel_transform(psp, qs, weights, integrand, quantity, l, n, m;
+                                            quadrature_method)
+            end
+        end
+        return Ql
     end
-    return f̃
-end
+    Q = OffsetArray(Q, angular_momenta(psp))
 
-function hankel_transform!(f̃::AbstractVector, ::AbstractVector, ::AbstractVector,
-                           ::Nothing, ::Union{Real,AbstractVector}, ::Int;
-                           quadrature_method=Trapezoid())
-    f̃ .= nothing
-    return f̃
+    return Q
 end

@@ -16,8 +16,8 @@ function rescale_vector(R, rmin, rmax)
     return R / norm(R) * (rand() * (rmax - rmin) + rmin)
 end
 
-QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
-              ChiProjector(), BetaCoupling(), LocalPotential(),
+QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), NumericProjector(),
+              NumericState(), BetaCoupling(), NumericLocalPotential(),
               AugmentationFunction(), AugmentationCoupling()]
 
 @testset "AbstractPsP" begin
@@ -28,8 +28,8 @@ QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
             @test isa(identifier(psp), AbstractString)
             @test isa(element(psp), PeriodicTable.Element)
             @test -1 <= max_angular_momentum(psp) <= 5
-            @test 0 <= n_radials(psp, BetaProjector())
-            @test 0 <= n_radials(psp, ChiProjector())
+            @test 0 <= n_radials(psp, NumericProjector())
+            @test 0 <= n_radials(psp, NumericState())
             @test 0 <= valence_charge(psp)
             @test 0 <= atomic_charge(psp)
             @test isa(is_norm_conserving(psp), Bool)
@@ -47,13 +47,13 @@ QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
 
             for l in angular_momenta(psp)
                 @test size(get_quantity(psp, BetaCoupling(), l)) ==
-                      (n_radials(psp, BetaProjector(), l),
-                       n_radials(psp, BetaProjector(), l))
+                      (n_radials(psp, NumericProjector(), l),
+                       n_radials(psp, NumericProjector(), l))
                 @test eltype(get_quantity(psp, BetaCoupling(), l)) <: Real
-                for n in 1:n_radials(psp, BetaProjector(), l)
+                for n in 1:n_radials(psp, NumericProjector(), l)
                     @test get_quantity(psp, BetaCoupling(), l, n, n) ==
                           get_quantity(psp, BetaCoupling(), l, n)
-                    for m in (n + 1):n_radials(psp, BetaProjector(), l)
+                    for m in (n + 1):n_radials(psp, NumericProjector(), l)
                         @test isa(get_quantity(psp, BetaCoupling(), l, n, m), Real)
                         @test get_quantity(psp, BetaCoupling(), l, n, m) ==
                               get_quantity(psp, BetaCoupling(), l, m, n)
@@ -64,18 +64,17 @@ QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
             K = rand(3) .+ eps(Float64)
             K_rot = rotate_vector(random_versor(), K)
 
-            for quantity in [BetaProjector(), ChiProjector()]
+            for quantity in [NumericProjector(), NumericState()]
                 if has_quantity(psp, quantity)
                     for l in angular_momenta(psp), n in 1:n_radials(psp, quantity, l)
                         rmin = isa(psp, NumericPsP) ? first(psp.r) : 0
                         rmax = isa(psp, NumericPsP) ? psp.r[lastindex(get_quantity(psp, quantity, l, n))] : Inf
                         if !isnothing(rmax)
-                            # R = rescale_vector(rand(3), rmin, rmax)
-                            # R_rot = rotate_vector(random_versor(), R)
+                            R = rescale_vector(rand(3), rmin, rmax)
+                            R_rot = rotate_vector(random_versor(), R)
 
-                            # Numeric evaluators no longer support vector arguments
-                            # @test psp_quantity_evaluator(psp, quantity, l, n, RealSpace())(R) ≈
-                            #     psp_quantity_evaluator(psp, quantity, l, n, RealSpace())(R_rot)
+                            @test psp_quantity_evaluator(psp, quantity, l, n, RealSpace())(R) ≈
+                                psp_quantity_evaluator(psp, quantity, l, n, RealSpace())(R_rot)
                             @test psp_quantity_evaluator(psp, quantity, l, n, FourierSpace())(K) ≈
                                 psp_quantity_evaluator(psp, quantity, l, n, FourierSpace())(K_rot)
                         end
@@ -83,14 +82,14 @@ QUANTITIES = [ValenceChargeDensity(), CoreChargeDensity(), BetaProjector(),
                 end
             end
 
-            for quantity in [LocalPotential(), ValenceChargeDensity(), CoreChargeDensity()]
+            for quantity in [NumericLocalPotential(), ValenceChargeDensity(), CoreChargeDensity()]
                 if has_quantity(psp, quantity)
-                    # rmin = isa(psp, NumericPsP) ? first(psp.r) : 0
-                    # rmax = isa(psp, NumericPsP) ? psp.r[lastindex(get_quantity(psp, quantity))] : Inf
-                    # R = rescale_vector(rand(3), rmin, rmax)
-                    # R_rot = rotate_vector(random_versor(), R)
-                    # @test psp_quantity_evaluator(psp, quantity, RealSpace())(R) ≈
-                    #     psp_quantity_evaluator(psp, quantity, RealSpace())(R_rot)
+                    rmin = isa(psp, NumericPsP) ? first(psp.r) : 0
+                    rmax = isa(psp, NumericPsP) ? psp.r[lastindex(get_quantity(psp, quantity))] : Inf
+                    R = rescale_vector(rand(3), rmin, rmax)
+                    R_rot = rotate_vector(random_versor(), R)
+                    @test psp_quantity_evaluator(psp, quantity, RealSpace())(R) ≈
+                        psp_quantity_evaluator(psp, quantity, RealSpace())(R_rot)
                     @test psp_quantity_evaluator(psp, quantity, FourierSpace())(K) ≈
                         psp_quantity_evaluator(psp, quantity, FourierSpace())(K_rot)
                 end

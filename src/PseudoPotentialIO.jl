@@ -1,6 +1,5 @@
 module PseudoPotentialIO
 using Artifacts
-using CubicSplines
 using EzXML
 using LazyArtifacts
 using LinearAlgebra
@@ -16,6 +15,8 @@ using PeriodicTable: PeriodicTable
 import Base.Broadcast.broadcastable
 import Bessels: gamma, sphericalbesselj
 import SpecialFunctions: erf
+using Interpolations: Interpolations
+using CubicSplines: CubicSplines
 
 ## DocStringExtensions Templates
 # TODO they don't seem to be working at the moment ?
@@ -32,24 +33,28 @@ using DocStringExtensions
                   $(TYPEDFIELDS)
                   """
 
+export RadialMesh
+export ArbitraryMesh
+include("common/mesh.jl")
+
 ## Quantity flags
 export AbstractPsPQuantity
-export PsPChargeDensity
+export AbstractDensity
 export ValenceChargeDensity
 export CoreChargeDensity
-export PsPProjector
-export BetaProjector
-export ChiProjector
+export AbstractProjector
+export NumericProjector
+export NumericState
 export PsPCoupling
 export BetaCoupling
-export PsPPotential
-export LocalPotential
+export AbstractPotential
+export NumericLocalPotential
 export AugmentationFunction
 export AugmentationCoupling
 export EvaluationSpace
 export RealSpace
 export FourierSpace
-export LocalPotentialCorrection
+export NumericLocalPotentialCorrection
 export CoulombCorrection
 export ErfCorrection
 include("psp/quantities.jl")
@@ -144,8 +149,12 @@ include("deprecated/upf.jl")
 include("deprecated/psp8.jl")
 
 ## Miscellaneous
+export hankel_transform
+export interpolate
+export interpolate_evaluate
+export LinearInterpolation
+export CubicSplineInterpolation
 include("common/hankel_transform.jl")
-include("common/mesh.jl")
 include("common/spherical_bessel.jl")
 include("common/interpolation.jl")
 include("common/truncation.jl")

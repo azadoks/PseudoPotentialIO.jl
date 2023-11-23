@@ -7,8 +7,8 @@
 
         @testset "Local potential agrees in Fourier space" begin
             for q in (0.01, 0.5, 2.5, 5.0, 10.0, 22.0)
-                @test psp_quantity_evaluator(upf2, LocalPotential(), FourierSpace())(q) ≈
-                      psp_quantity_evaluator(hgh, LocalPotential(), FourierSpace())(q) rtol = 1e-5 atol = 1e-5
+                @test psp_quantity_evaluator(upf2, NumericLocalPotential(), FourierSpace())(q) ≈
+                      psp_quantity_evaluator(hgh, NumericLocalPotential(), FourierSpace())(q) rtol = 1e-5 atol = 1e-5
             end
         end
 
@@ -16,10 +16,10 @@
             lmax = min(max_angular_momentum(upf2), max_angular_momentum(hgh))
             @testset for q in (0.0, 0.01, 0.5, 2.5, 5.0, 10.0, 22.0)
                 for l in 0:lmax
-                    nmax = min(n_radials(upf2, BetaProjector(), l), n_radials(hgh, BetaProjector(), l))
+                    nmax = min(n_radials(upf2, NumericProjector(), l), n_radials(hgh, NumericProjector(), l))
                     for n in 1:nmax
-                        @test psp_quantity_evaluator(upf2, BetaProjector(), l, n, FourierSpace())(q) ≈
-                              psp_quantity_evaluator(hgh, BetaProjector(), l, n, FourierSpace())(q) atol = 1e-6 rtol = 1e-6
+                        @test psp_quantity_evaluator(upf2, NumericProjector(), l, n, FourierSpace())(q) ≈
+                              psp_quantity_evaluator(hgh, NumericProjector(), l, n, FourierSpace())(q) atol = 1e-6 rtol = 1e-6
                     end
                 end
             end
@@ -28,7 +28,7 @@
         @testset "Projector coupling coefficients agree" begin
             lmax = min(max_angular_momentum(upf2), max_angular_momentum(hgh))
             for l in 0:lmax
-                nmax = min(n_radials(upf2, BetaProjector(), l), n_radials(hgh, BetaProjector(), l))
+                nmax = min(n_radials(upf2, NumericProjector(), l), n_radials(hgh, NumericProjector(), l))
                 for n in 1:nmax, m in n:nmax
                     @test get_quantity(upf2, BetaCoupling(), l, n, m) ≈
                           get_quantity(hgh, BetaCoupling(), l, n, m) atol = 1e-8 rtol = 1e-8

@@ -82,27 +82,27 @@ let
     linestyles = [:solid, :dash, :dot]
     colors = Colors.JULIA_LOGO_COLORS
     fig = Figure(); ax = Axis(fig[1,1], xlabel="r [a₀]", ylabel="β(r)")
-    
+
     ## Iterate over each angular momentum 0:lmax
     for l in angular_momenta(Ba_psp)
         color = colors[l+1]
         ## Iterate over each projector at l 1:nmax
-        for n in 1:n_radials(BetaProjector(), Ba_psp, l)
+        for n in 1:n_radials(NumericProjector(), Ba_psp, l)
             linestyle = linestyles[n]
-            
+
             ## Get a callable (interpolator or function) which lets us evaluate the
             ## pseudopotential quantity in real- or Fourier-space
             r²βln = psp_quantity_evaluator(
                 RealSpace(),      # Select real- or Fourier-space using [Real,Fourier]Space()
-                BetaProjector(),  # Select the quantity, here a non-local β-projector
+                NumericProjector(),  # Select the quantity, here a non-local β-projector
                 Ba_psp, l, n)
-            
+
             ## Real-space evaluators for numeric pseudos fail outside their cutoff radius,
             ## which we can find using the `cutoff_radius` function
-            rgrid = 0:0.01:cutoff_radius(BetaProjector(), Ba_psp, l, n)
+            rgrid = 0:0.01:cutoff_radius(NumericProjector(), Ba_psp, l, n)
 
             ## Remove the r² prefactor
-            βln = r²βln.(rgrid) ./ rgrid.^2  
+            βln = r²βln.(rgrid) ./ rgrid.^2
 
             lines!(ax, rgrid, βln, label="|β[$l][$n]⟩", linestyle=linestyle, color=color)
         end

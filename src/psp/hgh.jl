@@ -59,8 +59,8 @@ atomic_charge(psp::HghPsP) = psp.Zatom
 max_angular_momentum(psp::HghPsP)::Int = psp.lmax
 
 has_quantity(::HghPsP, ::AbstractPsPQuantity) = false
-has_quantity(::HghPsP, ::LocalPotential) = true
-has_quantity(::HghPsP, ::BetaProjector) = true
+has_quantity(::HghPsP, ::NumericLocalPotential) = true
+has_quantity(::HghPsP, ::NumericProjector) = true
 has_quantity(::HghPsP, ::BetaCoupling) = true
 
 get_quantity(psp::HghPsP, ::BetaCoupling) = psp.D
@@ -68,27 +68,27 @@ get_quantity(psp::HghPsP, ::BetaCoupling, l) = psp.D[l]
 get_quantity(psp::HghPsP, ::BetaCoupling, l, n) = psp.D[l][n, n]
 get_quantity(psp::HghPsP, ::BetaCoupling, l, n, m) = psp.D[l][n, m]
 
-n_radials(psp::HghPsP, ::BetaProjector, l::Int) = size(psp.D[l], 1)
-n_radials(::HghPsP, ::ChiProjector, ::Int) = 0
+n_radials(psp::HghPsP, ::NumericProjector, l::Int) = size(psp.D[l], 1)
+n_radials(::HghPsP, ::NumericState, ::Int) = 0
 
 function cutoff_radius(psp::HghPsP, quantity::AbstractPsPQuantity; f=nothing, tol=nothing)
     return has_quantity(quantity, psp) ? nothing : Inf
 end
-function cutoff_radius(psp::HghPsP, quantity::PsPProjector, ::Any, ::Any; f=nothing,
+function cutoff_radius(psp::HghPsP, quantity::AbstractProjector, ::Any, ::Any; f=nothing,
                        tol=nothing)
     return cutoff_radius(quantity, psp)
 end
 
-function psp_quantity_evaluator(psp::HghPsP, ::LocalPotential, ::RealSpace)
+function psp_quantity_evaluator(psp::HghPsP, ::NumericLocalPotential, ::RealSpace)
     return local_potential_real(psp)
 end
-function psp_quantity_evaluator(psp::HghPsP, ::BetaProjector, l, n, ::RealSpace)
+function psp_quantity_evaluator(psp::HghPsP, ::NumericProjector, l, n, ::RealSpace)
     return beta_projector_real(psp, l, n)
 end
-function psp_quantity_evaluator(psp::HghPsP, ::LocalPotential, ::FourierSpace)
+function psp_quantity_evaluator(psp::HghPsP, ::NumericLocalPotential, ::FourierSpace)
     return local_potential_fourier(psp)
 end
-function psp_quantity_evaluator(psp::HghPsP, ::BetaProjector, l, n, ::FourierSpace)
+function psp_quantity_evaluator(psp::HghPsP, ::NumericProjector, l, n, ::FourierSpace)
     return beta_projector_fourier(psp, l, n)
 end
 

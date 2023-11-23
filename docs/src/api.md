@@ -26,20 +26,20 @@ HghPsP{T}
 
 AbstractPsPQuantity
 
-PsPChargeDensity
+AbstractDensity
 ValenceChargeDensity
 CoreChargeDensity
 
-PsPProjector
-BetaProjector
-ChiProjector
+AbstractProjector
+NumericProjector
+NumericState
 
 PsPCoupling
 BetaCoupling
 AugmentationCoupling
 
-PsPPotential
-LocalPotential
+AbstractPotential
+NumericLocalPotential
 AugmentationFunction
 
 EvaluationSpace

@@ -9,6 +9,8 @@ using QuadGK
 using JSON
 using Quaternions
 using LinearAlgebra
+using CubicSplines: CubicSplines
+using Interpolations: Interpolations
 import SpecialFunctions: erfi
 
 Random.seed!(0)

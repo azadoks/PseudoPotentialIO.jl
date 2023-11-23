@@ -13,10 +13,7 @@ struct UltrasoftPsP{T} <: NumericPsP{T}
     "Maximum angular momentum"
     lmax::Int
     "Radial mesh"
-    r::Vector{T}
-    "Radial mesh spacing"
-    dr::Vector{T}
-    Δr::Union{T,Vector{T}}
+    r::Union{RadialMesh{T},Vector{T}}
     "Local part of the potential on the radial mesh"
     Vloc::Vector{T}
     "Nonlocal projectors β[l][n] on the radial mesh"
@@ -129,7 +126,7 @@ function _upf_construct_us_internal(upf::UpfFile)
         error("q_with_l == false and nqf == 0, unsure what to do...")
     end
     return UltrasoftPsP{Float64}(nc.identifier, nc.checksum, nc.Zatom, nc.Zval, nc.lmax,
-                                 nc.r, nc.dr, nc.Δr, nc.Vloc, nc.β, nc.D, nc.χ, Q, q,
+                                 nc.r, nc.Vloc, nc.β, nc.D, nc.χ, Q, q,
                                  nc.ρcore, nc.ρval)
 end
 
@@ -138,10 +135,21 @@ is_ultrasoft(::UltrasoftPsP)::Bool = true
 is_paw(::UltrasoftPsP)::Bool = false
 
 #TODO test the augmentation functions
-has_quantity(::AugmentationCoupling, psp::UltrasoftPsP) = true
-get_quantity(::AugmentationCoupling, psp::UltrasoftPsP, l) = psp.q[l]
-get_quantity(::AugmentationCoupling, psp::UltrasoftPsP, l, n) = psp.q[l][n, n]
-get_quantity(::AugmentationCoupling, psp::UltrasoftPsP, l, n, m) = psp.q[l][n, m]
+has_quantity(psp::UltrasoftPsP, ::AugmentationCoupling) = true
+has_quantity(psp::UltrasoftPsP, ::AugmentationFunction) = true
+get_quantity(psp::UltrasoftPsP, ::AugmentationCoupling, l) = psp.q[l]
+get_quantity(psp::UltrasoftPsP, ::AugmentationCoupling, l, n) = psp.q[l][n, n]
+get_quantity(psp::UltrasoftPsP, ::AugmentationCoupling, l, n, m) = psp.q[l][n, m]
+get_quantity(psp::UltrasoftPsP, ::AugmentationFunction, l) = psp.Q[l]
+get_quantity(psp::UltrasoftPsP, ::AugmentationFunction, l, n) = psp.Q[l][n,n]
+get_quantity(psp::UltrasoftPsP, ::AugmentationFunction, l, n, m) = psp.Q[l][n,m]
+
+function cutoff_radius(psp::NumericPsP, quantity::AugmentationFunction, l, n, m; f=nothing,
+                       tol=nothing)
+    !has_quantity(psp, quantity) && return nothing
+    f = get_quantity(psp, quantity, l, n, m)
+    return psp.r[find_truncation_index(f, tol)]
+end
 
 function psp_quantity_evaluator(::RealSpace, q::AugmentationFunction, psp::UltrasoftPsP, l,
                                 n, m)
@@ -150,5 +158,5 @@ end
 
 function psp_quantity_evaluator(::FourierSpace, q::AugmentationFunction, psp::UltrasoftPsP,
                                 l, n, m)
-    return hankel_transform(psp.Q[l][n, m], l, psp.r, psp.dr)
+    return hankel_transform(psp.Q[l][n, m], l, psp.r, deriv(psp.r))
 end

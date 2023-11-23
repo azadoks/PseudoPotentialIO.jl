@@ -1,11 +1,11 @@
-function integration_weights(x::AbstractVector, dx::AbstractVector,
-                             Δx::Union{Real,AbstractVector}, method::QuadratureMethod)
-    weights = similar(x)
-    return integration_weights!(weights, x, dx, Δx, method)
+function integration_weights(mesh::RadialMesh, method::QuadratureMethod)
+    weights = similar(mesh)
+    return integration_weights!(weights, mesh, method)
 end
 
-function integration_weights!(weights::AbstractVector, ::AbstractVector,
-                              ::AbstractVector, Δx::Real, ::Trapezoid)
+function integration_weights!(weights::AbstractVector, mesh::UniformMesh, ::Trapezoid)
+    Δx = mesh.a
+
     weights[begin] = Δx / 2
     weights[(begin + 1):(end - 1)] .= Δx
     weights[end] = Δx / 2
@@ -13,28 +13,28 @@ function integration_weights!(weights::AbstractVector, ::AbstractVector,
     return weights
 end
 
-function integration_weights!(weights::AbstractVector, x::AbstractVector,
-                              ::AbstractVector, Δx::AbstractVector, ::Trapezoid)
-    weights[begin] = Δx[begin] / 2
+function integration_weights!(weights::AbstractVector, mesh::RadialMesh, ::Trapezoid)
+    weights[begin] = diff(mesh, 1) / 2
     for i in (firstindex(weights) + 1):(lastindex(weights) - 1)
-        # Δx[i] + Δx[i-1] = (x[i+1] - x[i]) + (x[i] - x[i-1]) = x[i+i] - x[i-1]
-        weights[i] = (x[i + 1] - x[i - 1]) / 2
+        # Δx[i] + Δx[i-1] = (x[i+1] - x[i]) + (x[i] - x[i-1])
+        #                 = x[i+i] - x[i-1]
+        weights[i] = (mesh[i + 1] - mesh[i - 1]) / 2
     end
-    weights[end] = Δx[end] / 2
+    weights[end] = diff(mesh, mesh.n - 1) / 2
 
     return weights
 end
 
-function integration_weights!(weights::AbstractVector, x::AbstractVector,
-                              ::AbstractVector, Δx::Real, ::Simpson)
-    N = length(x) - 1  # Number of intervals
+function integration_weights!(weights::AbstractVector, mesh::UniformMesh, ::Simpson)
+    Δx = mesh.a
+    N = length(weights) - 1  # Number of intervals
 
     if !isodd(N)  # Standard Simpson's composite 1/3 rule
         weights[begin] = 1 / 3 * Δx
         weights[(begin + 1):2:(end - 1)] .= 4 * 1 / 3 * Δx
         weights[(begin + 2):2:(end - 1)] .= 2 * 1 / 3 * Δx
         weights[end] = 1 / 3 * Δx
-    else # * For functions which decay at the right bound, this is a better approximation
+    else # * For functions which decay to zero as r -> ∞, this is a better approximation
         # If the number of intervals is odd, apply Simpsons method to the first N-1 intervals
         # and the Trapezoidal method to the last interval.
         weights[begin] = 1 / 3 * Δx
@@ -66,49 +66,50 @@ function integration_weights!(weights::AbstractVector, x::AbstractVector,
     return weights
 end
 
-function integration_weights!(weights::AbstractVector, x::AbstractVector,
-                              ::AbstractVector, Δx::AbstractVector, ::Simpson)
-    N = length(x) - 1  # Number of intervals
+function integration_weights!(weights::AbstractVector, mesh::RadialMesh, ::Simpson)
+    N = length(weights) - 1  # Number of intervals
     fill!(weights, 0)
 
     # Skip the last interval if the number of intervals is odd
-    istop = isodd(N) ? lastindex(x) - 3 : lastindex(x) - 2
+    istop = isodd(N) ? lastindex(weights) - 3 : lastindex(weights) - 2
 
-    for i in firstindex(x):2:istop
-        prefac = (Δx[i] + Δx[i + 1]) / 6
-        weights[i] += prefac * (2 - Δx[i + 1] / Δx[i])
-        weights[i + 1] += prefac * (Δx[i] + Δx[i + 1])^2 / (Δx[i] * Δx[i + 1])
-        weights[i + 2] += prefac * (2 - Δx[i] / Δx[i + 1])
+    for i in firstindex(weights):2:istop
+        Δx_0 = diff(mesh, i)
+        Δx_1 = diff(mesh, i + 1)
+        prefac = (Δx_0 + Δx_1) / 6
+        weights[i] += prefac * (2 - Δx_1 / Δx_0)
+        weights[i + 1] += prefac * (Δx_0 + Δx_1)^2 / (Δx_0 * Δx_1)
+        weights[i + 2] += prefac * (2 - Δx_0 / Δx_1)
     end
 
     if isodd(N)  # This handles the last interval when the number of intervals is odd
-        weights[end] += (2 * Δx[end]^2 + 3 * Δx[end] * Δx[end - 1]) /
-                        (6 * (Δx[end - 1] + Δx[end]))
-        weights[end - 1] += (Δx[end]^2 + 3 * Δx[end] * Δx[end - 1]) / (6 * Δx[end - 1])
-        weights[end - 2] -= Δx[end]^3 / (6 * Δx[end - 1] * (Δx[end - 1] + Δx[end]))
+        Δx_n = diff(mesh, mesh.n - 1)
+        Δx_nm1 = diff(mesh, mesh.n - 2)
+        weights[end] += (2 * Δx_n^2 + 3 * Δx_n * Δx_nm1) / (6 * (Δx_nm1 + Δx_n))
+        weights[end - 1] += (Δx_n^2 + 3 * Δx_n * Δx_nm1) / (6 * Δx_nm1)
+        weights[end - 2] -= Δx_n^3 / (6 * Δx_nm1 * (Δx_nm1 + Δx_n))
     end
 
     return weights
 end
 
-function integration_weights!(weights::AbstractVector, x::AbstractVector,
-                              dx::AbstractVector, ::Union{Real,AbstractVector},
-                              ::QESimpson)
-    i = (firstindex(x) + 1):(lastindex(x) - 1)
-    weights[i] .= 2 / 3 * abs.(mod.(i, 2) .- 2) .* dx[i]
-    if mod(length(x), 2) == 1
-        weights[begin] = 1 / 3 * dx[begin]
-        weights[end] = 1 / 3 * dx[end]
+function integration_weights!(weights::AbstractVector, mesh::RadialMesh, ::QESimpson)
+    i = (firstindex(weights) + 1):(lastindex(weights) - 1)
+    weights[i] .= 2 / 3 * abs.(mod.(i, 2) .- 2) .* deriv.(Ref(mesh), i)
+    if mod(length(weights), 2) == 1
+        weights[begin] = 1 / 3 * deriv(mesh, 1)
+        weights[end] = 1 / 3 * deriv(mesh, mesh.n - 1)
     else
-        weights[begin] = 1 / 3 * dx[begin]
-        weights[end - 1] = 1 / 3 * dx[end - 1]
+        weights[begin] = 1 / 3 * deriv(mesh, 1)
+        weights[end - 1] = 1 / 3 * deriv(mesh, mesh.n - 2)
     end
     return weights
 end
 
-function integration_weights!(weights::AbstractVector, x::AbstractVector,
-                              ::AbstractVector, Δx::Real, ::AbinitCorrectedTrapezoid)
-    if length(x) >= 10
+function integration_weights!(weights::AbstractVector, mesh::UniformMesh, ::AbinitCorrectedTrapezoid)
+    Δx = mesh.a
+
+    if length(weights) >= 10
         weights[begin] = 23.75 / 72 * Δx
         weights[begin + 1] = 95.10 / 72 * Δx
         weights[begin + 2] = 55.20 / 72 * Δx
@@ -120,7 +121,7 @@ function integration_weights!(weights::AbstractVector, x::AbstractVector,
         weights[end - 2] = 55.20 / 72 * Δx
         weights[end - 1] = 95.10 / 72 * Δx
         weights[end] = 23.75 / 72 * Δx
-    elseif length(x) == 9
+    elseif length(weights) == 9
         weights[begin] = 17 / 48 * Δx
         weights[begin + 1] = 59 / 48 * Δx
         weights[begin + 2] = 43 / 48 * Δx
@@ -130,7 +131,7 @@ function integration_weights!(weights::AbstractVector, x::AbstractVector,
         weights[end - 2] = 43 / 48 * Δx
         weights[end - 1] = 59 / 48 * Δx
         weights[end] = 17 / 48 * Δx
-    elseif length(x) == 8
+    elseif length(weights) == 8
         weights[begin] = 17 / 48 * Δx
         weights[begin + 1] = 59 / 48 * Δx
         weights[begin + 2] = 43 / 48 * Δx
@@ -139,7 +140,7 @@ function integration_weights!(weights::AbstractVector, x::AbstractVector,
         weights[end - 2] = 43 / 48 * Δx
         weights[end - 1] = 59 / 48 * Δx
         weights[end] = 17 / 48 * Δx
-    elseif length(x) == 7
+    elseif length(weights) == 7
         weights[begin] = 17 / 48 * Δx
         weights[begin + 1] = 59 / 48 * Δx
         weights[begin + 2] = 43 / 48 * Δx
@@ -147,32 +148,32 @@ function integration_weights!(weights::AbstractVector, x::AbstractVector,
         weights[end - 2] = 43 / 48 * Δx
         weights[end - 1] = 59 / 48 * Δx
         weights[end] = 17 / 48 * Δx
-    elseif length(x) == 6
+    elseif length(weights) == 6
         weights[begin] = 17 / 48 * Δx
         weights[begin + 1] = 59 / 48 * Δx
         weights[begin + 2] = 44 / 48 * Δx
         weights[end - 2] = 44 / 48 * Δx
         weights[end - 1] = 59 / 48 * Δx
         weights[end] = 17 / 48 * Δx
-    elseif length(x) == 5
+    elseif length(weights) == 5
         weights[begin] = 1 / 3 * Δx
         weights[begin + 1] = 4 / 3 * Δx
         weights[begin + 2] = 2 / 3 * Δx
         weights[end - 1] = 4 / 3 * Δx
         weights[end] = 1 / 3 * Δx
-    elseif length(x) == 4
+    elseif length(weights) == 4
         weights[begin] = 3 / 8 * Δx
         weights[begin + 1] = 9 / 8 * Δx
         weights[end - 1] = 9 / 8 * Δx
         weights[end] = 3 / 8 * Δx
-    elseif length(x) == 3
+    elseif length(weights) == 3
         weights[begin] = 1 / 3 * Δx
         weights[begin + 1] = 8 / 3 * Δx
         weights[end] = 1 / 3 * Δx
-    elseif length(x) == 2
+    elseif length(weights) == 2
         weights[begin] = 1 / 2 * Δx
         weights[end] = 1 / 2 * Δx
-    elseif length(x) == 1
+    elseif length(weights) == 1
         weights[begin] = Δx
     end
     return weights
