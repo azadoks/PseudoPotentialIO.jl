@@ -71,6 +71,14 @@ struct UpfMesh
 end
 
 """
+overload `==` for `UpfMesh` to compare equality element-wise
+"""
+function ==(mesh1::UpfMesh, mesh2::UpfMesh)::Bool
+    mesh1.mesh == mesh2.mesh && mesh1.rmax == mesh2.rmax && mesh1.dx == mesh2.dx &&
+        mesh1.xmin == mesh2.xmin && mesh1.zmesh == mesh2.zmesh
+end
+
+"""
 UPF `<PP_NONLOCAL/PP_AUGMENTATION/PP_QIJ.[i].[j]>`
 """
 struct UpfQij

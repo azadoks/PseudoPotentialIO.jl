@@ -169,6 +169,13 @@ function upf2_parse_mesh(node::EzXML.Node)
     xmin = get_attr(Float64, node, "xmin")
     rmax = get_attr(Float64, node, "rmax")
     zmesh = get_attr(Float64, node, "zmesh")
+
+    # Parse from isolated node
+    if isnothing(node.document)
+        doc = XMLDocument()
+        setroot!(doc, node)
+    end
+
     # PP_R
     r_node = findfirst("PP_R", node)
     if isnothing(mesh)
@@ -181,6 +188,23 @@ function upf2_parse_mesh(node::EzXML.Node)
     return UpfMesh(r, rab, mesh, rmax, dx, xmin, zmesh)
 end
 upf2_parse_mesh(doc::EzXML.Document) = upf2_parse_mesh(findfirst("PP_MESH", root(doc)))
+
+function upf2_dump_mesh(m::UpfMesh)::EzXML.Node
+    node = ElementNode("PP_MESH")
+    set_attr!(node, "dx", m.dx)
+    set_attr!(node, "mesh", m.mesh)
+    set_attr!(node, "xmin", m.xmin)
+    set_attr!(node, "rmax", m.rmax)
+    set_attr!(node, "zmesh", m.zmesh)
+
+    # PP_R
+    addelement!(node, "PP_R", join(m.r, ' '))
+
+    # PP_RAB
+    addelement!(node, "PP_RAB", join(m.rab, ' '))
+
+    return node
+end
 
 function upf2_parse_qij(node::EzXML.Node)
     # Metadata

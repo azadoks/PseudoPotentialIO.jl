@@ -6,7 +6,7 @@
         # include("test/fixtures.jl")
 
         using PseudoPotentialIO
-        using PseudoPotentialIO: upf2_dump_header, upf2_parse_header, UpfHeader
+        using PseudoPotentialIO: upf2_dump_header, upf2_parse_header, UpfHeader, upf2_dump_mesh, upf2_parse_mesh
 
         for filepath in values(UPF2_CASE_FILEPATHS)
             if ! occursin("Mg.upf", filepath)
@@ -20,7 +20,20 @@
             header = upf2_parse_header(node)
             
             @test header == psp.header
-            
+
+            # recursion test on mesh
+            node = upf2_dump_mesh(psp.mesh)
+            #println(node)
+            mesh = upf2_parse_mesh(node)
+
+            @test mesh == psp.mesh
+            #@test mesh.r == psp.mesh.r
+            #@test mesh.rab == psp.mesh.rab
+            #@test mesh.mesh == psp.mesh.mesh
+            #@test mesh.dx == psp.mesh.dx
+            #@test mesh.xmin == psp.mesh.xmin
+            #@test mesh.rmax == psp.mesh.rmax
+            #@test mesh.zmesh == psp.mesh.zmesh
 
             text = read(filepath, String)
             ## Remove end-of-file junk (input data, etc.)
