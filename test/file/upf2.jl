@@ -8,6 +8,7 @@
         using PseudoPotentialIO
         using Test
         using PseudoPotentialIO: upf2_dump_header, upf2_parse_header, UpfHeader, upf2_dump_mesh, upf2_parse_mesh, upf2_dump_psp, upf2_parse_psp
+        using SHA
 
         for filepath in values(UPF2_CASE_FILEPATHS)
             if ! occursin("Mg.upf", filepath)
@@ -16,37 +17,28 @@
 
             psp = load_psp_file(filepath)
             
-            # recursion test on header
-            node = upf2_dump_header(psp.header)
-            header = upf2_parse_header(node)
-            
-            @test header == psp.header
-
-            # recursion test on mesh
-            node = upf2_dump_mesh(psp.mesh)
-            mesh = upf2_parse_mesh(node)
-
-            @test mesh == psp.mesh
-
-
             # recursion test on psp
             doc = upf2_dump_psp(psp)
-            psp_recursion = upf2_parse_psp(doc)
+            io = IOBuffer()
+            prettyprint(io, doc)
+            checksum = SHA.sha1(io)
 
-            #@test psp_recursion.version == psp.version
-            #@test psp_recursion.info == psp.info
-            ##@test psp_recursion.inputfile == psp.inputfile
-            #@test psp_recursion.header == psp.header
-            #@test psp_recursion.mesh == psp.mesh
-            #@test psp_recursion.nlcc == psp.nlcc
-            #@test psp_recursion.local_ == psp.local_
-            #@test psp_recursion.nonlocal == psp.nonlocal
-            #@test psp_recursion.pswfc == psp.pswfc
-            #@test psp_recursion.full_wfc == psp.full_wfc
-            #@test psp_recursion.rhoatom == psp.rhoatom
-            #@test psp_recursion.spin_orb == psp.spin_orb
-            #@test psp_recursion.paw == psp.paw
-            #@test psp_recursion.gipaw == psp.gipaw
+            psp_recursion = upf2_parse_psp(doc, checksum)
+
+            @test psp_recursion.version == psp.version
+            @test psp_recursion.info == psp.info
+            #@test psp_recursion.inputfile == psp.inputfile
+            @test psp_recursion.header == psp.header
+            @test psp_recursion.mesh == psp.mesh
+            @test psp_recursion.nlcc == psp.nlcc
+            @test psp_recursion.local_ == psp.local_
+            @test psp_recursion.nonlocal == psp.nonlocal
+            @test psp_recursion.pswfc == psp.pswfc
+            @test psp_recursion.full_wfc == psp.full_wfc
+            @test psp_recursion.rhoatom == psp.rhoatom
+            @test psp_recursion.spin_orb == psp.spin_orb
+            @test psp_recursion.paw == psp.paw
+            @test psp_recursion.gipaw == psp.gipaw
 
 
 
