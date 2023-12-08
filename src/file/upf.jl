@@ -73,7 +73,7 @@ end
 """
 overload `==` for `UpfMesh` to compare equality element-wise
 """
-function ==(mesh1::UpfMesh, mesh2::UpfMesh)::Bool
+function Base.:(==)(mesh1::UpfMesh, mesh2::UpfMesh)::Bool
     mesh1.mesh == mesh2.mesh && mesh1.rmax == mesh2.rmax && mesh1.dx == mesh2.dx &&
         mesh1.xmin == mesh2.xmin && mesh1.zmesh == mesh2.zmesh
 end
@@ -298,6 +298,7 @@ struct UpfFile <: PsPFile
     "Pseudized core charge on the radial grid, (ignored if `core_correction` is false)"
     nlcc::Union{Nothing,Vector{Float64}}  # Σ_{i} 4π r_{i}^2 nlcc_{i}
     "Local part of the pseudopotential on the radial grid (ignored if `is_coulomb`)"
+    # XXX: @austin why underscore?
     local_::Union{Nothing,Vector{Float64}}
     "Nonlocal part of the pseudopotential"
     nonlocal::UpfNonlocal

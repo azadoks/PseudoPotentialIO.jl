@@ -1,15 +1,6 @@
-function upf2_parse_psp(io::IO)
-    checksum = SHA.sha1(io)
-    seek(io, 0)
-
-    text = read(io, String)
-    # Remove end-of-file junk (input data, etc.)
-    text = string(split(text, "</UPF>")[1], "</UPF>")
-    # Clean any errant `&` characters
-    text = replace(text, "&" => "")
-    doc = parsexml(text)
-
+function upf2_parse_psp(doc::EzXML.Document; checksum::Union{Nothing,Vector{UInt8}}=nothing)::UpfFile
     root_node = root(doc)
+
     version = get_attr(String, root_node, "version")
     #* PP_INFO
     info_node = findfirst("PP_INFO", root_node)
@@ -71,6 +62,39 @@ function upf2_parse_psp(io::IO)
                    full_wfc, rhoatom, spinorb, paw, gipaw)
 end
 
+function upf2_parse_psp(io::IO)
+    checksum = SHA.sha1(io)
+    seek(io, 0)
+
+    text = read(io, String)
+    # Remove end-of-file junk (input data, etc.)
+    text = string(split(text, "</UPF>")[1], "</UPF>")
+    # Clean any errant `&` characters
+    text = replace(text, "&" => "")
+    doc = parsexml(text)
+
+    return upf2_parse_psp(doc; checksum)
+end
+
+function upf2_dump_psp(upffile::UpfFile)::EzXML.Document
+    doc = XMLDocument()
+    root_node = setroot!(doc, ElementNode("UPF"))
+    set_attr!(root_node, "version", upffile.version)
+
+    #* PP_INFO
+    if !isnothing(upffile.info)
+        addelement!(root_node, "PP_INFO", upffile.info)
+    end
+
+    # PP_HEADER
+    link!(root_node, upf2_dump_header(upffile.header))
+
+    # PP_MESH
+    link!(root_node, upf2_dump_mesh(upffile.mesh))
+
+    return doc
+end
+
 function upf2_parse_header(node::EzXML.Node)
     generated = get_attr(String, node, "generated")
     author = get_attr(String, node, "author")
@@ -112,6 +136,7 @@ function upf2_parse_header(doc::EzXML.Document)
     return upf2_parse_header(findfirst("PP_HEADER", root(doc)))
 end
 
+# XXX: move to with get_attr
 function set_attr!(node::EzXML.Node, key, value)
     # Convert Bool to Fortran-style T/F
     if isa(value, Bool)
@@ -217,6 +242,16 @@ function upf2_parse_qij(node::EzXML.Node)
     return UpfQij(qij, first_index, second_index, composite_index, is_null)
 end
 
+function upf2_dump_qij(qij::UpfQij)::EzXML.Node
+    node = ElementNode("PP_QIJ")
+    set_attr!(node, "first_index", qij.first_index)
+    set_attr!(node, "second_index", qij.second_index)
+    set_attr!(node, "composite_index", qij.composite_index)
+    set_attr!(node, "is_null", qij.is_null)
+    addelement!(node, join(qij.qij, ' '))
+    return node
+end
+
 function upf2_parse_qijl(node::EzXML.Node)
     # Metadata
     angular_momentum = get_attr(Int, node, "angular_momentum")
@@ -228,6 +263,17 @@ function upf2_parse_qijl(node::EzXML.Node)
     qijl = parse.(Float64, split(strip(nodecontent(node))))
     return UpfQijl(qijl, angular_momentum, first_index, second_index, composite_index,
                    is_null)
+end
+
+function upf2_dump_qijl(qijl::UpfQijl)::EzXML.Node
+    node = ElementNode("PP_QIJL")
+    set_attr!(node, "angular_momentum", qijl.angular_momentum)
+    set_attr!(node, "first_index", qijl.first_index)
+    set_attr!(node, "second_index", qijl.second_index)
+    set_attr!(node, "composite_index", qijl.composite_index)
+    set_attr!(node, "is_null", qijl.is_null)
+    addelement!(node, join(qijl.qijl, ' '))
+    return node
 end
 
 function upf2_parse_augmentation(node::EzXML.Node)
@@ -296,6 +342,67 @@ function upf2_parse_augmentation(doc::EzXML.Document)
     return upf2_parse_augmentation(findfirst("PP_NONLOCAL/PP_AUGMENTATION", root(doc)))
 end
 
+function upf2_dump_augmentation(aug::UpfAugmentation)::EzXML.Node
+    node = ElementNode("PP_AUGMENTATION")
+    set_attr!(node, "q_with_l", aug.q_with_l)
+    set_attr!(node, "nqf", aug.nqf)
+    set_attr!(node, "nqlc", aug.nqlc)
+    set_attr!(node, "shape", aug.shape)
+    set_attr!(node, "iraug", aug.iraug)
+    set_attr!(node, "raug", aug.raug)
+    set_attr!(node, "l_max_aug", aug.l_max_aug)
+    set_attr!(node, "augmentation_epsilon", aug.augmentation_epsilon)
+    set_attr!(node, "cutoff_r", aug.cutoff_r)
+    set_attr!(node, "cutoff_r_index", aug.cutoff_r_index)
+
+    # PP_Q
+    q_node = ElementNode("PP_Q")
+    set_attr!(q_node, "size", length(aug.q)^2)
+    addelement!(q_node, join(aug.q, ' '))
+    addelement!(node, q_node)
+
+    # PP_MULTIPOLES
+    if isnothing(aug.multipoles)
+        addelement!(node, ElementNode("PP_MULTIPOLES"))
+    else
+        addelement!(node, ElementNode("PP_MULTIPOLES", join(aug.multipoles, ' ')))
+    end
+
+    # PP_QFCOEF
+    if isnothing(aug.qfcoefs)
+        addelement!(node, ElementNode("PP_QFCOEF"))
+    else
+        addelement!(node, ElementNode("PP_QFCOEF", join(aug.qfcoefs, ' ')))
+    end
+
+    # PP_RINNER
+    if isnothing(aug.rinner)
+        addelement!(node, ElementNode("PP_RINNER"))
+    else
+        addelement!(node, ElementNode("PP_RINNER", join(aug.rinner, ' ')))
+    end
+
+    # PP_QIJ
+    if isnothing(aug.qijs)
+        addelement!(node, ElementNode("PP_QIJ"))
+    else
+        for qij in aug.qijs
+            addelement!(node, upf2_dump_qij(qij))
+        end
+    end
+
+    # PP_QIJL
+    if isnothing(aug.qijls)
+        addelement!(node, ElementNode("PP_QIJL"))
+    else
+        for qijl in aug.qijls
+            addelement!(node, upf2_dump_qijl(qijl))
+        end
+    end
+
+    return node
+end
+
 function upf2_parse_beta(node::EzXML.Node)
     # Metadata
     name = nodename(node)
@@ -320,6 +427,19 @@ function upf2_parse_beta(node::EzXML.Node)
                    norm_conserving_radius, ultrasoft_cutoff_radius, label)
 end
 
+function upf2_dump_beta(beta::UpfBeta)::EzXML.Node
+    node = ElementNode("PP_BETA")
+    set_attr!(node, "index", beta.index)
+    set_attr!(node, "angular_momentum", beta.angular_momentum)
+    set_attr!(node, "cutoff_radius_index", beta.cutoff_radius_index)
+    set_attr!(node, "cutoff_radius", beta.cutoff_radius)
+    set_attr!(node, "norm_conserving_radius", beta.norm_conserving_radius)
+    set_attr!(node, "ultrasoft_cutoff_radius", beta.ultrasoft_cutoff_radius)
+    set_attr!(node, "label", beta.label)
+    addelement!(node, join(beta.beta, ' '))
+    return node
+end
+
 function upf2_parse_nonlocal(node::EzXML.Node)
     beta_nodes = [n for n in eachnode(node) if occursin("PP_BETA.", nodename(n))]
     betas = upf2_parse_beta.(beta_nodes)
@@ -341,6 +461,29 @@ function upf2_parse_nonlocal(doc::EzXML.Document)
     return upf2_parse_nonlocal(findfirst("PP_NONLOCAL", root(doc)))
 end
 
+function upf2_dump_nonlocal(nl::UpfNonlocal)::EzXML.Node
+    node = ElementNode("PP_NONLOCAL")
+
+    # PP_BETA
+    for beta in nl.betas
+        addelement!(node, upf2_dump_beta(beta))
+    end
+
+    # PP_DIJ
+    dij_node = ElementNode("PP_DIJ")
+    addelement!(dij_node, join(nl.dij, ' '))
+    addelement!(node, dij_node)
+
+    # PP_AUGMENTATION
+    if isnothing(nl.augmentation)
+        addelement!(node, ElementNode("PP_AUGMENTATION"))
+    else
+        addelement!(node, upf2_dump_augmentation(nl.augmentation))
+    end
+
+    return node
+end
+
 function upf2_parse_chi(node::EzXML.Node)
     # Metadata
     l = get_attr(Int, node, "l")
@@ -357,6 +500,20 @@ function upf2_parse_chi(node::EzXML.Node)
                   ultrasoft_cutoff_radius)
 end
 
+function upf2_dump_chi(chi::UpfChi)::EzXML.Node
+    node = ElementNode("PP_CHI")
+    set_attr!(node, "l", chi.l)
+    set_attr!(node, "occupation", chi.occupation)
+    set_attr!(node, "index", chi.index)
+    set_attr!(node, "label", chi.label)
+    set_attr!(node, "n", chi.n)
+    set_attr!(node, "pseudo_energy", chi.pseudo_energy)
+    set_attr!(node, "cutoff_radius", chi.cutoff_radius)
+    set_attr!(node, "ultrasoft_cutoff_radius", chi.ultrasoft_cutoff_radius)
+    addelement!(node, join(chi.chi, ' '))
+    return node
+end
+
 function upf2_parse_relwfc(node::EzXML.Node)
     jchi = get_attr(Float64, node, "jchi")
     index = get_attr(Int, node, "index")
@@ -367,11 +524,30 @@ function upf2_parse_relwfc(node::EzXML.Node)
     return UpfRelWfc(jchi, index, els, nn, lchi, oc)
 end
 
+function upf2_dump_relwfc(relwfc::UpfRelWfc)::EzXML.Node
+    node = ElementNode("PP_RELWFC")
+    set_attr!(node, "jchi", relwfc.jchi)
+    set_attr!(node, "index", relwfc.index)
+    set_attr!(node, "els", relwfc.els)
+    set_attr!(node, "nn", relwfc.nn)
+    set_attr!(node, "lchi", relwfc.lchi)
+    set_attr!(node, "oc", relwfc.oc)
+    return node
+end
+
 function upf2_parse_relbeta(node::EzXML.Node)
     index = get_attr(Int, node, "index")
     jjj = get_attr(Float64, node, "jjj")
     lll = get_attr(Int, node, "lll")
     return UpfRelBeta(index, jjj, lll)
+end
+
+function upf2_dump_relbeta(relbeta::UpfRelBeta)::EzXML.Node
+    node = ElementNode("PP_RELBETA")
+    set_attr!(node, "index", relbeta.index)
+    set_attr!(node, "jjj", relbeta.jjj)
+    set_attr!(node, "lll", relbeta.lll)
+    return node
 end
 
 function upf2_parse_spin_orb(node::EzXML.Node)
@@ -387,6 +563,17 @@ function upf2_parse_spin_orb(doc::EzXML.Document)
     return upf2_parse_spin_orb(findfirst("PP_SPIN_ORB", root(doc)))
 end
 
+function upf2_dump_spin_orb(so::UpfSpinOrb)::EzXML.Node
+    node = ElementNode("PP_SPIN_ORB")
+    for relwfc in so.relwfcs
+        addelement!(node, upf2_dump_relwfc(relwfc))
+    end
+    for relbeta in so.relbetas
+        addelement!(node, upf2_dump_relbeta(relbeta))
+    end
+    return node
+end
+
 function upf2_parse_wfc(node::EzXML.Node)
     index = get_attr(Int, node, "index")
     # Sometimes the `index` attribute is missng, so we parse it from the node name which is
@@ -400,6 +587,15 @@ function upf2_parse_wfc(node::EzXML.Node)
     return UpfWfc(wfc, index, l, label)
 end
 
+function upf2_dump_wfc(wfc::UpfWfc)::EzXML.Node
+    node = ElementNode("PP_WFC")
+    set_attr!(node, "index", wfc.index)
+    set_attr!(node, "l", wfc.l)
+    set_attr!(node, "label", wfc.label)
+    addelement!(node, join(wfc.wfc, ' '))
+    return node
+end
+
 function upf2_parse_full_wfc(node::EzXML.Node)
     aewfc_nodes = [n for n in eachnode(node) if occursin("PP_AEWFC", nodename(n))]
     aewfcs = upf2_parse_wfc.(aewfc_nodes)
@@ -411,6 +607,17 @@ function upf2_parse_full_wfc(node::EzXML.Node)
 end
 function upf2_parse_full_wfc(doc::EzXML.Document)
     return upf2_parse_full_wfc(findfirst("PP_FULL_WFC", root(doc)))
+end
+
+function upf2_dump_full_wfc(fwfc::UpfFullWfc)::EzXML.Node
+    node = ElementNode("PP_FULL_WFC")
+    for aewfc in fwfc.aewfcs
+        addelement!(node, upf2_dump_wfc(aewfc))
+    end
+    for pswfc in fwfc.pswfcs
+        addelement!(node, upf2_dump_wfc(pswfc))
+    end
+    return node
 end
 
 function upf2_parse_paw(node::EzXML.Node)
@@ -437,6 +644,33 @@ function upf2_parse_paw(node::EzXML.Node)
 end
 upf2_parse_paw(doc::EzXML.Document) = upf2_parse_paw(findfirst("PP_PAW", root(doc)))
 
+function upf2_dump_paw(paw::UpfPaw)::EzXML.Node
+    node = ElementNode("PP_PAW")
+    set_attr!(node, "paw_data_format", paw.paw_data_format)
+    set_attr!(node, "core_energy", paw.core_energy)
+
+    # PP_OCCUPATIONS
+    addelement!(node, ElementNode("PP_OCCUPATIONS", join(paw.occupations, ' ')))
+
+    # PP_AE_NLCC
+    addelement!(node, ElementNode("PP_AE_NLCC", join(paw.ae_nlcc, ' ')))
+
+    # PP_AE_VLOC
+    addelement!(node, ElementNode("PP_AE_VLOC", join(paw.ae_vloc, ' ')))
+
+    # PP_AEWFC
+    for aewfc in paw.aewfcs
+        addelement!(node, upf2_dump_wfc(aewfc))
+    end
+
+    # PP_PSWFC
+    for pswfc in paw.pswfcs
+        addelement!(node, upf2_dump_wfc(pswfc))
+    end
+
+    return node
+end
+
 function upf2_parse_gipaw_core_orbital(node::EzXML.Node)
     index = get_attr(Int, node, "index")
     label = get_attr(String, node, "label")
@@ -445,6 +679,16 @@ function upf2_parse_gipaw_core_orbital(node::EzXML.Node)
     l = Int(get_attr(Float64, node, "l"))
     core_orbital = parse.(Float64, split(strip(nodecontent(node))))
     return UpfGipawCoreOrbital(index, label, n, l, core_orbital)
+end
+
+function upf2_dump_gipaw_core_orbital(core_orbital::UpfGipawCoreOrbital)::EzXML.Node
+    node = ElementNode("PP_GIPAW_CORE_ORBITAL")
+    set_attr!(node, "index", core_orbital.index)
+    set_attr!(node, "label", core_orbital.label)
+    set_attr!(node, "n", core_orbital.n)
+    set_attr!(node, "l", core_orbital.l)
+    addelement!(node, join(core_orbital.core_orbital, ' '))
+    return node
 end
 
 function upf2_parse_gipaw(node::EzXML.Node)
@@ -457,6 +701,20 @@ function upf2_parse_gipaw(node::EzXML.Node)
     return UpfGipaw(gipaw_data_format, core_orbitals)
 end
 upf2_parse_gipaw(doc::EzXML.Document) = upf2_parse_gipaw(findfirst("PP_GIPAW", root(doc)))
+
+function upf2_dump_gipaw(gipaw::UpfGipaw)::EzXML.Node
+    node = ElementNode("PP_GIPAW")
+    set_attr!(node, "gipaw_data_format", gipaw.gipaw_data_format)
+
+    # PP_GIPAW_CORE_ORBITALS
+    core_orbitals_node = ElementNode("PP_GIPAW_CORE_ORBITALS")
+    for core_orbital in gipaw.core_orbitals
+        addelement!(core_orbitals_node, upf2_dump_gipaw_core_orbital(core_orbital))
+    end
+    addelement!(node, core_orbitals_node)
+
+    return node
+end
 
 parse_bool(s::AbstractString)::Bool = occursin("T", uppercase(s)) ? true : false
 parse_bool(s::Char)::Bool = uppercase(s) == 'T' ? true : false
