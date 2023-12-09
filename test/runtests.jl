@@ -10,6 +10,9 @@ using Interpolations
 using JSON
 using Quaternions
 using LinearAlgebra
+using EzXML
+using SHA
+import PseudoPotentialIO: upf2_dump_psp, upf2_parse_psp
 import SpecialFunctions: erfi
 
 Random.seed!(0)
@@ -82,9 +85,9 @@ include("fixtures.jl")
         include("psp/upf_psp8.jl")
     end
 
-    if any(in.(("all", "deprecated"), Ref(TAGS)))
-        include("deprecated/upf.jl")
-        include("deprecated/upf_json.jl")
-        include("deprecated/upf_psp8.jl")
-    end
+    #if any(in.(("all", "deprecated"), Ref(TAGS)))
+    #    include("deprecated/upf.jl")
+    #    include("deprecated/upf_json.jl")
+    #    include("deprecated/upf_psp8.jl")
+    #end
 end

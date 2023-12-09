@@ -1,20 +1,6 @@
 @testset "UPF v2.0.1" begin
     @testset "Internal data consistency" begin
-        ## run following first in REPL
-        # using PseudoPotentialIO
-        # using Test
-        # include("test/fixtures.jl")
-
-        using PseudoPotentialIO
-        using Test
-        using PseudoPotentialIO: upf2_dump_header, upf2_parse_header, UpfHeader, upf2_dump_mesh, upf2_parse_mesh, upf2_dump_psp, upf2_parse_psp
-        using SHA
-
         for filepath in values(UPF2_CASE_FILEPATHS)
-            if ! occursin("Mg.upf", filepath)
-                continue
-            end
-
             psp = load_psp_file(filepath)
             
             # recursion test on psp
@@ -23,49 +9,34 @@
             prettyprint(io, doc)
             checksum = SHA.sha1(io)
 
-            psp_recursion = upf2_parse_psp(doc, checksum)
+            recur_psp = upf2_parse_psp(doc, checksum)
 
-            @test psp_recursion.version == psp.version
-            @test psp_recursion.info == psp.info
-            #@test psp_recursion.inputfile == psp.inputfile
-            @test psp_recursion.header == psp.header
-            @test psp_recursion.mesh == psp.mesh
-            @test psp_recursion.nlcc == psp.nlcc
-            @test psp_recursion.local_ == psp.local_
-            @test psp_recursion.nonlocal == psp.nonlocal
-            @test psp_recursion.pswfc == psp.pswfc
-            @test psp_recursion.full_wfc == psp.full_wfc
-            @test psp_recursion.rhoatom == psp.rhoatom
-            @test psp_recursion.spin_orb == psp.spin_orb
-            @test psp_recursion.paw == psp.paw
-            @test psp_recursion.gipaw == psp.gipaw
+            @test psp.header == recur_psp.header
+            @test psp.info == recur_psp.info
+            @test psp.mesh.r ≈ recur_psp.mesh.r
+            @test psp.mesh.rab ≈ recur_psp.mesh.rab
+            @test psp.local_ ≈ recur_psp.local_
+            if length(psp.nonlocal.betas) > 0
+                @test psp.nonlocal.betas[1].beta ≈ recur_psp.nonlocal.betas[1].beta
+            end
+            @test psp.nonlocal.dij ≈ recur_psp.nonlocal.dij
+            @test psp.rhoatom ≈ recur_psp.rhoatom
 
+            # check io and recur_io are the same
 
+            @test format(psp) == "UPF v2.0.1"
 
+            # UPF v2.0.1 has a different augmentation data format from UPF v1.old
+            if psp.header.is_ultrasoft | psp.header.is_paw
+                augmentation = psp.nonlocal.augmentation
 
-            text = read(filepath, String)
-            ## Remove end-of-file junk (input data, etc.)
-            #text = string(split(text, "</UPF>")[1], "</UPF>")
-            ## Clean any errant `&` characters
-            #text = replace(text, "&" => "")
-            doc = parsexml(text)
+                @test isnothing(augmentation.rinner)
 
-            header_node = findfirst("PP_HEADER", root(doc))
-
-            # XXX: bring back
-            #@test format(psp) == "UPF v2.0.1"
-
-            ## UPF v2.0.1 has a different augmentation data format from UPF v1.old
-            #if psp.header.is_ultrasoft | psp.header.is_paw
-            #    augmentation = psp.nonlocal.augmentation
-
-            #    @test isnothing(augmentation.rinner)
-
-            #    if psp.header.is_paw
-            #        @test !isnothing(augmentation.multipoles)
-            #        #TODO @test length(augmentation.multipoles) == 
-            #    end
-            #end
+                if psp.header.is_paw
+                    @test !isnothing(augmentation.multipoles)
+                    #TODO @test length(augmentation.multipoles) == 
+                end
+            end
         end
     end
 

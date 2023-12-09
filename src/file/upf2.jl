@@ -304,11 +304,11 @@ function upf2_parse_qijl(node::EzXML.Node)
 end
 
 function upf2_dump_qijl(qijl::UpfQijl)::EzXML.Node
-    node = ElementNode("PP_QIJL")
-    set_attr!(node, "angular_momentum", qijl.angular_momentum)
+    node = ElementNode("PP_QIJL.$(qijl.first_index).$(qijl.second_index).$(qijl.angular_momentum)")
     set_attr!(node, "first_index", qijl.first_index)
     set_attr!(node, "second_index", qijl.second_index)
     set_attr!(node, "composite_index", qijl.composite_index)
+    set_attr!(node, "angular_momentum", qijl.angular_momentum)
     set_attr!(node, "is_null", qijl.is_null)
     text = array_to_text(qijl.qijl)
     link!(node, TextNode(text))
@@ -396,47 +396,37 @@ function upf2_dump_augmentation(aug::UpfAugmentation)::EzXML.Node
 
     # PP_Q
     q_node = ElementNode("PP_Q")
-    set_attr!(q_node, "size", length(aug.q)^2)
+    set_attr!(q_node, "size", length(aug.q))
     text = array_to_text(aug.q)
     link!(q_node, TextNode(text))
-    addelement!(node, q_node)
+    link!(node, q_node)
 
     # PP_MULTIPOLES
-    if isnothing(aug.multipoles)
-        addelement!(node, ElementNode("PP_MULTIPOLES"))
-    else
-        addelement!(node, ElementNode("PP_MULTIPOLES", array_to_text(aug.multipoles)))
+    if !isnothing(aug.multipoles)
+        addelement!(node, "PP_MULTIPOLES", array_to_text(aug.multipoles))
     end
 
     # PP_QFCOEF
-    if isnothing(aug.qfcoefs)
-        addelement!(node, ElementNode("PP_QFCOEF"))
-    else
-        addelement!(node, ElementNode("PP_QFCOEF", array_to_text(aug.qfcoefs)))
+    if !isnothing(aug.qfcoefs)
+        addelement!(node, "PP_QFCOEF", array_to_text(aug.qfcoefs))
     end
 
     # PP_RINNER
-    if isnothing(aug.rinner)
-        addelement!(node, ElementNode("PP_RINNER"))
-    else
-        addelement!(node, ElementNode("PP_RINNER", array_to_text(aug.rinner)))
+    if !isnothing(aug.rinner)
+        addelement!(node, "PP_RINNER", array_to_text(aug.rinner))
     end
 
     # PP_QIJ
-    if isnothing(aug.qijs)
-        addelement!(node, ElementNode("PP_QIJ"))
-    else
+    if !isnothing(aug.qijs)
         for qij in aug.qijs
-            addelement!(node, upf2_dump_qij(qij))
+            link!(node, upf2_dump_qij(qij))
         end
     end
 
     # PP_QIJL
-    if isnothing(aug.qijls)
-        addelement!(node, ElementNode("PP_QIJL"))
-    else
+    if !isnothing(aug.qijls)
         for qijl in aug.qijls
-            addelement!(node, upf2_dump_qijl(qijl))
+            link!(node, upf2_dump_qijl(qijl))
         end
     end
 
@@ -626,7 +616,7 @@ function upf2_parse_wfc(node::EzXML.Node)
 end
 
 function upf2_dump_wfc(wfc::UpfWfc)::EzXML.Node
-    node = ElementNode("PP_PSWFC")
+    node = ElementNode("PP_PSWFC.$(wfc.index)")
     set_attr!(node, "index", wfc.index)
     set_attr!(node, "l", wfc.l)
     set_attr!(node, "label", wfc.label)
@@ -651,10 +641,10 @@ end
 function upf2_dump_full_wfc(fwfc::UpfFullWfc)::EzXML.Node
     node = ElementNode("PP_FULL_WFC")
     for aewfc in fwfc.aewfcs
-        addelement!(node, upf2_dump_wfc(aewfc))
+        link!(node, upf2_dump_wfc(aewfc))
     end
     for pswfc in fwfc.pswfcs
-        addelement!(node, upf2_dump_wfc(pswfc))
+        link!(node, upf2_dump_wfc(pswfc))
     end
     return node
 end
@@ -689,22 +679,22 @@ function upf2_dump_paw(paw::UpfPaw)::EzXML.Node
     set_attr!(node, "core_energy", paw.core_energy)
 
     # PP_OCCUPATIONS
-    addelement!(node, ElementNode("PP_OCCUPATIONS", array_to_text(paw.occupations)))
+    addelement!(node, "PP_OCCUPATIONS", array_to_text(paw.occupations))
 
     # PP_AE_NLCC
-    addelement!(node, ElementNode("PP_AE_NLCC", array_to_text(paw.ae_nlcc)))
+    addelement!(node, "PP_AE_NLCC", array_to_text(paw.ae_nlcc))
 
     # PP_AE_VLOC
-    addelement!(node, ElementNode("PP_AE_VLOC", array_to_text(paw.ae_vloc)))
+    addelement!(node, "PP_AE_VLOC", array_to_text(paw.ae_vloc))
 
     # PP_AEWFC
     for aewfc in paw.aewfcs
-        addelement!(node, upf2_dump_wfc(aewfc))
+        link!(node, upf2_dump_wfc(aewfc))
     end
 
     # PP_PSWFC
     for pswfc in paw.pswfcs
-        addelement!(node, upf2_dump_wfc(pswfc))
+        link!(node, upf2_dump_wfc(pswfc))
     end
 
     return node
@@ -749,9 +739,9 @@ function upf2_dump_gipaw(gipaw::UpfGipaw)::EzXML.Node
     # PP_GIPAW_CORE_ORBITALS
     core_orbitals_node = ElementNode("PP_GIPAW_CORE_ORBITALS")
     for core_orbital in gipaw.core_orbitals
-        addelement!(core_orbitals_node, upf2_dump_gipaw_core_orbital(core_orbital))
+        link!(core_orbitals_node, upf2_dump_gipaw_core_orbital(core_orbital))
     end
-    addelement!(node, core_orbitals_node)
+    link!(node, core_orbitals_node)
 
     return node
 end
@@ -786,7 +776,7 @@ convert a vector to a string with line break every `width` elements
 function array_to_text(v::AbstractVector; width::Int=4)::AbstractString
     s = "\n"
     for i in eachindex(v)
-        s *= @sprintf("%16.10f", v[i])
+        s *= @sprintf("%20.14E", v[i]) * ' '
         if i % width == 0
             s *= '\n'
         end
@@ -803,11 +793,10 @@ function array_to_text(m::AbstractMatrix)::AbstractString
     s = "\n"
     for row in eachrow(m)
         for el in row
-            s *= @sprintf("%16.10f", el)
+            s *= @sprintf("%20.14E", el) * ' '
         end
         s *= '\n'
     end
-    s *= '\n'
     
     s
 end
