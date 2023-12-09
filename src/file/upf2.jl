@@ -70,6 +70,7 @@ function upf2_parse_psp(io::IO)
     # Remove end-of-file junk (input data, etc.)
     text = string(split(text, "</UPF>")[1], "</UPF>")
     # Clean any errant `&` characters
+    text = replace(text, "&amp;" => "")
     text = replace(text, "&" => "")
     doc = parsexml(text)
 
@@ -85,26 +86,20 @@ function upf2_dump_psp(upffile::UpfFile)::EzXML.Document
     if !isnothing(upffile.info)
         addelement!(root_node, "PP_INFO", upffile.info)
     end
-
     # PP_HEADER
     link!(root_node, upf2_dump_header(upffile.header))
-
     # PP_MESH
     link!(root_node, upf2_dump_mesh(upffile.mesh))
-
     # PP_NLCC
     if !isnothing(upffile.nlcc)
         addelement!(root_node, "PP_NLCC", array_to_text(upffile.nlcc))
     end
-
     # PP_LOCAL
     if !isnothing(upffile.local_)
         addelement!(root_node, "PP_LOCAL", array_to_text(upffile.local_))
     end
-
     # PP_NONLOCAL
     link!(root_node, upf2_dump_nonlocal(upffile.nonlocal))
-
     # PP_PSWFC
     if !isnothing(upffile.pswfc)
         pswfc_node = ElementNode("PP_PSWFC")
@@ -113,20 +108,16 @@ function upf2_dump_psp(upffile::UpfFile)::EzXML.Document
         end
         link!(root_node, pswfc_node)
     end
-
     # PP_FULL_WFC
     if !isnothing(upffile.full_wfc)
         link!(root_node, upf2_dump_full_wfc(upffile.full_wfc))
     end
-
     # PP_RHOATOM
     addelement!(root_node, "PP_RHOATOM", array_to_text(upffile.rhoatom))
-
     # PP_SPINORB
     if !isnothing(upffile.spin_orb)
         link!(root_node, upf2_dump_spin_orb(upffile.spin_orb))
     end
-
 
     return doc
 end
@@ -170,24 +161,6 @@ end
 
 function upf2_parse_header(doc::EzXML.Document)
     return upf2_parse_header(findfirst("PP_HEADER", root(doc)))
-end
-
-# XXX: move to with get_attr
-function set_attr!(node::EzXML.Node, key, value)
-    # Convert Bool to Fortran-style T/F
-    if isa(value, Bool)
-        value = value ? "T" : "F"
-    end
-
-    # Convert Float64 to Fortran-style D
-    if isa(value, Float64)
-        value = replace(string(value), "E" => "D")
-    end
-
-    # skip if value is nothing
-    if !isnothing(value)
-        node[key] = value
-    end
 end
 
 function upf2_dump_header(h::UpfHeader)::EzXML.Node
@@ -799,4 +772,21 @@ function array_to_text(m::AbstractMatrix)::AbstractString
     end
     
     s
+end
+
+function set_attr!(node::EzXML.Node, key, value)
+    # Convert Bool to Fortran-style T/F
+    if isa(value, Bool)
+        value = value ? "T" : "F"
+    end
+
+    # Convert Float64 to Fortran-style D
+    if isa(value, Float64)
+        value = replace(string(value), "E" => "D")
+    end
+
+    # skip if value is nothing
+    if !isnothing(value)
+        node[key] = value
+    end
 end
