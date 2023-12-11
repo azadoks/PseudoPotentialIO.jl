@@ -99,7 +99,7 @@ function upf2_dump_psp(upffile::UpfFile)::EzXML.Document
         addelement!(root_node, "PP_LOCAL", array_to_text(upffile.local_))
     end
     # PP_NONLOCAL
-    link!(root_node, upf2_dump_nonlocal(upffile.nonlocal))
+    link!(root_node, upf2_dump_nonlocal(upffile.nonlocal, upffile.mesh.mesh))
     # PP_PSWFC
     if !isnothing(upffile.pswfc)
         pswfc_node = ElementNode("PP_PSWFC")
@@ -430,7 +430,7 @@ function upf2_parse_beta(node::EzXML.Node)
                    norm_conserving_radius, ultrasoft_cutoff_radius, label)
 end
 
-function upf2_dump_beta(beta::UpfBeta)::EzXML.Node
+function upf2_dump_beta(beta::UpfBeta, mesh_size::Int64)::EzXML.Node
     node = ElementNode("PP_BETA.$(beta.index)")
     set_attr!(node, "index", beta.index)
     set_attr!(node, "angular_momentum", beta.angular_momentum)
@@ -439,7 +439,8 @@ function upf2_dump_beta(beta::UpfBeta)::EzXML.Node
     set_attr!(node, "norm_conserving_radius", beta.norm_conserving_radius)
     set_attr!(node, "ultrasoft_cutoff_radius", beta.ultrasoft_cutoff_radius)
     set_attr!(node, "label", beta.label)
-    text = array_to_text(beta.beta)
+    beta = [beta.beta; zeros(mesh_size - length(beta.beta))]
+    text = array_to_text(beta)
     link!(node, TextNode(text))
     return node
 end
@@ -465,12 +466,12 @@ function upf2_parse_nonlocal(doc::EzXML.Document)
     return upf2_parse_nonlocal(findfirst("PP_NONLOCAL", root(doc)))
 end
 
-function upf2_dump_nonlocal(nl::UpfNonlocal)::EzXML.Node
+function upf2_dump_nonlocal(nl::UpfNonlocal, mesh_size::Int64)::EzXML.Node
     node = ElementNode("PP_NONLOCAL")
 
     # PP_BETA
     for beta in nl.betas
-        link!(node, upf2_dump_beta(beta))
+        link!(node, upf2_dump_beta(beta, mesh_size))
     end
 
     # PP_DIJ

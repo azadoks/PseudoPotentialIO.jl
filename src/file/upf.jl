@@ -325,16 +325,34 @@ function UpfFile(io::IO)
     error("Unknown UPF version.")
 end
 
+"""
+write UPF file to `io`
+
+note: no matter what version the file is, it will be written as UPF v2.0.1
+"""
+function Base.:write(io::IO, psp::UpfFile)
+    doc = upf2_dump_psp(psp)
+    prettyprint(io, doc)
+end
+
+function Base.:write(path::AbstractString, psp::UpfFile)
+    open(path, "w") do io
+        write(io, psp)
+    end
+end
+
 function _get_upf_version(io::IO)::Int
-    pos = position(io)
     seek(io, 0)
-    line = readline(io)
-    seek(io, pos)
-    if occursin("<PP_INFO>", line)
+    line1 = readline(io)
+    line2 = readline(io)
+    if occursin("<PP_INFO>", line1)
         # Old UPF files start with the `<PP_INFO>` section
         return 1
-    elseif occursin("UPF version=\"2.0.1\"", line)
+    elseif occursin("UPF version=\"2.0.1\"", line1)
         # New UPF files with schema are in XML and start with a version tag
+        return 2
+    elseif occursin("xml version=\"1.0\"", line1) && occursin("UPF version=\"2.0.1\"", line2)
+        # dumped UPF files start with a xml declaration
         return 2
     else
         error("Unknown UPF version")
