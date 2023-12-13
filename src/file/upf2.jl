@@ -79,7 +79,7 @@ end
 
 function upf2_dump_psp(upffile::UpfFile)::EzXML.Node
     root_node = ElementNode("UPF")
-    set_attr!(root_node, "version", upffile.version)
+    set_attr!(root_node, "version", "2.0.1")
 
     #* PP_INFO
     if !isnothing(upffile.info)
@@ -98,7 +98,7 @@ function upf2_dump_psp(upffile::UpfFile)::EzXML.Node
         addelement!(root_node, "PP_LOCAL", array_to_text(upffile.local_))
     end
     # PP_NONLOCAL
-    link!(root_node, upf2_dump_nonlocal(upffile.nonlocal, upffile.mesh.mesh))
+    link!(root_node, upf2_dump_nonlocal(upffile.nonlocal))
     # PP_PSWFC
     if !isnothing(upffile.pswfc)
         pswfc_node = ElementNode("PP_PSWFC")
@@ -367,19 +367,22 @@ function upf2_dump_augmentation(aug::UpfAugmentation)::EzXML.Node
 
     # PP_QFCOEF
     if !isnothing(aug.qfcoefs)
-        addelement!(node, "PP_QFCOEF", array_to_text(aug.qfcoefs))
+        # addelement!(node, "PP_QFCOEF", array_to_text(aug.qfcoefs))
+        @warn "Cannot dump UPF v2.0.1 with PP_QFCOEF"
     end
 
     # PP_RINNER
     if !isnothing(aug.rinner)
-        addelement!(node, "PP_RINNER", array_to_text(aug.rinner))
+        # addelement!(node, "PP_RINNER", array_to_text(aug.rinner))
+        @warn "Cannot dump UPF v2.0.1 with PP_RINNER"
     end
 
     # PP_QIJ
     if !isnothing(aug.qijs)
-        for qij in aug.qijs
-            link!(node, upf2_dump_qij(qij))
-        end
+        #for qij in aug.qijs
+        #    link!(node, upf2_dump_qij(qij))
+        #end
+        @warn "Cannot dump UPF v2.0.1 with PP_QIJ.i.j"
     end
 
     # PP_QIJL
@@ -416,7 +419,7 @@ function upf2_parse_beta(node::EzXML.Node)
                    norm_conserving_radius, ultrasoft_cutoff_radius, label)
 end
 
-function upf2_dump_beta(beta::UpfBeta, mesh_size::Int64)::EzXML.Node
+function upf2_dump_beta(beta::UpfBeta)::EzXML.Node
     node = ElementNode("PP_BETA.$(beta.index)")
     set_attr!(node, "index", beta.index)
     set_attr!(node, "angular_momentum", beta.angular_momentum)
@@ -451,12 +454,12 @@ function upf2_parse_nonlocal(doc::EzXML.Document)
     return upf2_parse_nonlocal(findfirst("PP_NONLOCAL", root(doc)))
 end
 
-function upf2_dump_nonlocal(nl::UpfNonlocal, mesh_size::Int64)::EzXML.Node
+function upf2_dump_nonlocal(nl::UpfNonlocal)::EzXML.Node
     node = ElementNode("PP_NONLOCAL")
 
     # PP_BETA
     for beta in nl.betas
-        link!(node, upf2_dump_beta(beta, mesh_size))
+        link!(node, upf2_dump_beta(beta))
     end
 
     # PP_DIJ

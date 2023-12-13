@@ -48,6 +48,45 @@
         end
     end
 
+
+    # TODO: either qijs or qijls should be present
+    # But UPF 2.0.1 parser not yet have qijs supported
+
+    #@testset "UPF1 -> UPF2" begin
+    #    for filepath in values(UPF1_CASE_FILEPATHS)
+    #        psp = load_psp_file(filepath)
+
+    #        @test format(psp) == "UPF v1.old"
+
+    #        # create a tmp file to save for test purpose
+    #        tmpdir = mktempdir(; cleanup = true)
+    #        outpath = joinpath(tmpdir, "tmp.upf")
+    #        save_psp_file(outpath, psp)
+
+    #        println(outpath)
+
+    #        newpsp = load_psp_file(outpath)
+
+    #        @test format(newpsp) == "UPF v2.0.1"
+
+    #        # test no fields are lost (the fields that can be nothing)
+    #        for n in fieldnames(UpfFile)
+    #            if !isnothing(getfield(psp, n))
+    #                @test !isnothing(getfield(newpsp, n)) || "$(filepath): $(n) of $(outpath) file is nothing"
+    #            end
+    #        end
+
+    #        @test psp.mesh.r ≈ newpsp.mesh.r
+    #        @test psp.mesh.rab ≈ newpsp.mesh.rab
+    #        @test psp.local_ ≈ newpsp.local_
+    #        if length(psp.nonlocal.betas) > 0
+    #            @test psp.nonlocal.betas[1].beta ≈ newpsp.nonlocal.betas[1].beta
+    #        end
+    #        @test psp.nonlocal.dij ≈ newpsp.nonlocal.dij
+    #        @test psp.rhoatom ≈ newpsp.rhoatom
+    #    end
+    #end
+
     @testset "Mg.upf" begin
         filename = "Mg.upf"
         file = load_psp_file(UPF2_CASE_FILEPATHS[filename])
