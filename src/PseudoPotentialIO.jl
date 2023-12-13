@@ -49,7 +49,6 @@ export n_chi_function_radials
 include("file/file.jl")
 
 export UpfFile
-export save_psp_file
 include("file/upf.jl")
 include("file/upf1.jl")
 include("file/upf2.jl")
@@ -132,6 +131,10 @@ export load_family
 export show_family_periodic_table
 export show_family_list
 include("load.jl")
+
+## Save to file
+export save_psp_file
+include("save.jl")
 
 ## Deprecated loaders
 export load_upf
