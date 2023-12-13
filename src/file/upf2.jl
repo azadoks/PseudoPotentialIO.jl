@@ -77,9 +77,8 @@ function upf2_parse_psp(io::IO)
     return upf2_parse_psp(doc, checksum)
 end
 
-function upf2_dump_psp(upffile::UpfFile)::EzXML.Document
-    doc = XMLDocument()
-    root_node = setroot!(doc, ElementNode("UPF"))
+function upf2_dump_psp(upffile::UpfFile)::EzXML.Node
+    root_node = ElementNode("UPF")
     set_attr!(root_node, "version", upffile.version)
 
     #* PP_INFO
@@ -129,7 +128,7 @@ function upf2_dump_psp(upffile::UpfFile)::EzXML.Document
         link!(root_node, upf2_dump_gipaw(upffile.gipaw))
     end
 
-    return doc
+    return root_node
 end
 
 function upf2_parse_header(node::EzXML.Node)

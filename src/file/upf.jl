@@ -330,8 +330,8 @@ write UPF file to `io`
 note: no matter what version the file is, it will be written as UPF v2.0.1
 """
 function save_psp(io::IO, psp::UpfFile)
-    doc = upf2_dump_psp(psp)
-    prettyprint(io, doc)
+    root_node = upf2_dump_psp(psp)
+    prettyprint(io, root_node)
 end
 
 function save_psp_file(path::AbstractString, psp::UpfFile)
