@@ -412,7 +412,7 @@ function upf2_parse_beta(node::EzXML.Node)
     ultrasoft_cutoff_radius = get_attr(Float64, node, "ultrasoft_cutoff_radius")
     label = get_attr(String, node, "label")
     # PP_BETA.$i
-    beta = parse.(Float64, split(strip(nodecontent(node))))[1:cutoff_radius_index]
+    beta = parse.(Float64, split(strip(nodecontent(node))))
     return UpfBeta(beta, index, angular_momentum, cutoff_radius_index, cutoff_radius,
                    norm_conserving_radius, ultrasoft_cutoff_radius, label)
 end
@@ -426,8 +426,7 @@ function upf2_dump_beta(beta::UpfBeta, mesh_size::Int64)::EzXML.Node
     set_attr!(node, "norm_conserving_radius", beta.norm_conserving_radius)
     set_attr!(node, "ultrasoft_cutoff_radius", beta.ultrasoft_cutoff_radius)
     set_attr!(node, "label", beta.label)
-    beta = [beta.beta; zeros(mesh_size - length(beta.beta))]
-    text = array_to_text(beta)
+    text = array_to_text(beta.beta)
     link!(node, TextNode(text))
     return node
 end

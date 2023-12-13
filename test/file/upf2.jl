@@ -102,7 +102,7 @@
         @test length(betas) == file.header.number_of_proj
         for (i, beta) in enumerate(betas)
             @test beta.index == i
-            @test length(beta.beta) == beta.cutoff_radius_index
+            @test length(beta.beta) == mesh.mesh
             @test isnothing(beta.norm_conserving_radius)
             @test isnothing(beta.ultrasoft_cutoff_radius)
             @test isnothing(beta.label)
@@ -265,7 +265,7 @@
         @test length(betas) == file.header.number_of_proj
         for (i, beta) in enumerate(betas)
             @test beta.index == i
-            @test length(beta.beta) == beta.cutoff_radius_index
+            @test length(beta.beta) == mesh.mesh
         end
 
         @test betas[1].label == "3S"
@@ -437,7 +437,7 @@
         @test length(betas) == file.header.number_of_proj
         for (i, beta) in enumerate(betas)
             @test beta.index == i
-            @test length(beta.beta) == beta.cutoff_radius_index
+            @test length(beta.beta) == mesh.mesh
         end
 
         @test betas[1].label == "3S"

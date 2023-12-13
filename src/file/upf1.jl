@@ -172,7 +172,7 @@ function upf1_parse_local(io::IO, mesh_size::Int)
     return local_
 end
 
-function upf1_parse_betas(io::IO, number_of_proj::Int)
+function upf1_parse_betas(io::IO, number_of_proj::Int, mesh_size::Int)
     pos = position(io)
     betas = Vector{UpfBeta}(undef, number_of_proj)
     for index in 1:number_of_proj
@@ -189,6 +189,9 @@ function upf1_parse_betas(io::IO, number_of_proj::Int)
         cutoff_radius_index = parse(Int, s)
 
         beta = read_mesh_data(Float64, io, cutoff_radius_index)
+
+        # make beta size consistent with mesh_size
+        beta = [beta; zeros(Float64, mesh_size - cutoff_radius_index)]
 
         # These values are (sometimes) given by UPF v2 but not by v1. The cutoff radius
         # could be found by looking up the value in `r` corresponding to
@@ -310,7 +313,7 @@ function upf1_parse_nonlocal(io::IO, pseudo_type::String, mesh_size::Int,
                              number_of_proj::Int, l_max::Int)
     # The `PP_NONLOCAL` superblock contains the KB non-local projectors, projector coupling
     # coefficients, and (sometimes) augmentation charges 
-    betas = upf1_parse_betas(io, number_of_proj)
+    betas = upf1_parse_betas(io, number_of_proj, mesh_size)
     dij = upf1_parse_dij(io, number_of_proj)
     if pseudo_type in ("US", "USPP", "PAW")  # Ultrasoft and PAW have augmentation charges
         augmentation = upf1_parse_augmentation(io, mesh_size, number_of_proj, l_max)
