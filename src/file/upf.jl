@@ -330,14 +330,14 @@ write UPF file to `io`
 
 note: no matter what version the file is, it will be written as UPF v2.0.1
 """
-function Base.:write(io::IO, psp::UpfFile)
+function save_psp(io::IO, psp::UpfFile)
     doc = upf2_dump_psp(psp)
     prettyprint(io, doc)
 end
 
-function Base.:write(path::AbstractString, psp::UpfFile)
+function save_psp_file(path::AbstractString, psp::UpfFile)
     open(path, "w") do io
-        write(io, psp)
+        save_psp(io, psp)
     end
 end
 

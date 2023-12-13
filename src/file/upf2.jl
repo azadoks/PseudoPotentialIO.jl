@@ -119,6 +119,16 @@ function upf2_dump_psp(upffile::UpfFile)::EzXML.Document
         link!(root_node, upf2_dump_spin_orb(upffile.spin_orb))
     end
 
+    # PP_PAW
+    if !isnothing(upffile.paw)
+        link!(root_node, upf2_dump_paw(upffile.paw))
+    end
+
+    # PP_GIPAW
+    if !isnothing(upffile.gipaw)
+        link!(root_node, upf2_dump_gipaw(upffile.gipaw))
+    end
+
     return doc
 end
 
@@ -685,7 +695,7 @@ function upf2_parse_gipaw_core_orbital(node::EzXML.Node)
 end
 
 function upf2_dump_gipaw_core_orbital(core_orbital::UpfGipawCoreOrbital)::EzXML.Node
-    node = ElementNode("PP_GIPAW_CORE_ORBITAL")
+    node = ElementNode("PP_GIPAW_CORE_ORBITAL.$(core_orbital.index)")
     set_attr!(node, "index", core_orbital.index)
     set_attr!(node, "label", core_orbital.label)
     set_attr!(node, "n", core_orbital.n)
@@ -712,6 +722,7 @@ function upf2_dump_gipaw(gipaw::UpfGipaw)::EzXML.Node
 
     # PP_GIPAW_CORE_ORBITALS
     core_orbitals_node = ElementNode("PP_GIPAW_CORE_ORBITALS")
+    set_attr!(core_orbitals_node, "number_of_orbitals", length(gipaw.core_orbitals))
     for core_orbital in gipaw.core_orbitals
         link!(core_orbitals_node, upf2_dump_gipaw_core_orbital(core_orbital))
     end

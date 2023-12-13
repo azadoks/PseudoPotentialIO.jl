@@ -1,26 +1,34 @@
 @testset "UPF v2.0.1" begin
+
     @testset "Internal data consistency" begin
+        # Test after a circle, not data is lost
         for filepath in values(UPF2_CASE_FILEPATHS)
             psp = load_psp_file(filepath)
             
-            # recursion test on psp
-            doc = upf2_dump_psp(psp)
-            io = IOBuffer()
-            prettyprint(io, doc)
-            checksum = SHA.sha1(io)
+            # create a tmp file to save for test purpose
+            tmpdir = mktempdir(; cleanup = true)
+            outpath = joinpath(tmpdir, "tmp.upf")
+            save_psp_file(outpath, psp)
 
-            recur_psp = upf2_parse_psp(doc, checksum)
+            newpsp = load_psp_file(outpath)
 
-            @test psp.header == recur_psp.header
-            @test psp.info == recur_psp.info
-            @test psp.mesh.r ≈ recur_psp.mesh.r
-            @test psp.mesh.rab ≈ recur_psp.mesh.rab
-            @test psp.local_ ≈ recur_psp.local_
-            if length(psp.nonlocal.betas) > 0
-                @test psp.nonlocal.betas[1].beta ≈ recur_psp.nonlocal.betas[1].beta
+            # test no fields are lost (the fields that can be nothing)
+            for n in fieldnames(UpfFile)
+                if !isnothing(getfield(psp, n))
+                    @test !isnothing(getfield(newpsp, n)) || "$(filepath): $(n) of $(outpath) file is nothing"
+                end
             end
-            @test psp.nonlocal.dij ≈ recur_psp.nonlocal.dij
-            @test psp.rhoatom ≈ recur_psp.rhoatom
+
+            @test psp.header == newpsp.header
+            @test psp.info == newpsp.info
+            @test psp.mesh.r ≈ newpsp.mesh.r
+            @test psp.mesh.rab ≈ newpsp.mesh.rab
+            @test psp.local_ ≈ newpsp.local_
+            if length(psp.nonlocal.betas) > 0
+                @test psp.nonlocal.betas[1].beta ≈ newpsp.nonlocal.betas[1].beta
+            end
+            @test psp.nonlocal.dij ≈ newpsp.nonlocal.dij
+            @test psp.rhoatom ≈ newpsp.rhoatom
 
             # check io and recur_io are the same
 
