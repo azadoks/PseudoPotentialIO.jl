@@ -176,32 +176,9 @@ end
 function upf2_dump_header(h::UpfHeader)::EzXML.Node
     node = ElementNode("PP_HEADER")
     
-    set_attr!(node, "generated", h.generated)
-    set_attr!(node, "author", h.author)
-    set_attr!(node, "date", h.date)
-    set_attr!(node, "comment", h.comment)
-    set_attr!(node, "element", h.element)
-    set_attr!(node, "pseudo_type", h.pseudo_type)
-    set_attr!(node, "relativistic", h.relativistic)
-    set_attr!(node, "is_ultrasoft", h.is_ultrasoft)
-    set_attr!(node, "is_paw", h.is_paw)
-    set_attr!(node, "is_coulomb", h.is_coulomb)
-    set_attr!(node, "has_so", h.has_so)
-    set_attr!(node, "has_wfc", h.has_wfc)
-    set_attr!(node, "has_gipaw", h.has_gipaw)
-    set_attr!(node, "paw_as_gipaw", h.paw_as_gipaw)
-    set_attr!(node, "core_correction", h.core_correction)
-    set_attr!(node, "functional", h.functional)
-    set_attr!(node, "z_valence", h.z_valence)
-    set_attr!(node, "total_psenergy", h.total_psenergy)
-    set_attr!(node, "wfc_cutoff", h.wfc_cutoff)
-    set_attr!(node, "rho_cutoff", h.rho_cutoff)
-    set_attr!(node, "l_max", h.l_max)
-    set_attr!(node, "l_max_rho", h.l_max_rho)
-    set_attr!(node, "l_local", h.l_local)
-    set_attr!(node, "mesh_size", h.mesh_size)
-    set_attr!(node, "number_of_wfc", h.number_of_wfc)
-    set_attr!(node, "number_of_proj", h.number_of_proj)
+    for n in fieldnames(UpfHeader)
+        set_attr!(node, n, getfield(h, n))
+    end
 
     return node
 end
@@ -786,7 +763,7 @@ function array_to_text(m::AbstractMatrix)::AbstractString
     s
 end
 
-function set_attr!(node::EzXML.Node, key, value)
+function set_attr!(node::EzXML.Node, key::String, value::Any)
     # Convert Bool to Fortran-style T/F
     if isa(value, Bool)
         value = value ? "T" : "F"
@@ -801,4 +778,8 @@ function set_attr!(node::EzXML.Node, key, value)
     if !isnothing(value)
         node[key] = value
     end
+end
+
+function set_attr!(node::EzXML.Node, key::Symbol, value::Any)
+    set_attr!(node, string(key), value)
 end

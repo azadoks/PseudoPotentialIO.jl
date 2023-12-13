@@ -290,7 +290,6 @@ struct UpfFile <: PsPFile
     "Pseudized core charge on the radial grid, (ignored if `core_correction` is false)"
     nlcc::Union{Nothing,Vector{Float64}}  # Σ_{i} 4π r_{i}^2 nlcc_{i}
     "Local part of the pseudopotential on the radial grid (ignored if `is_coulomb`)"
-    # XXX: @austin why underscore?
     local_::Union{Nothing,Vector{Float64}}
     "Nonlocal part of the pseudopotential"
     nonlocal::UpfNonlocal
@@ -368,6 +367,7 @@ end
 identifier(psp::UpfFile)::String = bytes2hex(psp.checksum)
 format(file::UpfFile)::String = "UPF v$(file.version)"
 element(file::UpfFile)::String = file.header.element
+element(h::UpfHeader)::String = h.element
 is_norm_conserving(file::UpfFile)::Bool = file.header.pseudo_type == "NC"
 is_ultrasoft(file::UpfFile)::Bool = file.header.pseudo_type in ("US", "USPP")
 is_paw(file::UpfFile)::Bool = file.header.pseudo_type == "PAW"
