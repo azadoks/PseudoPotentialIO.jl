@@ -5,6 +5,7 @@ version = "0.2.0"
 
 [deps]
 Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
+BSplineKit = "093aae92-e908-43d7-9660-e50ee39d5a0a"
 Bessels = "0e736298-9ec6-45e8-9647-e4fc86a2fe38"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"

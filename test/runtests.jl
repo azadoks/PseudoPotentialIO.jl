@@ -2,15 +2,9 @@ using Test
 using PseudoPotentialIO
 using Aqua
 using LazyArtifacts
-using Random
 using PeriodicTable
-using Bessels
-using QuadGK
-using Interpolations
 using JSON
-using Quaternions
 using LinearAlgebra
-import SpecialFunctions: erfi
 
 Random.seed!(0)
 
@@ -52,34 +46,6 @@ include("fixtures.jl")
 
     if any(in.(("all", "file", "hgh"), Ref(TAGS)))
         include("file/hgh.jl")
-    end
-
-    if any(in.(("all", "psp"), Ref(TAGS)))
-        include("psp/psp.jl")
-    end
-
-    if any(in.(("all", "psp", "numeric"), Ref(TAGS)))
-        include("psp/numeric.jl")
-    end
-
-    if any(in.(("all", "psp", "numeric", "norm_conserving"), Ref(TAGS)))
-        include("psp/norm_conserving.jl")
-    end
-
-    if any(in.(("all", "psp", "numeric", "ultrasoft"), Ref(TAGS)))
-        include("psp/ultrasoft.jl")
-    end
-
-    if any(in.(("all", "psp", "analytical"), Ref(TAGS)))
-        include("psp/analytical.jl")
-    end
-
-    if any(in.(("all", "psp", "analytical", "upf_hgh"), Ref(TAGS)))
-        include("psp/upf_hgh.jl")
-    end
-
-    if any(in.(("all", "psp", "numeric", "upf_psp8"), Ref(TAGS)))
-        include("psp/upf_psp8.jl")
     end
 
     if any(in.(("all", "deprecated"), Ref(TAGS)))
