@@ -59,7 +59,7 @@ function UpfNonlocal(file::Psp8File)
         l = l_index - 1
         for (projector, ekb) in zip(file.projectors[l_index], file.ekb[l_index])
             push!(betas,
-                  UpfBeta(projector .* 2,  # Ha -> Ry
+                  UpfBeta(projector .* 2,  # Ha -> Ry; could also be done in E_{KB} => D_{ij}
                           index,
                           l,
                           file.header.mmax,
@@ -88,7 +88,7 @@ function UpfFile(file::Psp8File)
     header = UpfHeader(file)
     mesh = UpfMesh(file)
     nlcc = file.rhoc ./ 4π  # Remove 4π prefactor
-    local_ = file.v_local
+    local_ = file.v_local .* 2  # Ha -> Ry
     nonlocal = UpfNonlocal(file)
     pswfc = nothing
     full_wfc = nothing

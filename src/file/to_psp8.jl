@@ -51,7 +51,7 @@ function Psp8File(file::UpfFile, rgrid=file.mesh.r)
     identifier = file.identifier * ".psp8"
     header = Psp8Header(file, rgrid)
 
-    v_local = interpolate(file.mesh.r, file.local_, BSplineOrder(4), Natural()).(rgrid)
+    v_local = interpolate(file.mesh.r, file.local_ ./ 2, BSplineOrder(4), Natural()).(rgrid)  # Ry -> Ha
 
     projectors = [Vector{Float64}[] for _ in 0:(file.header.l_max)]
     ekb = [Float64[] for _ in 0:(file.header.l_max)]
@@ -59,7 +59,7 @@ function Psp8File(file::UpfFile, rgrid=file.mesh.r)
         for (i, beta) in enumerate(file.nonlocal.betas)
             if beta.angular_momentum == l
                 beta_spline = interpolate(file.mesh.r, beta.beta ./ 2, BSplineOrder(4),
-                                          Natural())  # Ry -> Ha
+                                          Natural())  # Ry -> Ha; could also be done in D_{ij} => E_{KB}
                 push!(projectors[l + 1], beta_spline.(rgrid))
                 push!(ekb[l + 1], file.nonlocal.dij[i, i])
             end
