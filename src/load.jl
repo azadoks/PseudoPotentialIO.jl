@@ -3,7 +3,7 @@ _FILE_EXT_LOADERS = Dict(".upf" => UpfFile,
                          ".hgh" => HghFile)
 
 """
-Parse a pseudopotential file into a `PsPFile` struct. 
+Parse a pseudopotential file into a `PsPFile` struct.
 """
 function load_psp_file(path::AbstractString)
     _, ext = splitext(path)
@@ -16,19 +16,6 @@ function load_psp_file(family_name_or_dir::AbstractString, filename::AbstractStr
     dir = _resolve_family(family_name_or_dir)
     path = joinpath(dir, filename)
     isfile(path) && return load_psp_file(path)
-    return error("PsP $filename does not exist")
-end
-
-"""
-Load a pseudopotential file into its corresponding `AbstractPsP` subtype.
-"""
-load_psp(file::PsPFile) = formalism(file)(file)
-load_psp(file::HghFile) = HghPsP(file)
-load_psp(path::AbstractString) = return load_psp(load_psp_file(path))
-function load_psp(family_name_or_dir::AbstractString, filename::AbstractString)
-    dir = _resolve_family(family_name_or_dir)
-    path = joinpath(dir, filename)
-    isfile(path) && return load_psp(path)
     return error("PsP $filename does not exist")
 end
 
@@ -144,7 +131,7 @@ function load_family(family_name_or_dir::AbstractString)
         "Element" => element.(psp_files),
         "Filename" => psp_filenames,
         "Valence Charge" => valence_charge.(psp_files),
-        "NLCC" => has_core_density.(psp_files),
+        "NLCC" => has_nlcc.(psp_files),
         "Spin Orbit" => has_spin_orbit.(psp_files),
         "Format" => typeof.(psp_files),
         "Formalism" => formalism.(psp_files),

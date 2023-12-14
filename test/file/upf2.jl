@@ -13,7 +13,7 @@
 
                 if psp.header.is_paw
                     @test !isnothing(augmentation.multipoles)
-                    #TODO @test length(augmentation.multipoles) == 
+                    #TODO @test length(augmentation.multipoles) ==
                 end
             end
         end
@@ -622,7 +622,7 @@
         @test !header.has_gipaw
         @test !header.paw_as_gipaw
         @test !header.core_correction
-        @test header.functional == "SLA-PW-PBX-PBC"
+        @test header.functional == "SLA PW PBX PBC"
         @test header.z_valence == 2.000000000000000E+000
         @test header.total_psenergy == 0.000000000000000E+000
         @test header.wfc_cutoff == 0.000000000000000E+000
