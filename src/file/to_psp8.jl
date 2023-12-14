@@ -14,7 +14,7 @@ function Psp8Header(file::UpfFile, rgrid=file.mesh.r)
     # Use the original UPF mesh to find rchrg
     rchrg = if file.header.core_correction
         for i in reverse(eachindex(file.nlcc))
-            if file.nlcc[i] > 1e-6
+            if file.nlcc[i] > 1e-6  # This is the tolerance used by ABINIT for UPF -> PSP8
                 file.mesh.r[i]
             end
         end
@@ -82,9 +82,9 @@ function Psp8File(file::UpfFile, rgrid=file.mesh.r)
         rhoc_spline = extrapolate(
             interpolate(
                 file.mesh.r, file.nlcc .* 4π,  # Add 4π prefactor
-                BSplineOrder(5), Natural()
+                BSplineOrder(6), Natural()
             ),
-            Flat()
+            Smooth()
         )
         rhoc = (Derivative(0) * rhoc_spline).(rgrid)
         d_rhoc_dr = (Derivative(1) * rhoc_spline).(rgrid)
@@ -99,15 +99,19 @@ function Psp8File(file::UpfFile, rgrid=file.mesh.r)
         d4_rhoc_dr4 = nothing
     end
 
+    i_begin = file.mesh.r[1] ≈ 0 ? 2 : 1
     rhov_spline = extrapolate(
         interpolate(
-            file.mesh.r, file.rhoatom ./ file.mesh.r .^ 2,  # Remove r^2 prefactor
+            file.mesh.r[i_begin:end], file.rhoatom[i_begin:end] ./ file.mesh.r[i_begin:end] .^ 2,  # Remove r^2 prefactor
             BSplineOrder(4), Natural()
         ),
         Flat()
     )
     rhov = rhov_spline.(rgrid)
 
+    ae_rhov = nothing
+    ae_rhoc = nothing
+
     return Psp8File(identifier, header, rgrid, v_local, projectors, ekb, projectors_so,
-                    ekb_so, rhoc, d_rhoc_dr, d2_rhoc_dr2, d3_rhoc_dr3, d4_rhoc_dr4, rhov)
+                    ekb_so, rhoc, d_rhoc_dr, d2_rhoc_dr2, d3_rhoc_dr3, d4_rhoc_dr4, rhov, ae_rhov, ae_rhoc)
 end

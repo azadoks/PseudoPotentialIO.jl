@@ -151,7 +151,8 @@ function psp8_parse_main_blocks(io, mmax, nproj, lmax, lloc)
             if lloc <= lmax
                 # If the local potential is mixed in with the projectors, add an empty block
                 # to maintain proper angular momentum indexing
-                push!(beta_projector_blocks, (; l=block_l, rgrid=nothing, projectors=[], ekb=[]))
+                push!(beta_projector_blocks,
+                      (; l=block_l, rgrid=nothing, projectors=[], ekb=[]))
             end
         else
             block = psp8_parse_beta_projector_block(io, nproj, mmax)
@@ -182,12 +183,16 @@ end
 
 function psp8_parse_rhov_block(io, mmax)
     rhov = Vector{Float64}(undef, mmax)
+    ae_rhov = Vector{Float64}(undef, mmax)
+    ae_rhoc = Vector{Float64}(undef, mmax)
     for i in 1:mmax
         s = split(readline(io))
-        # index  r  ρval  ????  ????
+        # index  r  ρval  ρ_ae_val  ρ_ae_core
         rhov[i] = _parse_fortran(Float64, s[3])  # Has a 4π prefactor
+        ae_rhov[i] = _parse_fortran(Float64, s[4])  #? Has a 4π prefactor
+        ae_rhoc[i] = _parse_fortran(Float64, s[5])  #? Has a 4π prefactor
     end
-    return rhov
+    return rhov, ae_rhov, ae_rhoc
 end
 
 function psp8_parse_nlcc_block(io, mmax)
@@ -245,7 +250,11 @@ struct Psp8File <: PsPFile
     "Fourth derivative of the model core charge density"
     d4_rhoc_dr4::Union{Nothing,Vector{Float64}}
     "Valence charge density with 4π prefactor"
-    rhov::Union{Nothing, Vector{Float64}}
+    rhov::Union{Nothing,Vector{Float64}}
+    "All-electron valence charge density with 4π prefactor"
+    ae_rhov::Union{Nothing,Vector{Float64}}
+    "All-electron core charge density with 4π prefactor"
+    ae_rhoc::Union{Nothing,Vector{Float64}}
 end
 
 function Psp8File(io::IO; identifier="")
@@ -270,14 +279,16 @@ function Psp8File(io::IO; identifier="")
                 d4_rhoc_dr4=nothing)
     end
     if header.extension_switch in (1, 3)
-        rhov = psp8_parse_rhov_block(io, header.mmax)
+        rhov, ae_rhov, ae_rhoc = psp8_parse_rhov_block(io, header.mmax)
     else
         rhov = nothing
+        ae_rhov = nothing
+        ae_rhoc = nothing
     end
     return Psp8File(identifier, header, main_blocks.rgrid, main_blocks.v_local,
                     main_blocks.projectors, main_blocks.ekb, spin_orbit.projectors,
                     spin_orbit.ekb, nlcc.rhoc, nlcc.d_rhoc_dr, nlcc.d2_rhoc_dr2,
-                    nlcc.d3_rhoc_dr3, nlcc.d4_rhoc_dr4, rhov)
+                    nlcc.d3_rhoc_dr3, nlcc.d4_rhoc_dr4, rhov, ae_rhov, ae_rhoc)
 end
 
 function Psp8File(path::AbstractString; identifier="")
@@ -333,12 +344,104 @@ valence_charge(file::Psp8File) = file.header.zion
 
 function libxc_to_abinit_libxc(libxc_string::AbstractString)::Int
     abinit_libxc_int_str = "-" * prod(split(libxc_string)) do substring
-        return @sprintf "%03d" LIBXC_FUNCTIONALS_BY_NAME[substring]
-    end
+                                 return @sprintf "%03d" LIBXC_FUNCTIONALS_BY_NAME[substring]
+                                 end
     return parse(Int, abinit_libxc_int_str)
 end
 function libxc_to_abinit(libxc_string::AbstractString)::Int
     psp_idx = findfirst(dict_ -> dict_["libxc"] == libxc_string, PSP8_EXCHANGE_CORRELATION)
     isnothing(psp_idx) && return libxc_to_abinit_libxc(libxc_string)
     return PSP8_EXCHANGE_CORRELATION[psp_idx]["i"]
+end
+
+function save_psp(io::IO, file::Psp8File)
+    psp8_write_header(io, file)
+    psp8_write_main_blocks(io, file)
+    if file.header.extension_switch in (2, 3)
+        for l in 0:(file.lmax)
+            psp8_write_beta_projector_block(io, file.rgrid, l, file.ekb_so[l + 1],
+                                            file.projectors_so[l + 1])
+        end
+    end
+    if file.header.fchrg > 0
+        psp8_write_nlcc_block(io, file)
+    end
+    if file.header.extension_switch in (1, 3)
+        psp8_write_rhov_block(io, file)
+    end
+end
+
+function _write_fortran_expt(val::Real)
+    s = @sprintf "% 0.14E" val
+    return replace(s, "E" => "D", "e" => "D")
+end
+
+function psp8_write_header(io::IO, header::Psp8Header)
+    @printf io "%s\n" header.title
+    @printf io "% 0.6f % 0.6f % 06d\n" header.zatom header.zion header.pspd
+    @printf io "% 12d % 12d % 12d % 12d % 12d % 12d\n" header.pspcod header.pspxc header.lmax header.lloc header.mmax header.r2well
+    @printf io "% 0.8f % 0.8f % 0.8f\n" header.rchrg header.fchrg header.qchrg
+    println(io, join(map(n -> @sprintf("% 12d", n), header.nproj), ' '))
+    @printf io "% 12d\n" header.extension_switch
+    if header.extension_switch in (2, 3)
+        println(io, joint(string.(header.nproj), ' '))
+    end
+end
+psp8_write_header(io::IO, file::Psp8File) = psp8_write_header(io, file.header)
+
+function psp8_write_main_blocks(io::IO, file::Psp8File)
+    for l in 0:(file.header.lmax)
+        if l == file.header.lloc
+            psp8_write_v_local_block(io, file)
+        else
+            psp8_write_beta_projector_block(io, file.rgrid, l, file.ekb[l + 1],
+                                            file.projectors[l + 1])
+        end
+    end
+    if file.header.lloc > file.header.lmax
+        psp8_write_v_local_block(io, file)
+    end
+end
+
+function psp8_write_v_local_block(io::IO, file::Psp8File)
+    @printf io "% 19d\n" file.header.lloc
+    for (i, (r, v)) in enumerate(zip(file.rgrid, file.v_local))
+        @printf io "% 19d %s %s\n" i _write_fortran_expt(r) _write_fortran_expt(v)
+    end
+end
+
+function psp8_write_beta_projector_block(io::IO, rgrid, l, ekb, projectors)
+    # Header line: angular_momentum [ekb_l1, ... ekb_ln]
+    @printf io "% 19d %s" l repeat(" ", 21)
+    for e in ekb
+        @printf io " %s" _write_fortran_expt(e)
+    end
+    @printf io "\n"
+    # Data: i r beta_l1, ... beta_ln
+    for (i, r) in enumerate(rgrid)
+        @printf io "% 19d %s" i _write_fortran_expt(r)
+        for projector in projectors
+            @printf io " %s" _write_fortran_expt(projector[i])
+        end
+        @printf io "\n"
+    end
+end
+
+function psp8_write_nlcc_block(io::IO, file::Psp8File)
+    for (i, (r, ρ, dρ, ddρ, dddρ, ddddρ)) in
+        enumerate(zip(file.rgrid, file.rhoc, file.d_rhoc_dr, file.d2_rhoc_dr2,
+                      file.d3_rhoc_dr3, file.d4_rhoc_dr4))
+        r, ρ, dρ, ddρ, dddρ, ddddρ = _write_fortran_expt.((r, ρ, dρ, ddρ, dddρ, ddddρ))
+        @printf io "% 19d %s %s %s %s %s %s\n" i r ρ dρ ddρ dddρ ddddρ
+    end
+end
+
+function psp8_write_rhov_block(io::IO, file::Psp8File)
+    ae_rhov = isnothing(file.ae_rhov) ? zeros(file.header.mmax) : file.ae_rhov
+    ae_rhoc = isnothing(file.ae_rhoc) ? zeros(file.header.mmax) : file.ae_rhoc
+
+    for (i, (r, ρ, ae_ρ_v, ae_ρ_c)) in enumerate(zip(file.rgrid, file.rhov, ae_rhov, ae_rhoc))
+        r, ρ, ae_ρ_v, ae_ρ_c = _write_fortran_expt.((r, ρ, ae_ρ_v, ae_ρ_c))
+        @printf io "% 19d %s %s %s %s\n" i r ρ ae_ρ_v ae_ρ_c
+    end
 end
