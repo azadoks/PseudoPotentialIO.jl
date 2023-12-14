@@ -77,10 +77,8 @@ end
 
 function UpfFile(file::Psp8File)
     if file.header.extension_switch in (2, 3)
+        # See: https://github.com/abinit/abinit/blob/master/src/57_iopsp_parser/m_pspheads.F90#L958
         error("Converting PSP8 with spin-orbit to UPF is currently not supported.")
-    end
-    if file.header.lloc <= file.header.lmax
-        error("Converting PSP8 with the local potential replacing an angular momentum channel to UPF is not yet supported.")
     end
     identifier = file.identifier * ".upf"
     version = "(FROM PSP8)"

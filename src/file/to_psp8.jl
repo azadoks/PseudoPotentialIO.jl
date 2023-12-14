@@ -36,10 +36,8 @@ end
 
 function Psp8File(file::UpfFile, rgrid=file.mesh.r)
     if file.header.has_so
+        # See: https://github.com/abinit/abinit/blob/master/src/57_iopsp_parser/m_pspheads.F90#L958
         error("Converting UPF with spin-orbit to PSP8 is currently not supported.")
-    end
-    if file.header.l_local >= 0
-        error("Converting UPF with the local potential replacing an angular momentum channel to PSP8 is not yet supported.")
     end
     if file.header.number_of_wfc > 0
         @warn "UPF file contains $(file.header.number_of_wfc) pseudo-waves. PSP8 does not support pseudo-waves, they will be lost."
@@ -51,15 +49,26 @@ function Psp8File(file::UpfFile, rgrid=file.mesh.r)
     identifier = file.identifier * ".psp8"
     header = Psp8Header(file, rgrid)
 
-    v_local = interpolate(file.mesh.r, file.local_ ./ 2, BSplineOrder(4), Natural()).(rgrid)  # Ry -> Ha
+    v_local = extrapolate(
+        interpolate(
+            file.mesh.r, file.local_ ./ 2,  # Ry -> Ha
+            BSplineOrder(4), Natural()
+        ),
+        Flat()
+    ).(rgrid)
 
     projectors = [Vector{Float64}[] for _ in 0:(file.header.l_max)]
     ekb = [Float64[] for _ in 0:(file.header.l_max)]
     for l in 0:(file.header.l_max)
         for (i, beta) in enumerate(file.nonlocal.betas)
             if beta.angular_momentum == l
-                beta_spline = interpolate(file.mesh.r, beta.beta ./ 2, BSplineOrder(4),
-                                          Natural())  # Ry -> Ha; could also be done in D_{ij} => E_{KB}
+                beta_spline = extrapolate(
+                    interpolate(
+                        file.mesh.r, beta.beta ./ 2,  # Ry -> Ha; could also be done in D_{ij} => E_{KB}
+                        BSplineOrder(4), Natural()
+                    ),
+                    Flat()
+                )
                 push!(projectors[l + 1], beta_spline.(rgrid))
                 push!(ekb[l + 1], file.nonlocal.dij[i, i])
             end
@@ -70,7 +79,13 @@ function Psp8File(file::UpfFile, rgrid=file.mesh.r)
     ekb_so = nothing         # Unsupported
 
     if file.header.core_correction
-        rhoc_spline = interpolate(file.mesh.r, file.nlcc .* 4π, BSplineOrder(5), Natural())  # Add 4π prefactor
+        rhoc_spline = extrapolate(
+            interpolate(
+                file.mesh.r, file.nlcc .* 4π,  # Add 4π prefactor
+                BSplineOrder(5), Natural()
+            ),
+            Flat()
+        )
         rhoc = (Derivative(0) * rhoc_spline).(rgrid)
         d_rhoc_dr = (Derivative(1) * rhoc_spline).(rgrid)
         d2_rhoc_dr2 = (Derivative(2) * rhoc_spline).(rgrid)
@@ -84,8 +99,13 @@ function Psp8File(file::UpfFile, rgrid=file.mesh.r)
         d4_rhoc_dr4 = nothing
     end
 
-    rhov_spline = interpolate(file.mesh.r, file.rhoatom ./ file.mesh.r .^ 2,  # Remove r² prefactor
-                              BSplineOrder(4), Natural())
+    rhov_spline = extrapolate(
+        interpolate(
+            file.mesh.r, file.rhoatom ./ file.mesh.r .^ 2,  # Remove r^2 prefactor
+            BSplineOrder(4), Natural()
+        ),
+        Flat()
+    )
     rhov = rhov_spline.(rgrid)
 
     return Psp8File(identifier, header, rgrid, v_local, projectors, ekb, projectors_so,
