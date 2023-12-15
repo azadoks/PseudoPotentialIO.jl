@@ -211,11 +211,10 @@ upf2_parse_mesh(doc::EzXML.Document) = upf2_parse_mesh(findfirst("PP_MESH", root
 
 function upf2_dump_mesh(m::UpfMesh)::EzXML.Node
     node = ElementNode("PP_MESH")
-    set_attr!(node, "dx", m.dx)
-    set_attr!(node, "mesh", m.mesh)
-    set_attr!(node, "xmin", m.xmin)
-    set_attr!(node, "rmax", m.rmax)
-    set_attr!(node, "zmesh", m.zmesh)
+
+    for n in [n for n in fieldnames(UpfMesh) if n != :r && n != :rab]
+        set_attr!(node, n, getfield(m, n))
+    end
 
     # PP_R
     addelement!(node, "PP_R", array_to_text(m.r))
@@ -264,11 +263,11 @@ end
 
 function upf2_dump_qijl(qijl::UpfQijl)::EzXML.Node
     node = ElementNode("PP_QIJL.$(qijl.first_index).$(qijl.second_index).$(qijl.angular_momentum)")
-    set_attr!(node, "first_index", qijl.first_index)
-    set_attr!(node, "second_index", qijl.second_index)
-    set_attr!(node, "composite_index", qijl.composite_index)
-    set_attr!(node, "angular_momentum", qijl.angular_momentum)
-    set_attr!(node, "is_null", qijl.is_null)
+
+    for n in fieldnames(UpfQijl)
+        set_attr!(node, n, getfield(qijl, n))
+    end
+
     text = array_to_text(qijl.qijl)
     link!(node, TextNode(text))
     return node
@@ -342,16 +341,11 @@ end
 
 function upf2_dump_augmentation(aug::UpfAugmentation)::EzXML.Node
     node = ElementNode("PP_AUGMENTATION")
-    set_attr!(node, "q_with_l", aug.q_with_l)
-    set_attr!(node, "nqf", aug.nqf)
-    set_attr!(node, "nqlc", aug.nqlc)
-    set_attr!(node, "shape", aug.shape)
-    set_attr!(node, "iraug", aug.iraug)
-    set_attr!(node, "raug", aug.raug)
-    set_attr!(node, "l_max_aug", aug.l_max_aug)
-    set_attr!(node, "augmentation_epsilon", aug.augmentation_epsilon)
-    set_attr!(node, "cutoff_r", aug.cutoff_r)
-    set_attr!(node, "cutoff_r_index", aug.cutoff_r_index)
+
+    for n in [n for n in fieldnames(UpfAugmentation) if 
+        n != :qij && n != :qijl && n != :qfcoefs && n != :rinner && n != :multipoles && n != :q]
+        set_attr!(node, n, getfield(aug, n))
+    end
 
     # PP_Q
     q_node = ElementNode("PP_Q")
@@ -421,13 +415,11 @@ end
 
 function upf2_dump_beta(beta::UpfBeta)::EzXML.Node
     node = ElementNode("PP_BETA.$(beta.index)")
-    set_attr!(node, "index", beta.index)
-    set_attr!(node, "angular_momentum", beta.angular_momentum)
-    set_attr!(node, "cutoff_radius_index", beta.cutoff_radius_index)
-    set_attr!(node, "cutoff_radius", beta.cutoff_radius)
-    set_attr!(node, "norm_conserving_radius", beta.norm_conserving_radius)
-    set_attr!(node, "ultrasoft_cutoff_radius", beta.ultrasoft_cutoff_radius)
-    set_attr!(node, "label", beta.label)
+
+    for n in [n for n in fieldnames(UpfBeta) if n != :beta]
+        set_attr!(node, n, getfield(beta, n))
+    end
+
     text = array_to_text(beta.beta)
     link!(node, TextNode(text))
     return node
@@ -491,14 +483,11 @@ end
 
 function upf2_dump_chi(chi::UpfChi)::EzXML.Node
     node = ElementNode("PP_CHI.$(chi.index)")
-    set_attr!(node, "l", chi.l)
-    set_attr!(node, "occupation", chi.occupation)
-    set_attr!(node, "index", chi.index)
-    set_attr!(node, "label", chi.label)
-    set_attr!(node, "n", chi.n)
-    set_attr!(node, "pseudo_energy", chi.pseudo_energy)
-    set_attr!(node, "cutoff_radius", chi.cutoff_radius)
-    set_attr!(node, "ultrasoft_cutoff_radius", chi.ultrasoft_cutoff_radius)
+
+    for n in [n for n in fieldnames(UpfChi) if n != :chi]
+        set_attr!(node, n, getfield(chi, n))
+    end
+
     text = array_to_text(chi.chi)
     link!(node, TextNode(text))
     return node
@@ -516,12 +505,11 @@ end
 
 function upf2_dump_relwfc(relwfc::UpfRelWfc)::EzXML.Node
     node = ElementNode("PP_RELWFC")
-    set_attr!(node, "jchi", relwfc.jchi)
-    set_attr!(node, "index", relwfc.index)
-    set_attr!(node, "els", relwfc.els)
-    set_attr!(node, "nn", relwfc.nn)
-    set_attr!(node, "lchi", relwfc.lchi)
-    set_attr!(node, "oc", relwfc.oc)
+
+    for n in fieldnames(UpfRelWfc)
+        set_attr!(node, n, getfield(relwfc, n))
+    end
+
     return node
 end
 
@@ -674,10 +662,11 @@ end
 
 function upf2_dump_gipaw_core_orbital(core_orbital::UpfGipawCoreOrbital)::EzXML.Node
     node = ElementNode("PP_GIPAW_CORE_ORBITAL.$(core_orbital.index)")
-    set_attr!(node, "index", core_orbital.index)
-    set_attr!(node, "label", core_orbital.label)
-    set_attr!(node, "n", core_orbital.n)
-    set_attr!(node, "l", core_orbital.l)
+
+    for n in [n for n in fieldnames(UpfGipawCoreOrbital) if n != :core_orbital]
+        set_attr!(node, n, getfield(core_orbital, n))
+    end
+
     text = array_to_text(core_orbital.core_orbital)
     link!(node, TextNode(text))
     return node
