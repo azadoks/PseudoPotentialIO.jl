@@ -132,6 +132,10 @@ export show_family_periodic_table
 export show_family_list
 include("load.jl")
 
+## Save to file
+export save_psp_file
+include("save.jl")
+
 ## Deprecated loaders
 export load_upf
 export load_psp8

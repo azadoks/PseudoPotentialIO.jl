@@ -95,7 +95,7 @@
 
             @test length(file.nonlocal.betas) == file.header.number_of_proj
             for beta in file.nonlocal.betas
-                @test length(beta.beta) == beta.cutoff_radius_index
+                @test length(beta.beta) == file.header.mesh_size
             end
         end
     end
