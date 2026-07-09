@@ -444,6 +444,7 @@ function libxc_string(header::UpfHeader)
         upf_codes[1] == "r2scan01" && return "mgga_x_r2scan01 mgga_c_r2scan01"
 
         entry_index = findfirst(e -> e["name"] == upf_codes[1], UPF_SHORT_NAMES)
+        isnothing(entry_index) && return "UNKNOWN"
         long_code = UPF_SHORT_NAMES[entry_index]["full_name"]
         upf_codes = split(long_code, '+')
     end
