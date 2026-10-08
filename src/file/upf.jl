@@ -517,7 +517,7 @@ function libxc_to_qe_libxc(libxc_string::AbstractString)::String
             else
                 error("Unsupported LibXC functional $(libxc_string)")
             end
-        elseif subsrting_parts[1] == "MGGA"
+        elseif substring_parts[1] == "MGGA"
             if substring_parts[2] == "X"
                 terms[5] = LIBXC_FUNCTIONALS_BY_NAME[substring]
             elseif substring_parts[2] in ("C", "XC")
@@ -529,13 +529,15 @@ function libxc_to_qe_libxc(libxc_string::AbstractString)::String
             error("Unsupported LibXC functional $(libxc_string)")
         end
     end
-    return "XC" * prod(terms) do term
+    # zero tails can be skipped
+    n_terms = something(findlast(!iszero, terms), 0)
+    return "XC" * prod(terms[1:n_terms]; init="") do term
         iszero(term) && return @sprintf "-%03dI" term
-        return @sprintf "-%0dL" term
+        return @sprintf "-%03dL" term
     end
 end
 
-function libxc_to_qe_old(libxc_string::AbstractString, sep::Char=' ')::String
+function libxc_to_qe_internal(libxc_string::AbstractString, sep::Char=' ')::String
     luts = Dict(
         "LDA" => Dict("X" => UPF_LDA_EXCHANGE, "C" => UPF_LDA_CORRELATION),
         "GGA" => Dict("X" => UPF_GGA_EXCHANGE, "C" => UPF_GGA_CORRELATION),
