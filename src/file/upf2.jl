@@ -254,7 +254,8 @@ function upf2_parse_qij(node::EzXML.Node)
 end
 
 function upf2_dump_qij(qij::UpfQij)::EzXML.Node
-    node = ElementNode("PP_QIJ")
+    node = ElementNode("PP_QIJ.$(qij.first_index).$(qij.second_index)")
+    set_attr!(node, "size", length(qij.qij))
     set_attr!(node, "first_index", qij.first_index)
     set_attr!(node, "second_index", qij.second_index)
     set_attr!(node, "composite_index", qij.composite_index)
@@ -282,8 +283,10 @@ function upf2_dump_qijl(qijl::UpfQijl)::EzXML.Node
     node = ElementNode("PP_QIJL.$(qijl.first_index).$(qijl.second_index).$(qijl.angular_momentum)")
 
     for n in fieldnames(UpfQijl)
+        n == :qijl && continue
         set_attr!(node, n, getfield(qijl, n))
     end
+    set_attr!(node, "size", length(qijl.qijl))
 
     text = array_to_text(qijl.qijl)
     link!(node, TextNode(text))
@@ -293,14 +296,14 @@ end
 function upf2_parse_augmentation(node::EzXML.Node)
     q_with_l = get_attr(Bool, node, "q_with_l")
     nqf = get_attr(Int, node, "nqf")
-    nqlc = get_attr(Float64, node, "nqlc")
+    nqlc = get_integer_attr(node, "nqlc")
     shape = get_attr(String, node, "shape")
     iraug = get_attr(Int, node, "iraug")
     raug = get_attr(Float64, node, "raug")
-    l_max_aug = get_attr(Float64, node, "l_max_aug")
+    l_max_aug = get_integer_attr(node, "l_max_aug")
     augmentation_epsilon = get_attr(Float64, node, "augmentation_epsilon")
     cutoff_r = get_attr(Float64, node, "cutoff_r")
-    cutoff_r_index = get_attr(Float64, node, "cutoff_r_index")
+    cutoff_r_index = get_integer_attr(node, "cutoff_r_index")
 
     q_node = findfirst("PP_Q", node)
     q_vector = parse_nodecontent(q_node)
@@ -316,29 +319,23 @@ function upf2_parse_augmentation(node::EzXML.Node)
         multipoles = parse_nodecontent(multipoles_node)
     end
 
+    # PP_QFCOEF is the flat Fortran array qfcoef(nqf, nqlc, nbeta, nbeta), symmetric in the
+    # projector indices; stored as one `UpfQfcoef` (nqf × nqlc, flattened) per pair i ≤ j,
+    # as in UPF v1
     qfcoef_node = findfirst("PP_QFCOEF", node)
     if isnothing(qfcoef_node)
         qfcoefs = nothing
     else
-        error("Cannot parse UPF v2.0.1 with PP_QFCOEF")
-        # qfcoefs = parse_nodecontent(qfcoef_node)
+        qfcoef = reshape(parse_nodecontent(qfcoef_node), nqf, :, nq, nq)
+        qfcoefs = [UpfQfcoef(vec(qfcoef[:, :, i, j]), nothing, i, j)
+                   for i in 1:nq for j in i:nq]
     end
 
     rinner_node = findfirst("PP_RINNER", node)
-    if isnothing(rinner_node)
-        rinner = nothing
-    else
-        error("Cannot parse UPF v2.0.1 with PP_RINNER")
-        # rinner = parse_nodecontent(rinner_node)
-    end
+    rinner = isnothing(rinner_node) ? nothing : parse_nodecontent(rinner_node)
 
     qij_nodes = [n for n in eachnode(node) if occursin("PP_QIJ.", nodename(n))]
-    if isempty(qij_nodes)
-        qijs = nothing
-    else
-        error("Cannot parse UPF v2.0.1 with PP_QIJ.i.j")
-        # qijs = upf2_parse_qij.(qij_nodes)
-    end
+    qijs = isempty(qij_nodes) ? nothing : upf2_parse_qij.(qij_nodes)
 
     qijl_nodes = [n for n in eachnode(node) if occursin("PP_QIJL.", nodename(n))]
     if isempty(qijl_nodes)
@@ -360,8 +357,8 @@ end
 function upf2_dump_augmentation(aug::UpfAugmentation)::EzXML.Node
     node = ElementNode("PP_AUGMENTATION")
 
-    for n in [n for n in fieldnames(UpfAugmentation) if
-        n != :qij && n != :qijl && n != :qfcoefs && n != :rinner && n != :multipoles && n != :q]
+    for n in fieldnames(UpfAugmentation)
+        n in (:q, :multipoles, :qfcoefs, :rinner, :qijs, :qijls) && continue
         set_attr!(node, n, getfield(aug, n))
     end
 
@@ -377,24 +374,27 @@ function upf2_dump_augmentation(aug::UpfAugmentation)::EzXML.Node
         addelement!(node, "PP_MULTIPOLES", array_to_text(aug.multipoles))
     end
 
-    # PP_QFCOEF
+    # PP_QFCOEF: the flat Fortran array qfcoef(nqf, nqlc, nbeta, nbeta), see the parser
     if !isnothing(aug.qfcoefs)
-        # addelement!(node, "PP_QFCOEF", array_to_text(aug.qfcoefs))
-        @warn "Cannot dump UPF v2.0.1 with PP_QFCOEF"
+        nq = size(aug.q, 1)
+        qfcoef = zeros(Float64, length(first(aug.qfcoefs).qfcoef), nq, nq)
+        for c in aug.qfcoefs
+            qfcoef[:, c.first_index, c.second_index] = c.qfcoef
+            qfcoef[:, c.second_index, c.first_index] = c.qfcoef
+        end
+        addelement!(node, "PP_QFCOEF", array_to_text(vec(qfcoef)))
     end
 
     # PP_RINNER
     if !isnothing(aug.rinner)
-        # addelement!(node, "PP_RINNER", array_to_text(aug.rinner))
-        @warn "Cannot dump UPF v2.0.1 with PP_RINNER"
+        addelement!(node, "PP_RINNER", array_to_text(aug.rinner))
     end
 
     # PP_QIJ
     if !isnothing(aug.qijs)
-        #for qij in aug.qijs
-        #    link!(node, upf2_dump_qij(qij))
-        #end
-        @warn "Cannot dump UPF v2.0.1 with PP_QIJ.i.j"
+        for qij in aug.qijs
+            link!(node, upf2_dump_qij(qij))
+        end
     end
 
     # PP_QIJL
@@ -589,8 +589,8 @@ function upf2_parse_wfc(node::EzXML.Node)
     return UpfWfc(wfc, index, l, label)
 end
 
-function upf2_dump_wfc(wfc::UpfWfc)::EzXML.Node
-    node = ElementNode("PP_PSWFC.$(wfc.index)")
+function upf2_dump_wfc(wfc::UpfWfc, name::AbstractString)::EzXML.Node
+    node = ElementNode("$(name).$(wfc.index)")
     set_attr!(node, "index", wfc.index)
     set_attr!(node, "l", wfc.l)
     set_attr!(node, "label", wfc.label)
@@ -615,10 +615,10 @@ end
 function upf2_dump_full_wfc(fwfc::UpfFullWfc)::EzXML.Node
     node = ElementNode("PP_FULL_WFC")
     for aewfc in fwfc.aewfcs
-        link!(node, upf2_dump_wfc(aewfc))
+        link!(node, upf2_dump_wfc(aewfc, "PP_AEWFC"))
     end
     for pswfc in fwfc.pswfcs
-        link!(node, upf2_dump_wfc(pswfc))
+        link!(node, upf2_dump_wfc(pswfc, "PP_PSWFC"))
     end
     return node
 end
@@ -663,12 +663,12 @@ function upf2_dump_paw(paw::UpfPaw)::EzXML.Node
 
     # PP_AEWFC
     for aewfc in paw.aewfcs
-        link!(node, upf2_dump_wfc(aewfc))
+        link!(node, upf2_dump_wfc(aewfc, "PP_AEWFC"))
     end
 
     # PP_PSWFC
     for pswfc in paw.pswfcs
-        link!(node, upf2_dump_wfc(pswfc))
+        link!(node, upf2_dump_wfc(pswfc, "PP_PSWFC"))
     end
 
     return node
@@ -740,6 +740,12 @@ end
 function get_attr(::Type{T}, node::EzXML.Node, key;
                   default=nothing)::Union{Nothing,T} where {T<:AbstractString}
     return haskey(node, key) ? T(strip(node[key])) : default
+end
+
+# An integer attribute that some writers print as a float ("4.0")
+function get_integer_attr(node::EzXML.Node, key; default=nothing)::Union{Nothing,Int}
+    value = get_attr(Float64, node, key)
+    return isnothing(value) ? default : Int(value)
 end
 
 function get_attr(::Type{Bool}, node::EzXML.Node, key; default=nothing)::Union{Nothing,Bool}

@@ -27,9 +27,10 @@ Exchange-correlation functional identifiers (Libxc-compatible), or empty if unkn
 function functional(file::PsPFile)::Vector{Symbol} end
 
 """
-Pseudo-atomic core charge.
+Pseudo-atomic valence charge (ionic charge of the pseudo-atom), as a `Float64`: it can be
+fractional (virtual crystal, partial core ionization).
 """
-function valence_charge(file::PsPFile)::Int end
+function valence_charge(file::PsPFile)::Float64 end
 
 """
 Whether the pseudopotential is of the norm-conserving kind.
@@ -84,7 +85,7 @@ function Base.show(io::IO, ::MIME"text/plain", file::PsPFile)
     @printf "%032s: %s\n" "format" format(file)
     @printf "%032s: %s\n" "element" element(file)
     @printf "%032s: %s\n" "exchange-correlation (Libxc)" join(functional(file), '+')
-    @printf "%032s: %d\n" "valence charge" valence_charge(file)
+    @printf "%032s: %s\n" "valence charge" valence_charge(file)
     @printf "%032s: %s\n" "spin-orbit coupling" has_spin_orbit(file)
     @printf "%032s: %s\n" "formalism" formalism(file)
     @printf "%032s: %s\n" "model core charge density" has_model_core_charge_density(file)

@@ -45,6 +45,19 @@ without_identifier(file::Psp8File) = [getfield(file, n) for n in fieldnames(Psp8
                                       if n != :identifier]
 
 @testset "Round trip" begin
+    # UPF v1 and v2 ultrasoft and PAW, written as UPF v2: augmentation (PP_QIJ, PP_QIJL,
+    # PP_QFCOEF, PP_RINNER) and the PP_AEWFC/PP_PSWFC of PP_FULL_WFC and PP_PAW
+    @testset "UPF US/PAW: $name" for (name, filepath) in
+                                     merge(UPF1_CASE_FILEPATHS, UPF2_CASE_FILEPATHS)
+        file = load_psp_file(filepath)
+        is_norm_conserving(file) && continue
+        newfile = roundtrip(file, ".upf")
+        compared = [n for n in fieldnames(UpfFile) if !(n in (:identifier, :version))]
+        mismatches = field_mismatches([getfield(file, n) for n in compared],
+                                      [getfield(newfile, n) for n in compared])
+        @test isempty(mismatches) || (filepath, mismatches)
+    end
+
     @testset "UPF v2.0.1 NC" begin
         for filepath in values(UPF2_CASE_FILEPATHS)
             file = load_psp_file(filepath)
@@ -68,6 +81,16 @@ without_identifier(file::Psp8File) = [getfield(file, n) for n in fieldnames(Psp8
 end
 
 @testset "Libxc functional strings" begin
+    qe_to_libxc = PseudoPotentialIO.qe_libxc_to_libxc
+    @test qe_to_libxc("XC-001L-012L") == "LDA_X LDA_C_PW"
+    @test qe_to_libxc("XC-000I-000I-101L-130L") == "GGA_X_PBE GGA_C_PBE"
+    @test qe_to_libxc("XC-000I-000I-000I-000I-497L-498L") == "MGGA_X_R2SCAN MGGA_C_R2SCAN"
+    @test qe_to_libxc("XC-001I-001I") == "LDA_X LDA_C_PZ"  # QE-internal sla+pz
+    @test qe_to_libxc("XC-000I-000I-000I-000I-001I") == "UNKNOWN"  # QE-internal meta-GGA
+    for s in ("LDA_X LDA_C_PW", "GGA_X_PBE GGA_C_PBE", "MGGA_X_R2SCAN MGGA_C_R2SCAN")
+        @test qe_to_libxc(PseudoPotentialIO.libxc_to_qe_libxc(s)) == s
+    end
+
     @test PseudoPotentialIO.libxc_to_qe_libxc("LDA_X LDA_C_PW") == "XC-001L-012L"
     @test PseudoPotentialIO.libxc_to_qe_libxc("GGA_X_PBE GGA_C_PBE") ==
           "XC-000I-000I-101L-130L"

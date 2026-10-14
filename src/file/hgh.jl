@@ -109,7 +109,7 @@ function element(psp::HghFile)::PeriodicTable.Element
     return haskey(PeriodicTable.elements, Symbol(symbol)) ? PeriodicTable.elements[Symbol(symbol)] : PeriodicTable.Element()
 end
 functional(psp::HghFile)::Vector{Symbol} = map(name -> Symbol(lowercase(name)), split(psp.functional))
-valence_charge(psp::HghFile)::Int = sum(psp.zion, init=0)
+valence_charge(psp::HghFile)::Float64 = sum(psp.zion, init=0)
 is_norm_conserving(::HghFile)::Bool = true
 is_ultrasoft(::HghFile)::Bool = false
 is_paw(::HghFile)::Bool = false

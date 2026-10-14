@@ -259,28 +259,30 @@ function upf1_parse_augmentation(io::IO, mesh_size::Int, number_of_proj::Int, l_
     pos = position(io)
     read_until(io, "<PP_QIJ>")
 
-    # The first line contains the number of augmentation functions (`Number of Q Functions`)
+    # The first line contains the number of polynomial coefficients of the small-r
+    # expansion of the augmentation functions; zero means no expansion (no PP_RINNER, no
+    # PP_QFCOEF), the Q_ij still follow
     s = split(readline(io))
     nqf = parse(Int, s[1])
-
-    if nqf == 0
-        return nothing
-    end
 
     # Read the block containing the inner radial cutoffs for each m quantum number of
     # the maximum angular momentum channel. Inside these radii, the augmentation functions
     # are determined by a set of polynomial coefficients `qfcoef`
-    read_until(io, "<PP_RINNER>")
-    rinner = Vector{Float64}(undef, 2l_max + 1)
-    for i in 1:(2l_max + 1)
-        s = split(readline(io))
-        rinner[i] = parse(Float64, s[2])
+    if nqf > 0
+        read_until(io, "<PP_RINNER>")
+        rinner = Vector{Float64}(undef, 2l_max + 1)
+        for i in 1:(2l_max + 1)
+            s = split(readline(io))
+            rinner[i] = parse(Float64, s[2])
+        end
+        read_until(io, "</PP_RINNER>")
+    else
+        rinner = nothing
     end
-    read_until(io, "</PP_RINNER>")
 
     q = zeros(Float64, number_of_proj, number_of_proj)
     qijs = UpfQij[]
-    qfcoefs = UpfQfcoef[]
+    qfcoefs = nqf > 0 ? UpfQfcoef[] : nothing
 
     # For each pair of projectors, read the augmentation function block
     for i in 1:number_of_proj, _ in i:number_of_proj
@@ -297,9 +299,11 @@ function upf1_parse_augmentation(io::IO, mesh_size::Int, number_of_proj::Int, l_
 
         # Read the `nqf` polynomial coefficients for each magnetic quantum number of the
         # maximum angular momentum channel
-        read_until(io, "<PP_QFCOEF>")
-        qfcoef = read_mesh_data(Float64, io, nqf * (2l_max + 1))
-        read_until(io, "</PP_QFCOEF>")
+        if nqf > 0
+            read_until(io, "<PP_QFCOEF>")
+            qfcoef = read_mesh_data(Float64, io, nqf * (2l_max + 1))
+            read_until(io, "</PP_QFCOEF>")
+        end
 
         # These values are given by UPF v2 but not by UPF v1
         is_null = nothing
@@ -308,14 +312,14 @@ function upf1_parse_augmentation(io::IO, mesh_size::Int, number_of_proj::Int, l_
         q[first_index, second_index] = Q_int
         q[second_index, first_index] = Q_int
         push!(qijs, UpfQij(qij, first_index, second_index, composite_index, is_null))
-        push!(qfcoefs, UpfQfcoef(qfcoef, first_index, second_index, composite_index))
+        nqf > 0 && push!(qfcoefs, UpfQfcoef(qfcoef, nothing, first_index, second_index))
     end
 
     # These values are (sometimes) given by UPF v2 but not by UPF v1
     multipoles = nothing
     qijls = nothing
     q_with_l = false
-    nqlc = nothing
+    nqlc = 2l_max + 1
     shape = nothing
     iraug = nothing
     raug = nothing

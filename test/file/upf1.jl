@@ -158,7 +158,7 @@
         @test isnothing(augmentation.qijls)
         @test !augmentation.q_with_l
         @test augmentation.nqf == 6
-        @test isnothing(augmentation.nqlc)
+        @test augmentation.nqlc == 2file.header.l_max + 1
         @test isnothing(augmentation.shape)
         @test isnothing(augmentation.iraug)
         @test isnothing(augmentation.raug)
@@ -331,7 +331,7 @@
         @test augmentation.qfcoefs[10].qfcoef[5] == 7.28024914160E+02
 
         @test isnothing(augmentation.qijls)
-        @test isnothing(augmentation.nqlc)
+        @test augmentation.nqlc == 2file.header.l_max + 1
         @test isnothing(augmentation.shape)
         @test isnothing(augmentation.iraug)
         @test isnothing(augmentation.raug)
@@ -503,7 +503,7 @@
         @test augmentation.qfcoefs[21].qfcoef[5] == 1.02352656213E+02
 
         @test isnothing(augmentation.qijls)
-        @test isnothing(augmentation.nqlc)
+        @test augmentation.nqlc == 2file.header.l_max + 1
         @test isnothing(augmentation.shape)
         @test isnothing(augmentation.iraug)
         @test isnothing(augmentation.raug)
@@ -681,7 +681,7 @@
         @test augmentation.qfcoefs[28].qfcoef[5] == -5.52962873366E+01
 
         @test isnothing(augmentation.qijls)
-        @test isnothing(augmentation.nqlc)
+        @test augmentation.nqlc == 2file.header.l_max + 1
         @test isnothing(augmentation.shape)
         @test isnothing(augmentation.iraug)
         @test isnothing(augmentation.raug)

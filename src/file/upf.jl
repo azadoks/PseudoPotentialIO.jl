@@ -180,7 +180,7 @@ struct UpfAugmentation
     charge at small radius."""
     nqf::Int
     "Number of angular momenta terms in the augmentation charge, unused if `nqf = 0`"
-    nqlc::Union{Nothing,Float64}
+    nqlc::Union{Nothing,Int}
     """(UNUSED) (PAW) Shape of the augmentation function: `{PSQ, GAUSS, BESSEL}`, could
     be used for analyical overlap of PAW augmentation charge"""
     shape::Union{Nothing,String}
@@ -189,14 +189,14 @@ struct UpfAugmentation
     "(PAW) Radial distance beyond which augmentation charge is zero"
     raug::Union{Nothing,Float64}
     "(PAW): Maximum angular momentum appearing in augmentation charge"
-    l_max_aug::Union{Nothing,Float64}
+    l_max_aug::Union{Nothing,Int}
     """(PAW): Augmentation functions whose norms are less than `augmentation_epsilon` are
     considered zero"""
     augmentation_epsilon::Union{Nothing,Float64}
     "(DEPRECATED?)"
     cutoff_r::Union{Nothing,Float64}
     "(DEPRECATED?)"
-    cutoff_r_index::Union{Nothing,Float64}
+    cutoff_r_index::Union{Nothing,Int}
 end
 
 """
@@ -434,8 +434,37 @@ end
 
 identifier(psp::UpfFile)::String = psp.identifier
 format(file::UpfFile)::String = "UPF v$(file.version)"
+"""
+Libxc string of a QE `XC-000i-000i-...` functional (inverse of `libxc_to_qe_libxc`). The slots
+are LDA exchange, LDA correlation, GGA exchange, GGA correlation, meta-GGA exchange, meta-GGA
+correlation; `L` marks a Libxc id, `I` a QE-internal index (zero: no term). `"UNKNOWN"` for a
+QE-internal meta-GGA or an id without a Libxc name.
+"""
+function qe_libxc_to_libxc(functional::AbstractString)::String
+    slot_tables = (UPF_LDA_EXCHANGE, UPF_LDA_CORRELATION, UPF_GGA_EXCHANGE,
+                   UPF_GGA_CORRELATION)
+    terms = String[]
+    for (slot, term) in enumerate(split(uppercase(strip(functional)), '-')[2:end])
+        m = match(r"^(\d+)([LI])$", term)
+        (isnothing(m) || slot > 6) && return "UNKNOWN"
+        id = parse(Int, m[1])
+        iszero(id) && continue
+        if m[2] == "L"
+            name = get(LIBXC_FUNCTIONALS_BY_ID, id, nothing)
+        else
+            slot > 4 && return "UNKNOWN"
+            entry = findfirst(e -> e["i"] == id, slot_tables[slot])
+            name = isnothing(entry) ? nothing : slot_tables[slot][entry]["libxc"]
+        end
+        (isnothing(name) || isempty(name)) && return "UNKNOWN"
+        push!(terms, name)
+    end
+    return isempty(terms) ? "UNKNOWN" : join(terms, ' ')
+end
+
 function libxc_string(header::UpfHeader)
     functional = header.functional
+    startswith(uppercase(strip(functional)), "XC-") && return qe_libxc_to_libxc(functional)
     upf_codes = lowercase.(split(functional))
 
     if length(upf_codes) == 1  # Short code
@@ -476,7 +505,7 @@ is_ultrasoft(file::UpfFile)::Bool = file.header.pseudo_type in ("US", "USPP")
 is_paw(file::UpfFile)::Bool = file.header.pseudo_type == "PAW"
 has_spin_orbit(file::UpfFile)::Bool = file.header.has_so
 has_model_core_charge_density(file::UpfFile)::Bool = file.header.core_correction
-valence_charge(file::UpfFile)::Int = file.header.z_valence
+valence_charge(file::UpfFile)::Float64 = file.header.z_valence
 
 function libxc_to_qe_libxc(libxc_string::AbstractString)::String
     # https://gitlab.com/QEF/q-e/-/blob/develop/Modules/funct.f90?ref_type=heads#L301
