@@ -13,6 +13,14 @@ function _collect_mismatches!(mismatches, a, b, path, rtol)
         isapprox(a, b; rtol) || push!(mismatches, path)
     elseif a isa AbstractArray{<:AbstractFloat} && b isa AbstractArray{<:AbstractFloat}
         size(a) == size(b) && isapprox(a, b; rtol) || push!(mismatches, path)
+    elseif a isa AbstractDict && b isa AbstractDict
+        if keys(a) != keys(b)
+            push!(mismatches, path)
+        else
+            for k in keys(a)
+                _collect_mismatches!(mismatches, a[k], b[k], "$path[$(repr(k))]", rtol)
+            end
+        end
     elseif a isa AbstractArray && b isa AbstractArray
         if size(a) != size(b)
             push!(mismatches, path)
@@ -67,6 +75,28 @@ without_identifier(file::Psp8File) = [getfield(file, n) for n in fieldnames(Psp8
                                           without_identifier(newfile))
             @test isempty(mismatches) || (filepath, mismatches)
         end
+    end
+
+    # the radii of the kinks of the tables (an extension of UPF): written as attributes of
+    # the elements, with the number of mesh points below each, and read back
+    @testset "UPF breakpoints" begin
+        filepath = first(p for p in values(UPF2_CASE_FILEPATHS)
+                         if is_norm_conserving(load_psp_file(p)) &&
+                            !isnothing(load_psp_file(p).local_) &&
+                            !isempty(load_psp_file(p).nonlocal.betas))
+        file = load_psp_file(filepath)
+        r = file.mesh.r
+        breaks = Dict("PP_LOCAL" => [r[200] + 1e-3, r[300] / 3],
+                      "PP_BETA.$(first(file.nonlocal.betas).index)" => [r[150] + 1e-6])
+        fields = [getfield(file, n) for n in fieldnames(UpfFile)]
+        marked = UpfFile(fields[1:(end - 1)]..., breaks)
+        outpath = joinpath(mktempdir(; cleanup=true), "marked.upf")
+        save_psp_file(outpath, marked)
+        @test load_psp_file(outpath).breakpoints == breaks
+        text = read(outpath, String)
+        indices = join((searchsortedfirst(r, b) - 1 for b in breaks["PP_LOCAL"]), ' ')
+        @test occursin("breakpoint_indices=\"$indices\"", text)
+        @test isempty(file.breakpoints)
     end
 
     @testset "PSP8" begin

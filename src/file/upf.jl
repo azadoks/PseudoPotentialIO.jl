@@ -372,7 +372,22 @@ struct UpfFile <: PsPFile
     paw::Union{Nothing,UpfPaw}
     "GIPAW data"
     gipaw::Union{Nothing,UpfGipaw}
+    """
+    Radii (bohr) where a table has a kink, by the name of its element (`PP_LOCAL`,
+    `PP_NLCC`, `PP_TAUMOD`, `PP_BETA.i`), from the attribute `breakpoints` of the element.
+    An extension of UPF v2 (other readers ignore an unknown attribute): a generator that
+    knows where its tables are only continuous (the matching radii, the radius of the local
+    potential or of a model core) saves it, so that a reader can interpolate each side on
+    its own. The writer also gives `breakpoint_indices`, the number of mesh points below
+    each break. Empty if the file has none.
+    """
+    breakpoints::Dict{String,Vector{Float64}}
 end
+# the fields of UPF proper; no breakpoints
+UpfFile(identifier, version, info, header, mesh, nlcc, taumod, local_, nonlocal, pswfc,
+        full_wfc, rhoatom, tauatom, spin_orb, paw, gipaw) =
+    UpfFile(identifier, version, info, header, mesh, nlcc, taumod, local_, nonlocal, pswfc,
+            full_wfc, rhoatom, tauatom, spin_orb, paw, gipaw, Dict{String,Vector{Float64}}())
 
 function UpfFile(path::AbstractString; identifier="")
     identifier = isempty(identifier) ? splitpath(path)[end] : identifier

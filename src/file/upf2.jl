@@ -79,8 +79,37 @@ function upf2_parse_psp(io::IO; identifier="")
         gipaw = upf2_parse_gipaw(doc)
     end
 
+    #* breakpoints (an extension, see `UpfFile`)
+    breakpoints = upf2_parse_breakpoints(root_node)
+
     return UpfFile(identifier, version, info, header, mesh, nlcc, taumod, local_,
-                   nonlocal, pswfc, full_wfc, rhoatom, tauatom, spinorb, paw, gipaw)
+                   nonlocal, pswfc, full_wfc, rhoatom, tauatom, spinorb, paw, gipaw,
+                   breakpoints)
+end
+
+# the elements of the tables that can have breakpoints: those of `PP_UPF` and of
+# `PP_NONLOCAL` (by name, without XPath: a node being written has no document yet)
+function upf2_table_nodes(root_node::EzXML.Node)
+    nodes = EzXML.elements(root_node)
+    i = findfirst(n -> nodename(n) == "PP_NONLOCAL", nodes)
+    return isnothing(i) ? nodes : [nodes; EzXML.elements(nodes[i])]
+end
+
+# the `breakpoints` attributes of the tables, by element name (see `UpfFile`)
+function upf2_parse_breakpoints(root_node::EzXML.Node)
+    parse_radii(text) = parse.(Float64, split(replace(uppercase(text), "D" => "E")))
+    return Dict{String,Vector{Float64}}(nodename(n) => parse_radii(n["breakpoints"])
+                                        for n in upf2_table_nodes(root_node)
+                                        if haskey(n, "breakpoints"))
+end
+
+# the `breakpoints` of the table of `node` (17 digits: the radii read back exactly) and the
+# number of mesh points `r` below each
+function set_breakpoints!(node::EzXML.Node, breaks, r)
+    set_attr!(node, "breakpoints", join((@sprintf("%.16E", b) for b in breaks), ' '))
+    set_attr!(node, "breakpoint_indices",
+              join((searchsortedfirst(r, b) - 1 for b in breaks), ' '))
+    return node
 end
 
 function upf2_dump_psp(upffile::UpfFile)::EzXML.Node
@@ -140,6 +169,14 @@ function upf2_dump_psp(upffile::UpfFile)::EzXML.Node
     # PP_GIPAW
     if !isnothing(upffile.gipaw)
         link!(root_node, upf2_dump_gipaw(upffile.gipaw))
+    end
+
+    # breakpoints (an extension, see `UpfFile`)
+    nodes = upf2_table_nodes(root_node)
+    for (name, breaks) in upffile.breakpoints
+        i = findfirst(n -> nodename(n) == name, nodes)
+        isnothing(i) && throw(ArgumentError("breakpoints of $name, which the file does not have"))
+        set_breakpoints!(nodes[i], breaks, upffile.mesh.r)
     end
 
     return root_node
