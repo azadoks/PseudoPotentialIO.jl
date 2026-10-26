@@ -374,7 +374,8 @@ struct UpfFile <: PsPFile
     gipaw::Union{Nothing,UpfGipaw}
     """
     Radii (bohr) where a table has a kink, by the name of its element (`PP_LOCAL`,
-    `PP_NLCC`, `PP_TAUMOD`, `PP_BETA.i`), from the attribute `breakpoints` of the element.
+    `PP_NLCC`, `PP_TAUMOD`, `PP_RHOATOM`, `PP_TAUATOM`, `PP_BETA.i`, `PP_CHI.i`), from the
+    attribute `breakpoints` of the element.
     An extension of UPF v2 (other readers ignore an unknown attribute): a generator that
     knows where its tables are only continuous (the matching radii, the radius of the local
     potential or of a model core) saves it, so that a reader can interpolate each side on

@@ -83,11 +83,14 @@ without_identifier(file::Psp8File) = [getfield(file, n) for n in fieldnames(Psp8
         filepath = first(p for p in values(UPF2_CASE_FILEPATHS)
                          if is_norm_conserving(load_psp_file(p)) &&
                             !isnothing(load_psp_file(p).local_) &&
-                            !isempty(load_psp_file(p).nonlocal.betas))
+                            !isempty(load_psp_file(p).nonlocal.betas) &&
+                            !isempty(load_psp_file(p).pswfc))
         file = load_psp_file(filepath)
         r = file.mesh.r
         breaks = Dict("PP_LOCAL" => [r[200] + 1e-3, r[300] / 3],
-                      "PP_BETA.$(first(file.nonlocal.betas).index)" => [r[150] + 1e-6])
+                      "PP_BETA.$(first(file.nonlocal.betas).index)" => [r[150] + 1e-6],
+                      "PP_RHOATOM" => [r[120] + 1e-4],
+                      "PP_CHI.$(first(file.pswfc).index)" => [r[180] + 2e-5])
         fields = [getfield(file, n) for n in fieldnames(UpfFile)]
         marked = UpfFile(fields[1:(end - 1)]..., breaks)
         outpath = joinpath(mktempdir(; cleanup=true), "marked.upf")

@@ -87,12 +87,16 @@ function upf2_parse_psp(io::IO; identifier="")
                    breakpoints)
 end
 
-# the elements of the tables that can have breakpoints: those of `PP_UPF` and of
-# `PP_NONLOCAL` (by name, without XPath: a node being written has no document yet)
+# the elements of the tables that can have breakpoints: those of `PP_UPF`, of
+# `PP_NONLOCAL` and of `PP_PSWFC` (by name, without XPath: a node being written has no
+# document yet)
 function upf2_table_nodes(root_node::EzXML.Node)
     nodes = EzXML.elements(root_node)
-    i = findfirst(n -> nodename(n) == "PP_NONLOCAL", nodes)
-    return isnothing(i) ? nodes : [nodes; EzXML.elements(nodes[i])]
+    for name in ("PP_NONLOCAL", "PP_PSWFC")
+        i = findfirst(n -> nodename(n) == name, nodes)
+        isnothing(i) || append!(nodes, EzXML.elements(nodes[i]))
+    end
+    return nodes
 end
 
 # the `breakpoints` attributes of the tables, by element name (see `UpfFile`)
