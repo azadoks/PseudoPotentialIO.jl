@@ -3,7 +3,9 @@ PSP8_EXCHANGE_CORRELATION = [Dict("i" => 1,
                                   "libxc" => "LDA_XC_TETER93"),
                              Dict("i" => 2,
                                   "description" => "LDA, Perdew-Zunger-Ceperley-Alder (no spin-polarization) [Perdew1981]",
-                                  "libxc" => "LDA_X LDA_C_PZ_MOD"),
+                                  # ABINIT's and ONCVPSP's `xcpzca` use the rounded
+                                  # constants c = 0.0020, d = -0.0116: Libxc's LDA_C_PZ
+                                  "libxc" => "LDA_X LDA_C_PZ"),
                              Dict("i" => 3,
                                   "description" => "LDA, old Teter rational polynomial parametrization (4/91) fit to Ceperley-Alder data (no spin-polarization) [Ceperley1980]",
                                   "libxc" => ""),
