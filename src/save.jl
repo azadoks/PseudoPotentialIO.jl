@@ -3,6 +3,9 @@ Save a [`PsPFile`](@ref) struct into a file. The file type depends on the
 type of the file to save (e.g. a `Psp8File` file is saved to a `.psp8` or
 a `UpfFile` to a `.upf`). An important keyword argument is `format`, which
 enables to request a particular version of the file format to be employed.
+
+Thread-safe: several tasks may write files at once (UPF through
+`xml_prettyprint`, PseudoPotentialIO #7).
 """
 function save_psp_file(path::AbstractString, psp::PsPFile, args...; kwargs...)
     open(path, "w") do io

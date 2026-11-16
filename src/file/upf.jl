@@ -411,11 +411,13 @@ end
 """
 Write UPF file to `io`. Note that the file is written the UPF version passed
 as a string and this value takes preference over the version stored in `psp`.
+
+Thread-safe (see `xml_prettyprint`).
 """
 function save_psp(io::IO, psp::UpfFile; format="UPF v2.0.1")
     if format == "UPF v2.0.1"
         root_node = upf2_dump_psp(psp)
-        prettyprint(io, root_node)
+        xml_prettyprint(io, root_node)
     elseif format == "UPF v1.old"
         error("$format not supported yet.")
     else
