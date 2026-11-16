@@ -1,7 +1,7 @@
 @testset "UPF" begin
     @testset "Internal data consistency" begin
         @testset "$filepath" for filepath in UPF_FILEPATHS
-            file = load_psp_file(filepath)
+            file = load_test_file(filepath)
 
             @test haskey(PeriodicTable.elements, Symbol(file.header.element))
             z_atom = PeriodicTable.elements[Symbol(titlecase(file.header.element))].number

@@ -1,8 +1,6 @@
-#TODO test hgh file parser
 @testset "HGH" begin
     @testset "c-q4.hgh" begin
-        filename = "c-q4.hgh"
-        file = load_psp_file(HGH_CASE_FILEPATHS[filename])
+        file = load_hgh("c-q4.hgh")
 
         @test occursin("c", lowercase(file.title))
         @test occursin("pade", lowercase(file.title))
@@ -16,8 +14,7 @@
     end
 
     @testset "ni-q18.hgh" begin
-        filename = "ni-q18.hgh"
-        file = load_psp_file(HGH_CASE_FILEPATHS[filename])
+        file = load_hgh("ni-q18.hgh")
 
         @test occursin("ni", lowercase(file.title))
         @test occursin("pade", lowercase(file.title))

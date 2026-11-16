@@ -23,7 +23,7 @@ If your favorite format does not appear in the table below, please file an [issu
 | PSP6/FHI98PP             | Not planned |
 | PSP7/ABINIT PAW          | Not planned |
 | PSP8/ONCVPSP             | ✅          |
-| PSP9/PSML                | Not planned |
+| PSP9/PSML                | ✅          |
 | PSP17/ABINIT PAW XML     | Not planned |
 | FPMD XML                 | Not planned |
 | Vanderbilt USPP          | Not planned |
@@ -33,13 +33,21 @@ This returns one of the `[Format]File` structs which mirror very closely the con
 However, different file formats provide important physical quantities in slightly different forms.
 Be sure to check the docstrings and comments here in PseudoPotentialIO.jl or the relevant documentation of the file format.
 
+The structs check that the file follows the specification of its format (for example, that the
+flags of a UPF header agree with the data in the file).
+By default, what does not is a warning; make it an error with
+`load_psp_file(path; validation=:error)`, or turn the checks off with `validation=:none`.
+Where common files break the specification (e.g. QE's own files, ONCVPSP's PSML), the checks
+only warn, also with `:error`.
+`PseudoPotentialIO.with_validation(f, mode)` sets the mode for a whole block of code.
+
 ## Writing pseudopotentials
 This package also supports writing pseudopotentials, currently only in
-the UPF v2.0.1 and PSP8 format. This is done using `save_psp_file`:
+the UPF v2.0.1, PSP8, HGH and PSML (1.1) formats. This is done using `save_psp_file`:
 ```jl
 save_psp_file("path/to/pseudo.upf", pseudo)
 ```
-where `pseudo` is a `UpfFile` or `Psp8File`.
+where `pseudo` is a `UpfFile`, `Psp8File`, `HghFile` or `PsmlFile`.
 Support for additional formats might be added in the future.
 
 ## Converting pseudopotentials

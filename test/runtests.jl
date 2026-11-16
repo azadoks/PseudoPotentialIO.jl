@@ -4,7 +4,7 @@ using PseudoPotentialIO: is_norm_conserving, is_ultrasoft, is_paw,
     has_spin_orbit, has_model_core_charge_density, identifier, 
     format, element, functional, valence_charge, formalism
 using Aqua
-using LazyArtifacts
+using PseudoPotentialData
 using PeriodicTable
 using JSON
 using LinearAlgebra
@@ -29,23 +29,36 @@ include("fixtures.jl")
     end
 
     if any(in.(("all", "file", "upf"), Ref(TAGS)))
-        include("file/upf.jl")
+        include("file/upf/upf.jl")
     end
 
     if any(in.(("all", "file", "upf", "upf1"), Ref(TAGS)))
-        include("file/upf1.jl")
+        include("file/upf/upf1.jl")
+        include("file/upf/file_dict_v1.jl")
     end
 
     if any(in.(("all", "file", "upf", "upf2"), Ref(TAGS)))
-        include("file/upf2.jl")
+        include("file/upf/upf2.jl")
+        include("file/upf/file_dict_v2.jl")
+    end
+
+    if any(in.(("all", "file", "psml"), Ref(TAGS)))
+        include("file/psml/psml.jl")
+        include("file/psml/file_dict.jl")
     end
 
     if any(in.(("all", "file", "psp8"), Ref(TAGS)))
-        include("file/psp8.jl")
+        include("file/psp8/psp8.jl")
+        include("file/psp8/file_dict.jl")
     end
 
     if any(in.(("all", "file", "hgh"), Ref(TAGS)))
-        include("file/hgh.jl")
+        include("file/hgh/hgh.jl")
+        include("file/hgh/file_dict.jl")
+    end
+
+    if any(in.(("all", "file", "validation"), Ref(TAGS)))
+        include("file/validation.jl")
     end
 
     if any(in.(("all", "file", "roundtrip"), Ref(TAGS)))
@@ -54,9 +67,5 @@ include("fixtures.jl")
 
     if any(in.(("all", "file", "upf", "threads"), Ref(TAGS)))
         include("file/threads.jl")
-    end
-
-    if any(in.(("all", "agreement"), Ref(TAGS)))
-        include("upf_psp8_agreement.jl")
     end
 end

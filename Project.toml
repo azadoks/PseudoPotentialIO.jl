@@ -1,22 +1,26 @@
 name = "PseudoPotentialIO"
 uuid = "cb339c56-07fa-4cb2-923a-142469552264"
-authors = ["Austin Zadoks", "Bruno Ploumhans", "Michael F. Herbst"]
 version = "0.3.3"
+authors = ["Austin Zadoks", "Bruno Ploumhans", "Michael F. Herbst"]
 
 [deps]
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
+OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 PeriodicTable = "7b2266bf-644c-5ea3-82d8-af4bbd25a884"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+ScopedValues = "7e506255-f358-4e82-b7e4-beb19740aa63"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+XML = "72c71f33-b9b6-44de-8c94-c961784809e2"
 
 [compat]
 DocStringExtensions = "0.9"
-EzXML = "1"
+JuliaFormatter = "2"
+OrderedCollections = "1, 2"
 PeriodicTable = "1"
 Printf = "1"
+ScopedValues = "1"
 Statistics = "1"
-JuliaFormatter = "2"
+XML = "0.4"
 julia = "1.10"
 
 [extras]

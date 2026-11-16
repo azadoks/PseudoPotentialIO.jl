@@ -13,6 +13,7 @@ PsPFile
 UpfFile
 Psp8File
 HghFile
+PsmlFile
 ```
 
 ## Functions
@@ -21,6 +22,12 @@ HghFile
 ```@docs
 load_psp_file
 save_psp_file
+```
+
+### Validation
+```@docs
+PseudoPotentialIO.VALIDATION
+PseudoPotentialIO.with_validation
 ```
 
 ### Conversion

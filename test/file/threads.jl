@@ -28,10 +28,10 @@ function count_concurrent_mismatches(f, inputs, references; same=isequal, rounds
 end
 
 @testset "UPF from several threads" begin
-    filepaths = [UPF2_CASE_FILEPATHS["Dy.GGA-PBE-paw-v1.0.UPF"],
+    filepaths = [UPF2_CASE_FILEPATHS["Al.pbe-n-kjpaw_psl.1.0.0.UPF"],
                  UPF2_CASE_FILEPATHS["Si.pbe-n-rrkjus_psl.1.0.0.UPF"],
                  UPF2_CASE_FILEPATHS["Fe.upf"],
-                 UPF1_CASE_FILEPATHS["ag_lda_v1.4.uspp.F.UPF"]]
+                 UPF1_CASE_FILEPATHS["mg_pbe_v1.4.uspp.F.UPF"]]
     psps = load_psp_file.(filepaths)
     upf_text(psp) = sprint(io -> PseudoPotentialIO.save_psp(io, psp))
     texts = upf_text.(psps)

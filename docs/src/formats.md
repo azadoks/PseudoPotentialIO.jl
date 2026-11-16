@@ -12,3 +12,7 @@ Here are some links to documentation and other parsers for various pseudopotenti
 - PSP8
   - [ABINIT documentation](https://docs.abinit.org/developers/psp8_info/)
   - [ABINIT `m_psp8.F90` on GitHub](https://github.com/abinit/abinit/blob/6e17fde483be5e66beaa09debf3f0f6dcf4d98cb/src/64_psp/m_psp8.F90)
+- PSML
+  - [CECAM website](https://esl.cecam.org/data-standards/psml/)
+  - [García et al., Comput. Phys. Commun. 227, 51 (2018)](https://doi.org/10.1016/j.cpc.2018.02.011)
+  - [`libpsml` on GitLab](https://gitlab.com/siesta-project/libraries/libpsml) (its schema is `doc/schema/psml.rnc`)

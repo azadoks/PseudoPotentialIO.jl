@@ -1,222 +1,143 @@
-_FILE_EXT_LOADERS = Dict(".upf" => UpfFile,
-                         ".psp8" => Psp8File,
-                         ".hgh" => HghFile)
+# Test files: pseudopotential families of PseudoPotentialData (downloaded on first use),
+# and the files of `data/`.
 
-# Resolve the name of a PsP family artifact into its directory
-# or return the input if it's already a directory
-function _resolve_family(family_name_or_dir::AbstractString)
-    isdir(family_name_or_dir) && return family_name_or_dir
-    try
-        return @artifact_str(family_name_or_dir)
-    catch
-        error("PsP family $family does not exist")
-    end
+# Every file of a family, in the order of the elements
+function family_filepaths(identifier::AbstractString)
+    family = PseudoFamily(identifier)
+    return [family[element] for element in sort(collect(keys(family)))]
 end
 
-function _find_pseudos(dir::AbstractString)
-    (_, _, filenames) = first(walkdir(dir))
-    psp_filenames = filter(f -> !startswith(f, "."), filenames)
-    psp_filenames = filter(f -> lowercase(splitext(f)[2]) in keys(_FILE_EXT_LOADERS),
-                           psp_filenames)
-    return psp_filenames
-end
+const DATA_DIR = joinpath(@__DIR__, "data")
 
+# PSML: small files of each version, from ABINIT's tests and PseudoDojo (see data/psml/README.md)
+PSML_FILEPATHS = filter(endswith(".psml"), readdir(joinpath(DATA_DIR, "psml"); join=true))
 
+# For the tests of the `PsPFile` interface
 TEST_FAMILIES = (
-    "hgh_lda_hgh",
-    "hgh_pbe_upf",
-    "gbrv_lda_1.5_upf",
-    "sg15_2022.02.06_upf",
-    "sssp_pbe_precision_1.1.2_upf",
-    "pd_nc_sr_pbe_standard_0.4.1_upf",
-    "pd_nc_sr_pbe_standard_0.4.1_psp8",
-    "pd_nc_fr_pbesol_standard_0.4_psp8",
+    "sg15.nc.sr.pbe.v1_2.canonical.upf",
+    "sssp.mixed.sr.pbe.v1_3_0.precision.upf",
+    "dojo.nc.sr.pbe.v0_4_1.standard.upf",
+    "dojo.nc.fr.pbesol.v0_4.standard.upf",
 )
-TEST_FILEPATHS = []
-for family in TEST_FAMILIES
-    family_dir = _resolve_family(family)
-    psp_filenames = _find_pseudos(family_dir)
-    psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
-    append!(TEST_FILEPATHS, psp_filepaths)
-end
+TEST_FILEPATHS = vcat(family_filepaths.(collect(TEST_FAMILIES))..., PSML_FILEPATHS)
 
+# For the consistency tests of UPF (v1 and v2; NC, US and PAW; with and without spin-orbit)
 UPF_FAMILIES = (
-    "gbrv_pbe_1.5_upf",
-    "hgh_lda_upf",
-    "sg15_2022.02.06_upf",
-    "sssp_pbe_efficiency_1.1.2_upf",
+    "sg15.nc.sr.pbe.v1_2.canonical.upf",
+    "sg15.nc.fr.pbe.v1_1.canonical.upf",
+    "sssp.mixed.sr.pbe.v1_3_0.efficiency.upf",
+    "sssp.mixed.sr.pbesol.v1_3_0.precision.upf",
 )
-UPF_FILEPATHS = []
-for family in UPF_FAMILIES
-    family_dir = _resolve_family(family)
-    psp_filenames = _find_pseudos(family_dir)
-    psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
-    append!(UPF_FILEPATHS, psp_filepaths)
-end
-push!(UPF_FILEPATHS, joinpath(@__DIR__, "data/56_Ba_m.upf"))
+UPF_FILEPATHS = vcat(family_filepaths.(collect(UPF_FAMILIES))...,
+                     joinpath(DATA_DIR, "56_Ba_m.upf"))
 
-HGH_FAMILIES = (
-    "hgh_lda_hgh",
-    "hgh_pbe_hgh",
-)
-HGH_FILEPATHS = []
-for family in HGH_FAMILIES
-    family_dir = _resolve_family(family)
-    psp_filenames = _find_pseudos(family_dir)
-    psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
-    append!(HGH_FILEPATHS, psp_filepaths)
-end
-
-PSP8_FAMILIES = (
-    "pd_nc_sr_pbe_standard_0.4.1_psp8",
-    "pd_nc_fr_pbesol_standard_0.4_psp8",
-)
-PSP8_FILEPATHS = []
-for family in PSP8_FAMILIES
-    family_dir = _resolve_family(family)
-    psp_filenames = _find_pseudos(family_dir)
-    psp_filepaths = map(filename -> joinpath(family_dir, filename), psp_filenames)
-    append!(PSP8_FILEPATHS, psp_filepaths)
-end
-
+# Files whose values are tested, by their original name (PseudoPotentialData names the files
+# by their element)
 UPF1_CASES = [
-    ("gbrv_lda_1.5_upf", "ag_lda_v1.4.uspp.F.UPF"),
-    ("sssp_pbe_precision_1.1.2_upf", "B_pbe_v1.01.uspp.F.UPF"),
-    ("gbrv_pbesol_1.5_upf", "si_pbesol_v1.uspp.F.UPF"),
-    ("gbrv_pbe_1.5_upf", "mg_pbe_v1.4.uspp.F.UPF"),
+    ("sssp.mixed.sr.pbe.v1_3_0.precision.upf", :B, "B_pbe_v1.01.uspp.F.UPF"),
+    ("sssp.mixed.sr.pbe.v1_3_0.precision.upf", :Mg, "mg_pbe_v1.4.uspp.F.UPF"),
 ]
-UPF1_CASE_FILEPATHS = Dict()
-for (family, filename) in UPF1_CASES
-    if !haskey(UPF1_CASE_FILEPATHS, filename)
-        UPF1_CASE_FILEPATHS[filename] = joinpath(_resolve_family(family), filename)
-    else
-        error("UPF1_CASE_FILEPATHS already contains a case for $filename")
-    end
-end
+UPF1_CASE_FILEPATHS = Dict(name => PseudoFamily(family)[element]
+                           for (family, element, name) in UPF1_CASES)
 
 UPF2_CASES = [
-    ("pd_nc_fr_pbesol_stringent_0.4_upf", "Mg.upf"),
-    ("sssp_pbe_efficiency_1.1.2_upf", "Si.pbe-n-rrkjus_psl.1.0.0.UPF"),
-    ("sssp_pbe_efficiency_1.1.2_upf", "Al.pbe-n-kjpaw_psl.1.0.0.UPF"),
-    ("sssp_pbe_efficiency_1.1.2_upf", "Dy.GGA-PBE-paw-v1.0.UPF"),
-    ("hgh_pbe_upf", "He.pbe-hgh.UPF"),
-    ("hgh_pbe_upf", "Al.pbe-hgh.UPF"),
-    ("pd_nc_sr_pbe_standard_0.4.1_upf", "H.upf"),
-    ("pd_nc_sr_pbe_standard_0.4.1_upf", "Fe.upf"),
+    ("dojo.nc.fr.pbesol.v0_4.stringent.upf", :Mg, "Mg.upf"),
+    ("sssp.mixed.sr.pbe.v1_3_0.efficiency.upf", :Si, "Si.pbe-n-rrkjus_psl.1.0.0.UPF"),
+    ("sssp.mixed.sr.pbe.v1_3_0.efficiency.upf", :Al, "Al.pbe-n-kjpaw_psl.1.0.0.UPF"),
+    ("dojo.nc.sr.pbe.v0_4_1.standard.upf", :H, "H.upf"),
+    ("dojo.nc.sr.pbe.v0_4_1.standard.upf", :Fe, "Fe.upf"),
 ]
-UPF2_CASE_FILEPATHS = Dict()
-for (family, filename) in UPF2_CASES
-    if !haskey(UPF2_CASE_FILEPATHS, filename)
-        UPF2_CASE_FILEPATHS[filename] = joinpath(_resolve_family(family), filename)
-    else
-        error("UPF2_CASE_FILEPATHS already contains a case for $filename")
-    end
-end
-UPF2_CASE_FILEPATHS["56_Ba_m.upf"]     = joinpath(@__DIR__, "data/56_Ba_m.upf")
-UPF2_CASE_FILEPATHS["al.blps.lda.upf"] = joinpath(@__DIR__, "data/al.blps.lda.upf")
+UPF2_CASE_FILEPATHS = Dict(name => PseudoFamily(family)[element]
+                           for (family, element, name) in UPF2_CASES)
+UPF2_CASE_FILEPATHS["56_Ba_m.upf"] = joinpath(DATA_DIR, "56_Ba_m.upf")
+UPF2_CASE_FILEPATHS["al.blps.lda.upf"] = joinpath(DATA_DIR, "al.blps.lda.upf")
 
-PSP8_CASES = [
-     ("pd_nc_sr_pbe_standard_0.4.1_psp8", "H.psp8"),
-     ("pd_nc_sr_pbe_standard_0.4.1_psp8", "Fe.psp8"),
-     ("pd_nc_fr_pbesol_standard_0.4_psp8", "Ti.psp8"),
-     ("pd_nc_sr_pbesol_stringent_0.4.1_psp8", "Zn.psp8"),
-]
-PSP8_CASE_FILEPATHS = Dict()
-for (family, filename) in PSP8_CASES
-    if !haskey(PSP8_CASE_FILEPATHS, filename)
-        PSP8_CASE_FILEPATHS[filename] = joinpath(_resolve_family(family), filename)
-    else
-        error("PSP8_CASE_FILEPATHS already contains a case for $filename")
-    end
-end
+# Files that break the specification of their format (METAPSP writes relativistic="F"): the
+# tests read them without validation, but that of the file itself (in upf2.jl)
+const OFF_SPEC_FILES = ("56_Ba_m.upf",)
+test_validation(name::AbstractString) = basename(name) in OFF_SPEC_FILES ? :none : :error
+load_test_file(path) = load_psp_file(path; validation=test_validation(path))
 
-HGH_CASES = [
-    ("hgh_lda_hgh", "c-q4.hgh"),
-    ("hgh_lda_hgh", "ni-q18.hgh"),
-]
-HGH_CASE_FILEPATHS = Dict()
-for (family, filename) in HGH_CASES
-    if !haskey(HGH_CASE_FILEPATHS, filename)
-        HGH_CASE_FILEPATHS[filename] = joinpath(_resolve_family(family), filename)
-    else
-        error("HGH_CASE_FILEPATHS already contains a case for $filename")
-    end
-end
+# Small PSP8 files
+const PSP8_TEXTS = Dict(
+    # l = 0 with projectors, l = 1 without (no block), the local potential after lmax, a
+    # core charge, a valence density with only its first column, and trailing text
+    "nlcc" => """
+X  test file
+3.0000  2.0000  250101    zatom,zion,pspd
+8   11   1   4   3   0   pspcod,pspxc,lmax,lloc,mmax,r2well
+1.0  0.5  0.0   rchrg fchrg qchrg
+1  0  0  0  0    nproj
+1  1   extension_switch
+0   2.5D+00
+1  0.0D+00  1.0D+00
+2  1.0D-02  2.0D+00
+3  2.0D-02  3.0D+00
+4
+1  0.0D+00 -1.0D+00
+2  1.0D-02 -2.0D+00
+3  2.0D-02 -3.0D+00
+1  0.0D+00  1.0  2.0  3.0  4.0  5.0
+2  1.0D-02  1.0  2.0  3.0  4.0  5.0
+3  2.0D-02  1.0  2.0  3.0  4.0  5.0
+1  0.0D+00  7.0
+2  1.0D-02  8.0
+3  2.0D-02  9.0
+<INPUT>
+</INPUT>
+""",
+    # spin-orbit blocks, a Libxc functional, and all the valence density columns
+    "spin-orbit" => """
+X  spin-orbit test file
+3.0000  2.0000  250101    zatom,zion,pspd
+8   -001012   1   4   3   0   pspcod,pspxc,lmax,lloc,mmax,r2well
+1.0  0.0  0.0   rchrg fchrg qchrg
+1  1    nproj
+3   extension_switch
+1   nprojso
+0   2.5D+00
+1  0.0D+00  1.0D+00
+2  1.0D-02  2.0D+00
+3  2.0D-02  3.0D+00
+1   1.5D+00
+1  0.0D+00  0.0D+00
+2  1.0D-02  4.0D-01
+3  2.0D-02  6.0D-01
+4
+1  0.0D+00 -1.0D+00
+2  1.0D-02 -2.0D+00
+3  2.0D-02 -3.0D+00
+1   5.0D-01
+1  0.0D+00  0.0D+00
+2  1.0D-02  1.0D-01
+3  2.0D-02  2.0D-01
+1  0.0D+00  7.0  7.5  70.0
+2  1.0D-02  8.0  8.5  80.0
+3  2.0D-02  9.0  9.5  90.0
+""")
 
-NUMERIC_CASE_FILEPATHS = Dict(
-    "B_pbe_v1.01.uspp.F.UPF" => UPF1_CASE_FILEPATHS["B_pbe_v1.01.uspp.F.UPF"],
-    "si_pbesol_v1.uspp.F.UPF" => UPF1_CASE_FILEPATHS["si_pbesol_v1.uspp.F.UPF"],
-    "He.pbe-hgh.UPF" => UPF2_CASE_FILEPATHS["He.pbe-hgh.UPF"],
-    "Al.pbe-hgh.UPF" => UPF2_CASE_FILEPATHS["Al.pbe-hgh.UPF"],
-    "Si.pbe-n-rrkjus_psl.1.0.0.UPF" => UPF2_CASE_FILEPATHS["Si.pbe-n-rrkjus_psl.1.0.0.UPF"],
-    "H.upf" => UPF2_CASE_FILEPATHS["H.upf"],
-    "Fe.upf" => UPF2_CASE_FILEPATHS["Fe.upf"],
-    "H.psp8" => PSP8_CASE_FILEPATHS["H.psp8"],
-    "Fe.psp8" => PSP8_CASE_FILEPATHS["Fe.psp8"]
-)
+load_psp8(name) = Psp8File(IOBuffer(PSP8_TEXTS[name]); identifier=name)
 
-UPF2_HGH_PAIRS = [
-    ("H.pbe-hgh.UPF", "h-q1.hgh"),
-    ("He.pbe-hgh.UPF", "he-q2.hgh"),
-    ("B.pbe-hgh.UPF", "b-q3.hgh"),
-    ("C.pbe-hgh.UPF", "c-q4.hgh"),
-    ("N.pbe-hgh.UPF", "n-q5.hgh"),
-    ("O.pbe-hgh.UPF", "o-q6.hgh"),
-    ("F.pbe-hgh.UPF", "f-q7.hgh"),
-    ("Ne.pbe-hgh.UPF", "ne-q8.hgh"),
-    ("Mg.pbe-hgh.UPF", "mg-q2.hgh"),
-    ("Al.pbe-hgh.UPF", "al-q3.hgh"),
-    ("Si.pbe-hgh.UPF", "si-q4.hgh"),
-    ("P.pbe-hgh.UPF", "p-q5.hgh"),
-    ("S.pbe-hgh.UPF", "s-q6.hgh"),
-    ("Cl.pbe-hgh.UPF", "cl-q7.hgh"),
-    ("Ar.pbe-hgh.UPF", "ar-q8.hgh"),
-    ("Ga.pbe-hgh.UPF", "ga-q3.hgh"),
-    ("Ge.pbe-hgh.UPF", "ge-q4.hgh"),
-    ("As.pbe-hgh.UPF", "as-q5.hgh"),
-    ("Se.pbe-hgh.UPF", "se-q6.hgh"),
-    ("Br.pbe-hgh.UPF", "br-q7.hgh"),
-    ("Kr.pbe-hgh.UPF", "kr-q8.hgh"),
-    ("Ru.pbe-hgh.UPF", "ru-q8.hgh"),
-    ("Rh.pbe-hgh.UPF", "rh-q9.hgh"),
-    ("Pd.pbe-hgh.UPF", "pd-q10.hgh"),
-    ("In.pbe-hgh.UPF", "in-q3.hgh"),
-    ("Sn.pbe-hgh.UPF", "sn-q4.hgh"),
-    ("Sb.pbe-hgh.UPF", "sb-q5.hgh"),
-    ("Te.pbe-hgh.UPF", "te-q6.hgh"),
-    ("I.pbe-hgh.UPF", "i-q7.hgh"),
-    ("Xe.pbe-hgh.UPF", "xe-q8.hgh"),
-    ("La.pbe-hgh.UPF", "la-q11.hgh"),
-    ("Ta.pbe-hgh.UPF", "ta-q5.hgh"),
-    ("W.pbe-hgh.UPF", "w-q6.hgh"),
-    ("Re.pbe-hgh.UPF", "re-q7.hgh"),
-    ("Os.pbe-hgh.UPF", "os-q8.hgh"),
-    ("Ir.pbe-hgh.UPF", "ir-q9.hgh"),
-    ("Pt.pbe-hgh.UPF", "pt-q10.hgh"),
-    ("Tl.pbe-hgh.UPF", "tl-q3.hgh"),
-    ("Pb.pbe-hgh.UPF", "pb-q4.hgh"),
-    ("Bi.pbe-hgh.UPF", "bi-q5.hgh"),
-    ("Po.pbe-hgh.UPF", "po-q6.hgh"),
-    ("At.pbe-hgh.UPF", "at-q7.hgh"),
-    ("Rn.pbe-hgh.UPF", "rn-q8.hgh")
-]
-UPF2_HGH_FILEPATHS = map(UPF2_HGH_PAIRS) do (upf2_filename, hgh_filename)
-    (
-        joinpath(_resolve_family("hgh_pbe_upf"), upf2_filename),
-        joinpath(_resolve_family("hgh_pbe_hgh"), hgh_filename)
-    )
-end
+# Two files of the HGH LDA family (Hartwigsen, Goedecker, Hutter), as they are
+const HGH_TEXTS = Dict(
+    "c-q4.hgh" => """
+C GTH-PADE-q4 GTH-LDA-q4
+    2    2
+     0.34883045    2    -8.51377110     1.22843203
+    2
+     0.30455321    1     9.52284179
+     0.23267730    0
+""",
+    "ni-q18.hgh" => """
+Ni GTH-PADE-q18 GTH-LDA-q18
+    4    6    8
+     0.35000000    2     3.61031072     0.44963832
+    3
+     0.24510489    2    12.16113071     3.51625420
+                                       -9.07892931
+     0.23474136    2    -0.82062357     2.54774737
+                                       -6.02907069
+     0.21494950    1   -13.39506212
+""")
 
-UPF2_PSP8_ELEMENTS = ("Ag", "Al", "Ar", "As", "Au", "B", "Ba", "Be", "Bi", "Br", "C", "Ca",
-                      "Cr", "Cu", "Cd", "Cl", "Co", "Cs", "F", "Fe", "Ga", "Ge", "H", "He",
-                      "Hf", "Hg", "I", "In", "Ir", "K", "Kr", "La", "Li", "Lu", "Mg", "Mn",
-                      "Mo", "N", "Na", "Nb", "Ne", "Ni", "O", "Os", "P", "Pb", "Pd", "Po",
-                      "Pt", "Rb", "Re", "Rh", "Rn", "Ru", "S", "Sb", "Sc", "Se", "Si", "Sn",
-                      "Sr", "Ta", "Tc", "Te", "Ti", "Tl", "V", "W", "Xe", "Y", "Zn", "Zr")
-UPF2_PSP8_FILEPATHS = map(UPF2_PSP8_ELEMENTS) do element
-    (
-        element,
-        joinpath(_resolve_family("pd_nc_sr_pbe_standard_0.4.1_upf"), "$(element).upf"),
-        joinpath(_resolve_family("pd_nc_sr_pbe_standard_0.4.1_psp8"), "$(element).psp8")
-    )
-end
+load_hgh(name) = HghFile(IOBuffer(HGH_TEXTS[name]); identifier=name)

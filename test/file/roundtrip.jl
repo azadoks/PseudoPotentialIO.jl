@@ -1,5 +1,6 @@
-# Write every UPF v2 norm-conserving and every psp8 fixture, read it back, and compare every
-# field of the two structs (floating-point data to the precision of the writers).
+# Write every UPF v2 norm-conserving, every PSP8, every HGH and every PSML fixture, read it back, and
+# compare every field of the two structs (floating-point data to the precision of the
+# writers).
 
 # Paths of the fields that differ between `a` and `b`, recursively through structs and arrays
 function field_mismatches(a, b; rtol=1e-12)
@@ -43,7 +44,7 @@ end
 function roundtrip(file, ext)
     outpath = joinpath(mktempdir(; cleanup=true), "roundtrip" * ext)
     save_psp_file(outpath, file)
-    return load_psp_file(outpath)
+    return load_psp_file(outpath; validation=test_validation(identifier(file)))
 end
 
 # the identifier is the file name
@@ -51,13 +52,19 @@ without_identifier(file::UpfFile) = [getfield(file, n) for n in fieldnames(UpfFi
                                      if n != :identifier]
 without_identifier(file::Psp8File) = [getfield(file, n) for n in fieldnames(Psp8File)
                                       if n != :identifier]
+# the functional is guessed from the file name
+without_identifier(file::HghFile) = [getfield(file, n) for n in fieldnames(HghFile)
+                                     if !(n in (:identifier, :functional))]
+# PSML before 1.1 is written as PSML 1.1
+without_identifier(file::PsmlFile) = [getfield(file, n) for n in fieldnames(PsmlFile)
+                                      if !(n in (:identifier, :version))]
 
 @testset "Round trip" begin
     # UPF v1 and v2 ultrasoft and PAW, written as UPF v2: augmentation (PP_QIJ, PP_QIJL,
     # PP_QFCOEF, PP_RINNER) and the PP_AEWFC/PP_PSWFC of PP_FULL_WFC and PP_PAW
     @testset "UPF US/PAW: $name" for (name, filepath) in
                                      merge(UPF1_CASE_FILEPATHS, UPF2_CASE_FILEPATHS)
-        file = load_psp_file(filepath)
+        file = load_test_file(filepath)
         is_norm_conserving(file) && continue
         newfile = roundtrip(file, ".upf")
         compared = [n for n in fieldnames(UpfFile) if !(n in (:identifier, :version))]
@@ -68,7 +75,7 @@ without_identifier(file::Psp8File) = [getfield(file, n) for n in fieldnames(Psp8
 
     @testset "UPF v2.0.1 NC" begin
         for filepath in values(UPF2_CASE_FILEPATHS)
-            file = load_psp_file(filepath)
+            file = load_test_file(filepath)
             is_norm_conserving(file) || continue
             newfile = roundtrip(file, ".upf")
             mismatches = field_mismatches(without_identifier(file),
@@ -81,13 +88,13 @@ without_identifier(file::Psp8File) = [getfield(file, n) for n in fieldnames(Psp8
     # the elements, with the number of mesh points below each, and read back
     @testset "UPF breakpoints" begin
         filepath = first(p for p in values(UPF2_CASE_FILEPATHS)
-                         if is_norm_conserving(load_psp_file(p)) &&
-                            !isnothing(load_psp_file(p).local_) &&
-                            !isempty(load_psp_file(p).nonlocal.betas) &&
-                            !isempty(load_psp_file(p).pswfc))
-        file = load_psp_file(filepath)
+                         if is_norm_conserving(load_test_file(p)) &&
+                            !isnothing(load_test_file(p).local_) &&
+                            !isempty(load_test_file(p).nonlocal.betas) &&
+                            !isempty(load_test_file(p).pswfc))
+        file = load_test_file(filepath)
         r = file.mesh.r
-        breaks = Dict("PP_LOCAL" => [r[200] + 1e-3, r[300] / 3],
+        breaks = Dict("PP_LOCAL" => sort([r[200] + 1e-3, r[300] / 3]),
                       "PP_BETA.$(first(file.nonlocal.betas).index)" => [r[150] + 1e-6],
                       "PP_RHOATOM" => [r[120] + 1e-4],
                       "PP_CHI.$(first(file.pswfc).index)" => [r[180] + 2e-5])
@@ -103,12 +110,33 @@ without_identifier(file::Psp8File) = [getfield(file, n) for n in fieldnames(Psp8
     end
 
     @testset "PSP8" begin
-        for filepath in values(PSP8_FILEPATHS)
-            file = load_psp_file(filepath)
+        for name in keys(PSP8_TEXTS)
+            file = load_psp8(name)
             newfile = roundtrip(file, ".psp8")
             mismatches = field_mismatches(without_identifier(file),
                                           without_identifier(newfile))
+            @test isempty(mismatches) || (name, mismatches)
+        end
+    end
+
+    @testset "HGH" begin
+        for name in keys(HGH_TEXTS)
+            file = load_hgh(name)
+            newfile = roundtrip(file, ".hgh")
+            mismatches = field_mismatches(without_identifier(file),
+                                          without_identifier(newfile))
             @test isempty(mismatches) || (filepath, mismatches)
+        end
+    end
+
+    @testset "PSML" begin
+        for filepath in PSML_FILEPATHS
+            file = load_psp_file(filepath)
+            newfile = roundtrip(file, ".psml")
+            mismatches = field_mismatches(without_identifier(file),
+                                          without_identifier(newfile))
+            @test isempty(mismatches) || (filepath, mismatches)
+            @test newfile.version == (file.version in ("0.8", "1.0") ? "1.1" : file.version)
         end
     end
 end
