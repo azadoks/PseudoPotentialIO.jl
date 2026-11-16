@@ -25,6 +25,18 @@ end
         fields[findfirst(==(:nloc), fieldnames(HghFile))] = 3
         @test_throws ArgumentError with_validation(() -> HghFile(fields...), :error)
         @test (@test_logs (:warn, r"nloc = 3") HghFile(fields...)).nloc == 3
+        # the CP2K format has no spin-orbit coupling
+        fields = [getfield(good, f) for f in fieldnames(HghFile)]
+        fields[findfirst(==(:k), fieldnames(HghFile))] = [zeros(0, 0), ones(1, 1)]
+        @test_throws ArgumentError with_validation(() -> HghFile(fields...), :error)
+        # pspcod = 3: the off-diagonal coefficients follow the HGH relations
+        abinit = load_hgh("gd-abinit.hgh")
+        fields = [getfield(abinit, f) for f in fieldnames(HghFile)]
+        h = copy(fields[findfirst(==(:h), fieldnames(HghFile))])
+        h[1] = [1.0 2.0; 2.0 3.0]
+        fields[findfirst(==(:h), fieldnames(HghFile))] = h
+        @test_throws ArgumentError with_validation(() -> HghFile(fields...), :error)
+        @test_logs (:warn, r"HGH relations") HghFile(fields...)
     end
 
     @testset "PSP8" begin

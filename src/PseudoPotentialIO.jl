@@ -76,7 +76,8 @@ include("file/psp8/dict_struct.jl")
 
 export HghFile
 include("file/hgh/struct.jl")
-include("file/hgh/file_dict.jl")
+include("file/hgh/file_dict_cp2k.jl")
+include("file/hgh/file_dict_abinit.jl")
 include("file/hgh/dict_struct.jl")
 
 ## Loading/listing functions

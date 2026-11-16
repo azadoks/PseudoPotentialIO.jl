@@ -125,7 +125,7 @@ without_identifier(file::PsmlFile) = [getfield(file, n) for n in fieldnames(Psml
             newfile = roundtrip(file, ".hgh")
             mismatches = field_mismatches(without_identifier(file),
                                           without_identifier(newfile))
-            @test isempty(mismatches) || (filepath, mismatches)
+            @test isempty(mismatches) || (name, mismatches)
         end
     end
 

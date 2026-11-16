@@ -138,6 +138,38 @@ Ni GTH-PADE-q18 GTH-LDA-q18
      0.23474136    2    -0.82062357     2.54774737
                                        -6.02907069
      0.21494950    1   -13.39506212
+""",
+    # ABINIT, pspcod = 3 (ABINIT's tests, PseudosHGH_pwteter): the diagonals of h and k,
+    # up to l = 3, whose line has only h11 and k11 (the rest is not read); k of l = 1 has
+    # three projectors, h two
+    "gd-abinit.hgh" => """
+Hartwigsen-Goedecker-Hutter psp for Gd,  from PRB58, 3641 (1998)
+   64  18  010605 zatom,zion,pspdat
+ 3 1   3 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+  0.517500   17.512556   -0.719534    0.000000   0.000000 rloc, c1, c2, c3, c4
+  0.462014    1.551856   -3.068703    0.000000          rs, h11s, h22s, h33s
+  0.456953   -0.058347   -1.697711    0.000000          rp, h11p, h22p, h33p
+              0.535540    0.022024   -0.054301                          k11p, k22p, k33p
+  0.482368   -0.562601    0.000000    0.000000          rd, h11d, h22d, h33d
+              0.053128    0.000000    0.000000                          k11d, k22d, k33d
+  0.273390  -21.923490    0.000000    0.000000          rf, h11f, h22f, h33f
+              0.014666    0.000000    0.000000                          k11f, k22f, k33f
+""",
+    # ABINIT, pspcod = 10 (DFTK's tests): the rows of h and k
+    "fe-abinit.hgh" => """
+Goedecker pseudopotential for Fe
+   26  16  070301 zatom,zion,pspdat
+10 11  2 2 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.36000000    2     6.75678916    -0.22883251                                  rloc nloc c1 c2
+    3                                                                               nnonloc
+     0.27826303    2     0.62950570     7.91313242                                  rs ns hs11 hs12
+                                      -10.21581002                                             hs22
+     0.25138338    2    -7.93213293     7.69707888                                  rp np hp11 hp12
+                                       -9.10730654                                             hp22
+                         0.09786820     0.08070002                                        kp11 kp12
+                                       -0.09548555                                             kp22
+     0.22285578    1   -12.38579937                                                 rd nd hd11
+                         0.01036288                                                       kd11
 """)
 
 load_hgh(name) = HghFile(IOBuffer(HGH_TEXTS[name]); identifier=name)

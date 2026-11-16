@@ -9,24 +9,32 @@ PseudoPotentialIO aims to provide parsers for common pseudopotential file format
 
 ## Reading pseudopotentials
 
-The following file formats are supported or have planned (or no planned) support.
+The following file formats are supported (✅) or not (-).
 If your favorite format does not appear in the table below, please file an [issue](https://github.com/JuliaMolSim/PseudoPotentialIO.jl/issues)!
 
-| Format                   | Read        |
-|--------------------------|-------------|
-| UPF (old)                | ✅          |
-| UPF (v2.0.1 with schema) | ✅          |
-| PSP1                     | Not planned |
-| PSP3/HGH                 | Partial     |
-| PSP4/Teter               | Not planned |
-| PSP5/"Phoney"            | Not planned |
-| PSP6/FHI98PP             | Not planned |
-| PSP7/ABINIT PAW          | Not planned |
-| PSP8/ONCVPSP             | ✅          |
-| PSP9/PSML                | ✅          |
-| PSP17/ABINIT PAW XML     | Not planned |
-| FPMD XML                 | Not planned |
-| Vanderbilt USPP          | Not planned |
+| Format                        | Read        | Write |
+|-------------------------------|-------------|-------|
+| UPF v1                        | ✅          | -     |
+| UPF v2.0.1                    | ✅          | ✅    |
+| UPF (`qe_pp` schema)          | -           | -     |
+| PSP1/Teter                    | -           | -     |
+| PSP2/GTH (1996)               | -           | -     |
+| PSP3/HGH                      | ✅          | ✅    |
+| PSP4/Teter                    | -           | -     |
+| PSP5/"Phoney"                 | -           | -     |
+| PSP6/FHI98PP                  | -           | -     |
+| PSP7/ABINIT PAW               | -           | -     |
+| PSP8/ONCVPSP                  | ✅          | ✅    |
+| PSP9/PSML                     | ✅          | ✅    |
+| PSP10/HGH (full h/k)          | ✅          | ✅    |
+| PSP17/PAW XML (ABINIT, GPAW)  | -           | -     |
+| GTH/HGH (CP2K)                | ✅          | ✅    |
+| FPMD XML                      | -           | -     |
+| SIESTA `.psf`/`.vps`          | -           | -     |
+| CASTEP `.usp`/`.recpot`       | -           | -     |
+| CPMD `.psp`                   | -           | -     |
+| Vanderbilt USPP               | -           | -     |
+| VASP POTCAR                   | -           | -     |
 
 Pseudopotentials are read by calling `load_psp_file(path)`.
 This returns one of the `[Format]File` structs which mirror very closely the contents of the file.

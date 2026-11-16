@@ -173,9 +173,10 @@ psp8_known_pspxc(pspxc::Integer) =
     pspxc > 0 ? any(entry -> entry["i"] == pspxc, PSP8_EXCHANGE_CORRELATION) :
     pspxc < 0 && all(in(keys(LIBXC_FUNCTIONALS_BY_ID)), psp8_libxc_ids(pspxc))
 
-# empty if unknown
-function libxc_string(header::Psp8Header)::String
-    pspxc = header.pspxc
+# The Libxc names of an ABINIT `pspxc` (also of the HGH formats of ABINIT); empty if unknown
+libxc_string(header::Psp8Header)::String = abinit_libxc_string(header.pspxc)
+
+function abinit_libxc_string(pspxc::Integer)::String
     psp8_known_pspxc(pspxc) || return ""
     if pspxc > 0  # ABINIT code
         entry_index = findfirst(entry -> entry["i"] == pspxc, PSP8_EXCHANGE_CORRELATION)

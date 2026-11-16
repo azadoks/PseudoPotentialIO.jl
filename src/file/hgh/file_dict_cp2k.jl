@@ -1,4 +1,4 @@
-#= HGH <-> nested dictionaries
+#= HGH, CP2K format <-> nested dictionaries
 
 The layout of the file, with the names of `HghFile`:
 - "title": the first line
@@ -12,23 +12,26 @@ The layout of the file, with the names of `HghFile`:
 The sizes (`nloc`, the number of angular momenta, of projectors) say how much data to read
 and are checked against the values on their lines; they are dropped, and written back from
 the data. A line is read up to its first word that is not a number: the rest is a comment.
+
+The helpers at the end are shared with the ABINIT formats (`file_dict_abinit.jl`).
 =#
 
 const HghDict = OrderedDict{String,Any}
 
 """
-Read an HGH file (its text) into nested dictionaries (see `src/file/hgh/file_dict.jl`).
+Read an HGH file of the CP2K format (its text) into nested dictionaries (see
+`src/file/hgh/file_dict_cp2k.jl`).
 """
-function hgh_to_dict(text::AbstractString)::HghDict
+function hgh_cp2k_to_dict(text::AbstractString)::HghDict
     r = FortranRecords(text)
     try
-        return hgh_records_to_dict(r)
+        return hgh_cp2k_records_to_dict(r)
     catch e
         e isa ErrorException ? error("HGH, line $(r.line): $(e.msg)") : rethrow()
     end
 end
 
-function hgh_records_to_dict(r::FortranRecords)
+function hgh_cp2k_records_to_dict(r::FortranRecords)
     d = HghDict("title" => String(strip(next_line!(r))))
     d["zion"] = fortran_int.(hgh_numbers!(r, 1))
     words = hgh_numbers!(r, 2)
@@ -53,6 +56,28 @@ function hgh_records_to_dict(r::FortranRecords)
         push!(nonlocal, HghDict("rp" => rp, "h" => h))
     end
     d["nonlocal"] = nonlocal
+    hgh_trailing_text!(d, r)
+    return d
+end
+
+"""
+Write nested dictionaries (see `hgh_cp2k_to_dict`) as an HGH file of the CP2K format to
+`io`.
+"""
+function dict_to_hgh_cp2k(io::IO, d::AbstractDict)
+    println(io, d["title"])
+    println(io, join(hgh_int.(d["zion"])))
+    println(io, hgh_real(d["rloc"]), hgh_int(length(d["cloc"])), join(hgh_real.(d["cloc"])))
+    println(io, hgh_int(length(d["nonlocal"])))
+    for channel in d["nonlocal"]
+        hgh_print_channel(io, channel)
+    end
+    haskey(d, "trailing_text") && print(io, d["trailing_text"])
+end
+
+# Shared with the ABINIT formats
+
+function hgh_trailing_text!(d, r)
     trailing_text = remaining_text(r)
     isempty(strip(trailing_text)) || (d["trailing_text"] = trailing_text)
     return d
@@ -64,27 +89,23 @@ function hgh_numbers!(r, n)
     return words
 end
 
-"""
-Write nested dictionaries (see `hgh_to_dict`) as an HGH file to `io`.
-"""
-function dict_to_hgh(io::IO, d::AbstractDict)
-    println(io, d["title"])
-    println(io, join(hgh_int.(d["zion"])))
-    println(io, hgh_real(d["rloc"]), hgh_int(length(d["cloc"])), join(hgh_real.(d["cloc"])))
-    println(io, hgh_int(length(d["nonlocal"])))
-    for channel in d["nonlocal"]
-        h = channel["h"]
-        nproj = length(h)
-        all(length(h[i]) == nproj - i + 1 for i in 1:nproj) ||
-            throw(ArgumentError("HGH: the rows of h must have nproj, nproj - 1, ... values"))
-        print(io, hgh_real(channel["rp"]), hgh_int(nproj))
-        for (i, row) in enumerate(h)  # under their columns
-            i > 1 && print(io, repeat(' ', 20 + 15 * (i - 1)))
-            println(io, join(hgh_real.(row)))
-        end
-        nproj == 0 && println(io)
+# rp, nproj and the rows of the upper triangle of h, under their columns
+function hgh_print_channel(io::IO, channel)
+    h = channel["h"]
+    print(io, hgh_real(channel["rp"]), hgh_int(length(h)))
+    isempty(h) ? println(io) : hgh_print_rows(io, h, 2)
+end
+
+# The rows of an upper triangle under their columns, from row `first` on a new line (the
+# first row continues the current line otherwise)
+function hgh_print_rows(io::IO, rows, first)
+    nproj = length(rows)
+    all(length(rows[i]) == nproj - i + 1 for i in 1:nproj) ||
+        throw(ArgumentError("HGH: the rows of h and k must have nproj, nproj - 1, ... values"))
+    for (i, row) in enumerate(rows)
+        i >= first && print(io, repeat(' ', 20 + 15 * (i - 1)))
+        println(io, join(hgh_real.(row)))
     end
-    haskey(d, "trailing_text") && print(io, d["trailing_text"])
 end
 
 hgh_real(x) = " " * lpad(string(Float64(x)), 14)  # shortest text that reads back the same
